@@ -311,7 +311,7 @@ import { getDatabase, ref, set, get, onValue, update, remove, push, serverTimest
 //  🔧 DÁN FIREBASE CONFIG VÀO ĐÂY
 // ══════════════════════════════════════
 const firebaseConfig = {
-   apiKey: "AIzaSyBQMU_ALSlqg_p_5ul-5GxRrmbJ3WmasK0",
+  apiKey: "AIzaSyBQMU_ALSlqg_p_5ul-5GxRrmbJ3WmasK0",
   authDomain: "caro-game-277bd.firebaseapp.com",
   databaseURL: "https://caro-game-277bd-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "caro-game-277bd",
@@ -566,8 +566,10 @@ function drawBoard(cells, winLine, lastMove) {
     cCtx.fillStyle='rgba(255,255,255,.05)';
     cCtx.fillRect(c*C+1,r*C+1,C-2,C-2);
   }
+  // Firebase có thể trả object, convert sang array
+  const cellArr = Array.isArray(cells) ? cells : Object.values(cells||{});
   for(let r=0;r<NR;r++) for(let c=0;c<NC;c++) {
-    const v=cells[r]?.[c]; if(!v)continue;
+    const row2 = cellArr[r]; const v = Array.isArray(row2)?row2[c]:(row2||{})[c]; if(!v)continue;
     const cx=c*C+C/2, cy=r*C+C/2, R=C*.32;
     if (v==='host') {
       cCtx.strokeStyle='#8b5cf6'; cCtx.lineWidth=C*.13; cCtx.lineCap='round';
@@ -588,16 +590,25 @@ function drawBoard(cells, winLine, lastMove) {
   }
 }
 
+function toArray2D(raw) {
+  // Firebase có thể trả về object {0:[...], 1:[...]} thay vì array
+  if (Array.isArray(raw)) return raw.map(r => Array.isArray(r) ? [...r] : Object.values(r||{}));
+  return Object.values(raw||{}).map(r => Array.isArray(r) ? [...r] : Object.values(r||{}));
+}
+
 function caroClick(e) {
   const d = liveD;
-  if (!d||!currentRoom) return;
-  if (d.status!=='playing') return;
+  if (!d||!currentRoom) { console.log('no liveD or room'); return; }
+  if (d.status!=='playing') { console.log('not playing:', d.status); return; }
   if (d.turn!==myRole) { showToast('⏳ Chưa đến lượt bạn!'); return; }
   const rect = cCanvas.getBoundingClientRect();
   const col = Math.floor((e.clientX-rect.left)*cCanvas.width/rect.width/C);
   const row = Math.floor((e.clientY-rect.top)*cCanvas.height/rect.height/C);
   if (row<0||row>=NR||col<0||col>=NC) return;
-  const cells = d.cells.map(r=>[...r]);
+  const cells = toArray2D(d.cells);
+  // đảm bảo đủ 20x20
+  while(cells.length<NR) cells.push(Array(NC).fill(null));
+  cells.forEach(r=>{ while(r.length<NC) r.push(null); });
   if (cells[row][col]) { showToast('❌ Ô này đã có quân!'); return; }
   cells[row][col] = myRole;
   const wl = checkWin(cells,row,col);
@@ -618,7 +629,12 @@ function checkWin(cells,r,c) {
   const v=cells[r][c];
   for(const[dr,dc]of[[0,1],[1,0],[1,1],[1,-1]]){
     const line=[[r,c]];
-    for(const s of[-1,1]){let nr=r+dr*s,nc=c+dc*s;while(nr>=0&&nr<NR&&nc>=0&&nc<NC&&cells[nr][nc]===v){line.push([nr,nc]);nr+=dr*s;nc+=dc*s}}
+    for(const s of[-1,1]){
+      let nr=r+dr*s,nc=c+dc*s;
+      while(nr>=0&&nr<NR&&nc>=0&&nc<NC&&(cells[nr]?.[nc]||null)===v){
+        line.push([nr,nc]);nr+=dr*s;nc+=dc*s;
+      }
+    }
     if(line.length>=WIN)return line;
   }return null;
 }
