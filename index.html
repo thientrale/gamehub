@@ -475,13 +475,13 @@ from'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
 //  🔧 DÁN FIREBASE CONFIG VÀO ĐÂY
 // ════════════════════════════════
 const firebaseConfig = {
-  apiKey: "AIzaSyBQMU_ALSlqg_p_5ul-5GxRrmbJ3WmasK0",
-  authDomain: "caro-game-277bd.firebaseapp.com",
-  databaseURL: "https://caro-game-277bd-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "caro-game-277bd",
-  storageBucket: "caro-game-277bd.firebasestorage.app",
-  messagingSenderId: "523400466614",
-  appId: "1:523400466614:web:86cdfbe8d6fe1c575d9617"
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  databaseURL: "https://YOUR_PROJECT-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "YOUR_PROJECT",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
 };
 // ════════════════════════════════
 
@@ -646,9 +646,11 @@ function listenRoom(id,game){
 //  CARO
 // ══════════════════════════════════════════
 const COLS=20,ROWS=20,WIN=5,CSIZ=580,CELL=CSIZ/COLS;
-let caroCanvas=null,caroCtx=null,lastShown=null;
+let caroCanvas=null,caroCtx=null,lastShown=null,liveGameData=null,liveRoomId=null;
 
 function renderCaro(d,id){
+  // luôn cập nhật data mới nhất
+  liveGameData=d; liveRoomId=id;
   const ga=document.getElementById('gameArea');
   if(!document.getElementById('caroBoard')){
     ga.innerHTML=`
@@ -674,7 +676,8 @@ function renderCaro(d,id){
       </div>`;
     caroCanvas=document.getElementById('caroBoard');
     caroCtx=caroCanvas.getContext('2d');
-    caroCanvas.onclick=e=>caroClick(e,d,id);
+    // dùng liveGameData thay vì d cũ trong closure
+    caroCanvas.onclick=e=>caroClick(e);
   }
 
   // update names
@@ -689,7 +692,6 @@ function renderCaro(d,id){
 
   const isMyTurn=(d.turn===myRole)&&d.status==='playing';
   caroCanvas.className=isMyTurn?'':'wait';
-  caroCanvas.onclick=e=>caroClick(e,d,id);
 
   const me=isMyTurn;
   document.getElementById('tMid').textContent=
@@ -770,23 +772,25 @@ function drawCaroBoard(cells,winLine,lastMove){
   }
 }
 
-function caroClick(e,d,id){
-  if(d.turn!==myRole||d.status!=='playing')return;
-  if(document.getElementById('waitBox'))return;
+function caroClick(e){
+  const d=liveGameData,id=liveRoomId;
+  if(!d||!id)return;
+  if(d.turn!==myRole||d.status!=="playing"){showToast("⏳ Chưa đến lượt bạn!");return}
+  if(document.getElementById("waitBox"))return;
   const rect=caroCanvas.getBoundingClientRect();
   const sx=caroCanvas.width/rect.width,sy=caroCanvas.height/rect.height;
   const c=Math.floor((e.clientX-rect.left)*sx/CELL),r=Math.floor((e.clientY-rect.top)*sy/CELL);
   if(r<0||r>=ROWS||c<0||c>=COLS)return;
   const cells=d.cells.map(row=>[...row]);
-  if(cells[r][c]){showToast('❌ Ô này đã có quân!');return}
+  if(cells[r][c]){showToast("❌ Ô này đã có quân!");return}
   cells[r][c]=myRole;
   const wl=checkCaroWin(cells,r,c);
   const full=cells.every(row=>row.every(v=>v));
   const sc={...d.score||{host:0,guest:0,draw:0}};
-  let status='playing',winner=null;
-  if(wl){status='finished';winner=myRole;if(myRole==='host')sc.host=(sc.host||0)+1;else sc.guest=(sc.guest||0)+1}
-  else if(full){status='finished';sc.draw=(sc.draw||0)+1}
-  update(ref(db,`rooms/${id}`),{cells,turn:myRole==='host'?'guest':'host',status,lastMove:[r,c],caroWinner:winner||null,winLine:wl||null,score:sc});
+  let status="playing",winner=null;
+  if(wl){status="finished";winner=myRole;if(myRole==="host")sc.host=(sc.host||0)+1;else sc.guest=(sc.guest||0)+1}
+  else if(full){status="finished";sc.draw=(sc.draw||0)+1}
+  update(ref(db,`rooms/${id}`),{cells,turn:myRole==="host"?"guest":"host",status,lastMove:[r,c],caroWinner:winner||null,winLine:wl||null,score:sc});
 }
 
 function checkCaroWin(cells,r,c){
