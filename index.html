@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GameHub 🎮</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap');
+
+:root {
+  --bg: #080810;
+  --s1: #11111e;
+  --s2: #181828;
+  --s3: #1f1f33;
+  --border: #ffffff12;
+  --border2: #ffffff20;
+  --text: #f0f0ff;
+  --muted: #6b6b90;
+  --muted2: #9090b0;
+  --purple: #8b5cf6;
+  --pink: #ec4899;
+  --cyan: #06b6d4;
+  --green: #10b981;
+  --yellow: #f59e0b;
+  --r: 14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column}
+
+/* scrollbar */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+
+/* ── SETUP SCREEN ── */
+#setup{
+  position:fixed;inset:0;z-index:200;
+  background:var(--bg);
+  display:flex;align-items:center;justify-content:center;
+  padding:20px;
+}
+.setup-card{
+  background:var(--s1);
+  border:1px solid var(--border2);
+  border-radius:20px;
+  padding:40px 36px;
+  width:100%;max-width:380px;
+  display:flex;flex-direction:column;gap:24px;
+}
+.setup-logo{font-size:40px;text-align:center}
+.setup-title{text-align:center;font-size:26px;font-weight:900;letter-spacing:-0.5px}
+.setup-title span{background:linear-gradient(135deg,var(--purple),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.setup-sub{text-align:center;font-size:14px;color:var(--muted2);margin-top:-16px}
+.field-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:6px}
+input[type=text]{
+  width:100%;background:var(--s3);border:1px solid var(--border2);
+  border-radius:10px;padding:13px 16px;color:var(--text);font-size:15px;
+  font-family:'Inter',sans-serif;outline:none;transition:border-color .2s;
+}
+input[type=text]:focus{border-color:var(--purple)}
+input[type=text]::placeholder{color:var(--muted)}
+.avatar-row{display:flex;gap:8px;flex-wrap:wrap}
+.av{
+  width:40px;height:40px;border-radius:50%;font-size:20px;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--s3);border:2px solid transparent;cursor:pointer;transition:all .2s;
+}
+.av:hover{border-color:var(--border2);transform:scale(1.1)}
+.av.selected{border-color:var(--purple);background:rgba(139,92,246,.2)}
+.btn{
+  width:100%;padding:14px;border:none;border-radius:10px;
+  font-size:15px;font-weight:700;cursor:pointer;transition:all .15s;
+}
+.btn:active{transform:scale(.98)}
+.btn-primary{background:linear-gradient(135deg,var(--purple),#a855f7);color:#fff}
+.btn-primary:hover{opacity:.9}
+.btn-ghost{background:var(--s3);color:var(--text);border:1px solid var(--border2)}
+.btn-ghost:hover{border-color:var(--purple);color:var(--purple)}
+.btn-sm{padding:8px 16px;font-size:13px;width:auto;border-radius:8px}
+.btn-danger{background:transparent;color:var(--pink);border:1px solid var(--pink)}
+
+/* ── MAIN LAYOUT ── */
+#app{display:flex;flex-direction:column;height:100%;display:none}
+
+/* TOP BAR */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 20px;background:var(--s1);border-bottom:1px solid var(--border);
+  flex-shrink:0;gap:12px;
+}
+.topbar-logo{font-size:18px;font-weight:900;letter-spacing:-0.5px;cursor:pointer}
+.topbar-logo em{font-style:normal;background:linear-gradient(135deg,var(--purple),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.user-chip{
+  display:flex;align-items:center;gap:8px;
+  background:var(--s2);border:1px solid var(--border2);
+  border-radius:99px;padding:6px 14px 6px 10px;
+  font-size:13px;font-weight:600;cursor:pointer;transition:border-color .2s;
+}
+.user-chip:hover{border-color:var(--purple)}
+
+/* ── ROOM VIEW layout ── */
+#room-view{display:none;flex:1;overflow:hidden;flex-direction:row}
+#room-view.active{display:flex}
+
+/* GAME AREA */
+.game-area{flex:1;overflow-y:auto;display:flex;flex-direction:column;align-items:center;padding:16px;gap:12px}
+
+/* SIDEBAR CHAT */
+.chat-sidebar{
+  width:280px;flex-shrink:0;border-left:1px solid var(--border);
+  display:flex;flex-direction:column;background:var(--s1);
+}
+.chat-header{
+  padding:14px 16px;border-bottom:1px solid var(--border);
+  font-size:13px;font-weight:700;color:var(--muted2);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.online-dot{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;margin-right:6px}
+.chat-messages{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px}
+.msg{display:flex;flex-direction:column;gap:2px}
+.msg-header{display:flex;align-items:center;gap:6px}
+.msg-av{font-size:14px}
+.msg-name{font-size:11px;font-weight:700;color:var(--muted2)}
+.msg-name.me-name{color:var(--purple)}
+.msg-bubble{
+  background:var(--s2);border-radius:0 10px 10px 10px;
+  padding:8px 12px;font-size:13px;line-height:1.5;
+  border:1px solid var(--border);word-break:break-word;max-width:220px;
+}
+.msg.me .msg-bubble{background:rgba(139,92,246,.2);border-color:rgba(139,92,246,.4);border-radius:10px 0 10px 10px;align-self:flex-end}
+.msg.me{align-items:flex-end}
+.msg-system{text-align:center;font-size:11px;color:var(--muted);padding:4px 0}
+.chat-input-row{
+  padding:12px;border-top:1px solid var(--border);
+  display:flex;gap:8px;align-items:center;
+}
+.chat-input-row input{
+  flex:1;background:var(--s3);border:1px solid var(--border2);
+  border-radius:8px;padding:9px 12px;font-size:13px;color:var(--text);outline:none;
+}
+.chat-input-row input:focus{border-color:var(--purple)}
+.send-btn{
+  width:36px;height:36px;border-radius:8px;border:none;
+  background:var(--purple);color:#fff;font-size:16px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.send-btn:hover{opacity:.85}
+
+/* ── HOME VIEW ── */
+#home-view{flex:1;overflow-y:auto;padding:24px 20px;display:none}
+#home-view.active{display:block}
+
+.home-hero{
+  background:linear-gradient(135deg,rgba(139,92,246,.15),rgba(236,72,153,.1));
+  border:1px solid rgba(139,92,246,.3);border-radius:16px;
+  padding:24px;margin-bottom:24px;
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+}
+.hero-text h2{font-size:22px;font-weight:900;letter-spacing:-0.3px;margin-bottom:4px}
+.hero-text p{font-size:13px;color:var(--muted2)}
+.hero-emoji{font-size:52px}
+
+.section-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:14px}
+.games-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:28px}
+
+.game-card{
+  background:var(--s1);border:1px solid var(--border);border-radius:var(--r);
+  padding:20px 16px;cursor:pointer;transition:all .2s;
+  display:flex;flex-direction:column;gap:8px;position:relative;overflow:hidden;
+}
+.game-card::before{
+  content:'';position:absolute;inset:0;opacity:0;transition:opacity .2s;
+}
+.game-card.caro::before{background:linear-gradient(135deg,rgba(139,92,246,.15),transparent)}
+.game-card.taixiu::before{background:linear-gradient(135deg,rgba(236,72,153,.15),transparent)}
+.game-card.soon::before{background:linear-gradient(135deg,rgba(6,182,212,.1),transparent)}
+.game-card:hover::before{opacity:1}
+.game-card:hover{border-color:var(--border2);transform:translateY(-2px)}
+.game-icon{font-size:32px}
+.game-name{font-size:15px;font-weight:800}
+.game-desc{font-size:12px;color:var(--muted2);line-height:1.4}
+.game-badge{
+  position:absolute;top:10px;right:10px;
+  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;
+  padding:3px 8px;border-radius:99px;
+}
+.badge-live{background:rgba(16,185,129,.2);color:var(--green);border:1px solid rgba(16,185,129,.3)}
+.badge-soon{background:rgba(6,182,212,.15);color:var(--cyan);border:1px solid rgba(6,182,212,.2)}
+
+.rooms-list{display:flex;flex-direction:column;gap:8px}
+.room-item{
+  background:var(--s1);border:1px solid var(--border);border-radius:10px;
+  padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  transition:border-color .2s;
+}
+.room-item:hover{border-color:var(--border2)}
+.room-info{flex:1;min-width:0}
+.room-name{font-size:14px;font-weight:700;margin-bottom:2px}
+.room-meta{font-size:12px;color:var(--muted2)}
+.room-code{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--purple);font-weight:700}
+.empty-rooms{text-align:center;padding:32px;color:var(--muted);font-size:13px}
+
+/* ── GAME UI ── */
+.game-topbar{
+  width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:12px 16px;
+}
+.game-title-bar{font-size:14px;font-weight:800;display:flex;align-items:center;gap:8px}
+.room-code-badge{
+  font-family:'JetBrains Mono',monospace;font-size:11px;
+  background:var(--s3);border:1px solid var(--border2);
+  padding:4px 10px;border-radius:99px;color:var(--purple);cursor:pointer;
+}
+.room-code-badge:hover{border-color:var(--purple)}
+
+/* CARO BOARD */
+.player-row{
+  width:100%;display:flex;gap:10px;align-items:center;max-width:580px;
+}
+.p-pill{
+  flex:1;display:flex;align-items:center;gap:8px;
+  padding:10px 14px;border-radius:99px;
+  background:var(--s1);border:2px solid var(--border);
+  font-size:13px;font-weight:700;transition:all .25s;
+}
+.p-pill.ax{border-color:var(--purple);box-shadow:0 0 16px rgba(139,92,246,.25)}
+.p-pill.ao{border-color:var(--pink);box-shadow:0 0 16px rgba(236,72,153,.25)}
+.p-sym-x{color:var(--purple);font-size:17px;font-weight:900}
+.p-sym-o{color:var(--pink);font-size:17px;font-weight:900}
+.turn-mid{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);text-align:center;min-width:70px}
+
+canvas#caro{
+  max-width:580px;width:100%;height:auto;display:block;
+  border-radius:12px;cursor:crosshair;border:1px solid var(--border);
+}
+canvas#caro.wait{cursor:not-allowed}
+
+.score-strip{
+  display:flex;gap:10px;max-width:580px;width:100%;
+}
+.sc{
+  flex:1;background:var(--s1);border:1px solid var(--border);border-radius:10px;
+  padding:12px;text-align:center;
+}
+.sc-l{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:4px}
+.sc-v{font-size:26px;font-weight:900}
+.sc-vx{color:var(--purple)} .sc-vo{color:var(--pink)} .sc-vd{color:var(--muted2)}
+
+/* TAIXIU */
+.tx-area{
+  display:flex;flex-direction:column;align-items:center;gap:20px;
+  max-width:500px;width:100%;
+}
+.dice-display{
+  display:flex;gap:16px;justify-content:center;flex-wrap:wrap;
+}
+.die{
+  width:80px;height:80px;background:var(--s2);border:2px solid var(--border2);
+  border-radius:16px;display:flex;align-items:center;justify-content:center;
+  font-size:42px;transition:transform .1s;
+}
+.die.rolling{animation:roll .6s ease infinite alternate}
+@keyframes roll{from{transform:rotate(-15deg) scale(.95)}to{transform:rotate(15deg) scale(1.05)}}
+.tx-result{
+  font-size:40px;font-weight:900;letter-spacing:-1px;
+  text-align:center;
+}
+.tx-result.tai{color:var(--green)} .tx-result.xiu{color:var(--pink)}
+.tx-sum{font-size:14px;color:var(--muted2);margin-top:-12px;text-align:center}
+.bet-row{display:flex;gap:12px;width:100%}
+.bet-btn{
+  flex:1;padding:16px;border:2px solid var(--border2);border-radius:12px;
+  background:var(--s2);color:var(--text);font-size:16px;font-weight:800;
+  cursor:pointer;transition:all .2s;text-align:center;
+}
+.bet-btn:hover{border-color:var(--border2);transform:scale(1.02)}
+.bet-btn.tai-btn:hover,.bet-btn.tai-btn.chosen{border-color:var(--green);background:rgba(16,185,129,.15);color:var(--green)}
+.bet-btn.xiu-btn:hover,.bet-btn.xiu-btn.chosen{border-color:var(--pink);background:rgba(236,72,153,.15);color:var(--pink)}
+.bet-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.tx-players-bet{
+  width:100%;background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:14px 16px;
+  display:flex;flex-direction:column;gap:10px;
+}
+.tx-bet-row{display:flex;align-items:center;justify-content:space-between;font-size:13px}
+.tx-bet-name{font-weight:600;display:flex;align-items:center;gap:6px}
+.tx-bet-choice{font-weight:800;font-size:14px}
+.tx-bet-tai{color:var(--green)} .tx-bet-xiu{color:var(--pink)}
+.roll-btn{
+  width:100%;padding:16px;border:none;border-radius:12px;
+  background:linear-gradient(135deg,var(--yellow),#f97316);
+  color:#000;font-size:16px;font-weight:900;cursor:pointer;transition:all .2s;
+}
+.roll-btn:hover{opacity:.9;transform:scale(1.01)}
+.roll-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.tx-round-res{
+  width:100%;background:var(--s2);border:1px solid var(--border2);border-radius:12px;
+  padding:12px 16px;font-size:13px;display:flex;flex-direction:column;gap:6px;
+}
+.tx-res-row{display:flex;justify-content:space-between;align-items:center}
+.win-tag{color:var(--green);font-weight:800} .lose-tag{color:var(--pink);font-weight:700}
+
+/* WAITING */
+.waiting-box{
+  background:var(--s1);border:1px solid var(--border);border-radius:16px;
+  padding:36px;text-align:center;max-width:380px;width:100%;
+  display:flex;flex-direction:column;align-items:center;gap:16px;
+}
+.pulse{
+  width:64px;height:64px;border-radius:50%;
+  background:linear-gradient(135deg,var(--purple),var(--pink));
+  display:flex;align-items:center;justify-content:center;font-size:28px;
+  position:relative;
+}
+.pulse::after{
+  content:'';position:absolute;inset:-8px;border-radius:50%;
+  border:2px solid var(--purple);animation:pulseAnim 1.5s ease-out infinite;opacity:0;
+}
+@keyframes pulseAnim{0%{transform:scale(.8);opacity:.8}100%{transform:scale(1.5);opacity:0}}
+.link-copy{
+  background:var(--s3);border:1px solid var(--border2);border-radius:8px;
+  padding:10px 14px;font-family:'JetBrains Mono',monospace;font-size:12px;
+  color:var(--purple);word-break:break-all;cursor:pointer;transition:border-color .2s;width:100%;
+}
+.link-copy:hover{border-color:var(--purple)}
+
+/* RESULT MODAL */
+.overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);
+  backdrop-filter:blur(8px);z-index:300;align-items:center;justify-content:center;
+}
+.overlay.on{display:flex}
+.modal{
+  background:var(--s1);border:1px solid var(--border2);border-radius:20px;
+  padding:36px;text-align:center;max-width:300px;width:90%;
+  display:flex;flex-direction:column;gap:14px;animation:popIn .25s ease;
+}
+@keyframes popIn{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
+.modal-em{font-size:56px}
+.modal-title{font-size:22px;font-weight:900}
+.modal-sub{font-size:13px;color:var(--muted2)}
+
+/* TOAST */
+.toast{
+  position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);
+  background:var(--s2);border:1px solid var(--border2);border-radius:99px;
+  padding:10px 20px;font-size:13px;font-weight:600;
+  transition:transform .3s;z-index:400;white-space:nowrap;
+}
+.toast.on{transform:translateX(-50%) translateY(0)}
+
+@media(max-width:600px){
+  .chat-sidebar{display:none}
+  .games-grid{grid-template-columns:1fr 1fr}
+  .home-hero{flex-direction:column;text-align:center}
+}
+</style>
+</head>
+<body>
+
+<!-- SETUP -->
+<div id="setup">
+  <div class="setup-card">
+    <div class="setup-logo">🎮</div>
+    <div>
+      <div class="setup-title">Chào mừng đến <span>GameHub</span></div>
+      <div class="setup-sub" style="margin-top:6px">Chơi game với bạn bè, gửi link là xong!</div>
+    </div>
+    <div>
+      <div class="field-label">Tên của bạn</div>
+      <input type="text" id="setupName" placeholder="Nhập tên..." maxlength="16" autofocus>
+    </div>
+    <div>
+      <div class="field-label" style="margin-bottom:8px">Chọn avatar</div>
+      <div class="avatar-row" id="avatarRow"></div>
+    </div>
+    <button class="btn btn-primary" onclick="enterHub()">🚀 Vào GameHub</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-logo" onclick="goHome()"><em>Game</em>Hub 🎮</div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <div class="user-chip" id="userChip" onclick="goHome()">
+        <span id="chipAv">😎</span>
+        <span id="chipName">Bạn</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- HOME VIEW -->
+  <div id="home-view" class="active">
+    <div class="home-hero">
+      <div class="hero-text">
+        <h2>Chơi game<br>với bạn bè 🎉</h2>
+        <p>Tạo phòng → gửi link → chiến ngay.<br>Không cần đăng ký, không cài app.</p>
+      </div>
+      <div class="hero-emoji">🕹️</div>
+    </div>
+
+    <div class="section-title">Chọn game</div>
+    <div class="games-grid">
+      <div class="game-card caro" onclick="openGameLobby('caro')">
+        <span class="game-badge badge-live">🟢 Online</span>
+        <div class="game-icon">⚔️</div>
+        <div class="game-name">Caro</div>
+        <div class="game-desc">Đánh 5 quân thắng, 20×20 ô</div>
+      </div>
+      <div class="game-card taixiu" onclick="openGameLobby('taixiu')">
+        <span class="game-badge badge-live">🟢 Online</span>
+        <div class="game-icon">🎲</div>
+        <div class="game-name">Tài Xỉu</div>
+        <div class="game-desc">Đoán tài/xỉu, 3 xúc xắc</div>
+      </div>
+      <div class="game-card soon">
+        <span class="game-badge badge-soon">Sắp ra</span>
+        <div class="game-icon">🃏</div>
+        <div class="game-name">Tiến Lên</div>
+        <div class="game-desc">2–4 người chơi</div>
+      </div>
+      <div class="game-card soon">
+        <span class="game-badge badge-soon">Sắp ra</span>
+        <div class="game-icon">🎯</div>
+        <div class="game-name">Đố vui</div>
+        <div class="game-desc">Câu hỏi trắc nghiệm</div>
+      </div>
+    </div>
+
+    <div class="section-title">Phòng đang mở</div>
+    <div class="rooms-list" id="roomsList">
+      <div class="empty-rooms">Chưa có phòng nào đang mở.<br>Tạo phòng mới để bắt đầu!</div>
+    </div>
+  </div>
+
+  <!-- ROOM VIEW -->
+  <div id="room-view">
+    <div class="game-area" id="gameArea"></div>
+    <div class="chat-sidebar">
+      <div class="chat-header">
+        <span><span class="online-dot"></span>Chat phòng</span>
+        <span id="onlineCount" style="font-size:12px;color:var(--muted)">1 online</span>
+      </div>
+      <div class="chat-messages" id="chatMessages"></div>
+      <div class="chat-input-row">
+        <input type="text" id="chatInput" placeholder="Nhắn gì đó..." maxlength="120" onkeydown="if(event.key==='Enter')sendChat()">
+        <button class="send-btn" onclick="sendChat()">➤</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RESULT OVERLAY -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-em" id="modEm">🏆</div>
+    <div class="modal-title" id="modTitle">Thắng!</div>
+    <div class="modal-sub" id="modSub"></div>
+    <button class="btn btn-primary" onclick="closeModal()">Tiếp tục</button>
+    <button class="btn btn-ghost" onclick="leaveRoom()">🏠 Về trang chủ</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Firebase -->
+<script type="module">
+import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import{getDatabase,ref,set,get,onValue,update,remove,push,serverTimestamp,off}
+from'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
+
+// ════════════════════════════════
+//  🔧 DÁN FIREBASE CONFIG VÀO ĐÂY
+// ════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyBQMU_ALSlqg_p_5ul-5GxRrmbJ3WmasK0",
+  authDomain: "caro-game-277bd.firebaseapp.com",
+  databaseURL: "https://caro-game-277bd-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "caro-game-277bd",
+  storageBucket: "caro-game-277bd.firebasestorage.app",
+  messagingSenderId: "523400466614",
+  appId: "1:523400466614:web:86cdfbe8d6fe1c575d9617"
+};
+// ════════════════════════════════
+
+const fbApp = initializeApp(firebaseConfig);
+const db = getDatabase(fbApp);
+
+// ── AVATARS ──
+const AVATARS = ['😎','🦊','🐼','🦁','🐸','🦄','🤖','👻','🐯','🐧','🦋','🎃'];
+let myName='', myAv='😎', myId='', currentRoom=null, myRole=null;
+let gameUnsub=null, chatUnsub=null, roomsUnsub=null;
+
+// ── SETUP ──
+const avRow = document.getElementById('avatarRow');
+AVATARS.forEach(a=>{
+  const d=document.createElement('div');
+  d.className='av'+(a==='😎'?' selected':'');
+  d.textContent=a;
+  d.onclick=()=>{document.querySelectorAll('.av').forEach(x=>x.classList.remove('selected'));d.classList.add('selected');myAv=a};
+  avRow.appendChild(d);
+});
+
+window.enterHub=function(){
+  const n=document.getElementById('setupName').value.trim();
+  if(!n){showToast('⚠️ Nhập tên trước nhé!');return}
+  myName=n; myId='u_'+Math.random().toString(36).substr(2,8);
+  document.getElementById('chipName').textContent=myName;
+  document.getElementById('chipAv').textContent=myAv;
+  document.getElementById('setup').style.display='none';
+  document.getElementById('app').style.display='flex';
+  listenPublicRooms();
+  checkUrlRoom();
+}
+
+// ── HELPERS ──
+function uid(l=6){return Math.random().toString(36).substr(2,l).toUpperCase()}
+function showToast(m,ms=2200){
+  const t=document.getElementById('toast');t.textContent=m;t.classList.add('on');
+  setTimeout(()=>t.classList.remove('on'),ms);
+}
+function closeModal(){document.getElementById('overlay').classList.remove('on');lastShown=null}
+window.closeModal=closeModal;
+
+function goHome(){
+  if(currentRoom)leaveRoom();
+  showHome();
+}
+window.goHome=goHome;
+
+function showHome(){
+  document.getElementById('home-view').classList.add('active');
+  document.getElementById('room-view').classList.remove('active');
+}
+function showRoom(){
+  document.getElementById('home-view').classList.remove('active');
+  document.getElementById('room-view').classList.add('active');
+}
+
+// ── PUBLIC ROOMS ──
+function listenPublicRooms(){
+  if(roomsUnsub)off(ref(db,'rooms'),roomsUnsub);
+  onValue(ref(db,'rooms'),snap=>{
+    const list=document.getElementById('roomsList');
+    const rooms=snap.val()||{};
+    const open=Object.entries(rooms).filter(([,v])=>v.status==='waiting'&&v.public);
+    if(!open.length){list.innerHTML='<div class="empty-rooms">Chưa có phòng nào đang mở.<br>Tạo phòng mới để bắt đầu!</div>';return}
+    list.innerHTML=open.map(([id,v])=>`
+      <div class="room-item">
+        <div class="room-info">
+          <div class="room-name">${v.gameIcon||'🎮'} ${v.gameName||'Game'} — ${v.hostAv}${v.hostName}</div>
+          <div class="room-meta"><span class="room-code">#${id}</span> · Đang chờ 1/2</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="quickJoin('${id}')">Vào</button>
+      </div>`).join('');
+  });
+}
+
+window.quickJoin=function(id){joinRoom(id)}
+
+// ── GAME LOBBY ──
+const GAMES={
+  caro:{name:'Caro',icon:'⚔️',desc:'2 người'},
+  taixiu:{name:'Tài Xỉu',icon:'🎲',desc:'2–4 người'}
+};
+
+window.openGameLobby=function(game){
+  const g=GAMES[game];
+  document.getElementById('gameArea').innerHTML=`
+    <div style="max-width:480px;width:100%;display:flex;flex-direction:column;gap:14px;padding-top:20px">
+      <div style="font-size:28px;font-weight:900">${g.icon} ${g.name}</div>
+      <p style="color:var(--muted2);font-size:14px">${g.desc} · Tạo phòng rồi gửi link cho bạn bè</p>
+      <button class="btn btn-primary" onclick="createRoom('${game}')">🎮 Tạo phòng mới</button>
+      <div style="display:flex;gap:10px;align-items:center">
+        <input type="text" id="joinCode" placeholder="Mã phòng (6 ký tự)" maxlength="6" style="flex:1">
+        <button class="btn btn-ghost btn-sm" style="white-space:nowrap" onclick="joinRoom(document.getElementById('joinCode').value.trim().toUpperCase())">Vào phòng</button>
+      </div>
+      <button class="btn btn-ghost" onclick="goHome()" style="margin-top:4px">← Quay lại</button>
+    </div>`;
+  showRoom();
+  clearChat();
+}
+
+// ── CREATE ROOM ──
+window.createRoom=async function(game){
+  const id=uid();
+  currentRoom=id; myRole='host';
+  const g=GAMES[game];
+  const data={
+    game, gameName:g.name, gameIcon:g.icon,
+    hostId:myId, hostName:myName, hostAv:myAv,
+    status:'waiting', public:true,
+    score:{host:0,guest:0,draw:0},
+    createdAt:serverTimestamp()
+  };
+  if(game==='caro'){
+    data.cells=Array(20).fill(null).map(()=>Array(20).fill(null));
+    data.turn='host'; data.caroWinner=null; data.winLine=null;
+  }
+  if(game==='taixiu'){
+    data.dice=[1,1,1]; data.phase='bet'; data.bets={};
+    data.rounds=[];
+  }
+  await set(ref(db,`rooms/${id}`),data);
+  history.replaceState(null,'',`${location.pathname}?room=${id}`);
+  listenRoom(id,game);
+  addSystemMsg(`${myAv} ${myName} tạo phòng`);
+}
+
+// ── JOIN ROOM ──
+window.joinRoom=async function(id){
+  if(!id){showToast('⚠️ Nhập mã phòng!');return}
+  id=id.toUpperCase();
+  const snap=await get(ref(db,`rooms/${id}`));
+  if(!snap.exists()){showToast('❌ Không tìm thấy phòng!');return}
+  const d=snap.val();
+  if(d.guestId&&d.guestId!==myId&&d.status!=='waiting'){showToast('❌ Phòng đã đầy!');return}
+  currentRoom=id; myRole='guest';
+  await update(ref(db,`rooms/${id}`),{
+    guestId:myId, guestName:myName, guestAv:myAv, status:'playing', public:false
+  });
+  history.replaceState(null,'',`${location.pathname}?room=${id}`);
+  listenRoom(id,d.game);
+  addSystemMsg(`${myAv} ${myName} đã vào phòng`);
+}
+
+// ── LISTEN ROOM ──
+function listenRoom(id,game){
+  showRoom();
+  if(gameUnsub)off(ref(db,`rooms/${id}`));
+  gameUnsub=onValue(ref(db,`rooms/${id}`),snap=>{
+    if(!snap.exists()){leaveLocal();return}
+    const d=snap.val();
+    if(game==='caro')renderCaro(d,id);
+    else if(game==='taixiu')renderTaixiu(d,id);
+    // update online count
+    const cnt=(d.hostId?1:0)+(d.guestId?1:0);
+    document.getElementById('onlineCount').textContent=cnt+' online';
+  });
+  listenChat(id);
+}
+
+// ══════════════════════════════════════════
+//  CARO
+// ══════════════════════════════════════════
+const COLS=20,ROWS=20,WIN=5,CSIZ=580,CELL=CSIZ/COLS;
+let caroCanvas=null,caroCtx=null,lastShown=null;
+
+function renderCaro(d,id){
+  const ga=document.getElementById('gameArea');
+  if(!document.getElementById('caroBoard')){
+    ga.innerHTML=`
+      <div class="game-topbar">
+        <div class="game-title-bar">⚔️ Caro
+          <span class="room-code-badge" onclick="copyRoomLink('${id}')">#${id} 📋</span>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost btn-sm" onclick="rematch()">🔄 Ván mới</button>
+          <button class="btn btn-danger btn-sm" onclick="leaveRoom()">Thoát</button>
+        </div>
+      </div>
+      <div class="player-row" id="pRow">
+        <div class="p-pill" id="pX"><span class="p-sym-x">✕</span><span id="pXn">…</span></div>
+        <div class="turn-mid" id="tMid">VS</div>
+        <div class="p-pill" id="pO"><span class="p-sym-o">○</span><span id="pOn">…</span></div>
+      </div>
+      <canvas id="caroBoard" width="${CSIZ}" height="${CSIZ}"></canvas>
+      <div class="score-strip">
+        <div class="sc"><div class="sc-l">✕ Thắng</div><div class="sc-v sc-vx" id="scX">0</div></div>
+        <div class="sc"><div class="sc-l">Hòa</div><div class="sc-v sc-vd" id="scD">0</div></div>
+        <div class="sc"><div class="sc-l">○ Thắng</div><div class="sc-v sc-vo" id="scO">0</div></div>
+      </div>`;
+    caroCanvas=document.getElementById('caroBoard');
+    caroCtx=caroCanvas.getContext('2d');
+    caroCanvas.onclick=e=>caroClick(e,d,id);
+  }
+
+  // update names
+  const hName=(d.hostAv||'')+(d.hostName||'Host');
+  const gName=d.guestName?(d.guestAv||'')+(d.guestName):'Chờ...';
+  document.getElementById('pXn').textContent=hName;
+  document.getElementById('pOn').textContent=gName;
+
+  const px=document.getElementById('pX'),po=document.getElementById('pO');
+  px.className='p-pill'+(d.turn==='host'&&d.status==='playing'?' ax':'');
+  po.className='p-pill'+(d.turn==='guest'&&d.status==='playing'?' ao':'');
+
+  const isMyTurn=(d.turn===myRole)&&d.status==='playing';
+  caroCanvas.className=isMyTurn?'':'wait';
+  caroCanvas.onclick=e=>caroClick(e,d,id);
+
+  const me=isMyTurn;
+  document.getElementById('tMid').textContent=
+    d.status==='waiting'?'Chờ bạn':me?'🎯 Bạn':d.status==='finished'?'⏹':'⏳ Chờ';
+
+  // score
+  const sc=d.score||{};
+  document.getElementById('scX').textContent=sc.host||0;
+  document.getElementById('scO').textContent=sc.guest||0;
+  document.getElementById('scD').textContent=sc.draw||0;
+
+  drawCaroBoard(d.cells||[],d.winLine||null,d.lastMove||null);
+
+  // show result
+  if(d.status==='finished'&&lastShown!==id+(d.caroWinner||'draw')){
+    lastShown=id+(d.caroWinner||'draw');
+    const iWin=d.caroWinner===myRole;
+    const isDraw=!d.caroWinner;
+    const winName=d.caroWinner==='host'?hName:gName;
+    showModal(
+      isDraw?'🤝':iWin?'🏆':'😢',
+      isDraw?'Hòa!':iWin?'Bạn thắng!':'Thua rồi!',
+      isDraw?'Không ai thắng ván này.':`${winName} thắng ván này!`
+    );
+  }
+  // waiting overlay
+  if(d.status==='waiting'){
+    showWaiting(id);
+  }
+}
+
+function showWaiting(id){
+  const link=`${location.href.split('?')[0]}?room=${id}`;
+  document.getElementById('gameArea').insertAdjacentHTML('afterbegin',`
+    <div class="waiting-box" id="waitBox">
+      <div class="pulse">⏳</div>
+      <div style="font-size:18px;font-weight:800">Đang chờ bạn bè...</div>
+      <div style="font-size:13px;color:var(--muted2)">Gửi link này cho bạn:</div>
+      <div class="link-copy" onclick="copyLink('${link}')">${link}</div>
+      <div style="font-size:12px;color:var(--muted)">👆 Click để copy</div>
+    </div>`);
+}
+window.copyLink=function(l){navigator.clipboard.writeText(l).then(()=>showToast('✅ Đã copy link!'))}
+window.copyRoomLink=function(id){copyLink(`${location.href.split('?')[0]}?room=${id}`)}
+
+function drawCaroBoard(cells,winLine,lastMove){
+  if(!caroCtx)return;
+  const W=CSIZ,H=CSIZ;
+  caroCtx.clearRect(0,0,W,H);
+  caroCtx.fillStyle='#11111e';
+  caroCtx.beginPath();caroCtx.roundRect(0,0,W,H,12);caroCtx.fill();
+  caroCtx.strokeStyle='#ffffff0e';caroCtx.lineWidth=1;
+  for(let i=0;i<=COLS;i++){caroCtx.beginPath();caroCtx.moveTo(i*CELL,0);caroCtx.lineTo(i*CELL,H);caroCtx.stroke()}
+  for(let i=0;i<=ROWS;i++){caroCtx.beginPath();caroCtx.moveTo(0,i*CELL);caroCtx.lineTo(W,i*CELL);caroCtx.stroke()}
+  if(lastMove){
+    const[lr,lc]=lastMove;
+    caroCtx.fillStyle='rgba(255,255,255,.04)';
+    caroCtx.fillRect(lc*CELL+1,lr*CELL+1,CELL-2,CELL-2);
+  }
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+    const v=cells[r]?.[c];if(!v)continue;
+    const cx=c*CELL+CELL/2,cy=r*CELL+CELL/2,R=CELL*.32;
+    if(v==='host'){
+      caroCtx.strokeStyle='#8b5cf6';caroCtx.lineWidth=CELL*.13;caroCtx.lineCap='round';
+      caroCtx.beginPath();caroCtx.moveTo(cx-R,cy-R);caroCtx.lineTo(cx+R,cy+R);caroCtx.stroke();
+      caroCtx.beginPath();caroCtx.moveTo(cx+R,cy-R);caroCtx.lineTo(cx-R,cy+R);caroCtx.stroke();
+    }else{
+      caroCtx.strokeStyle='#ec4899';caroCtx.lineWidth=CELL*.11;
+      caroCtx.beginPath();caroCtx.arc(cx,cy,R,0,Math.PI*2);caroCtx.stroke();
+    }
+  }
+  if(winLine&&winLine.length){
+    const[r0,c0]=winLine[0],[r1,c1]=winLine[winLine.length-1];
+    caroCtx.save();caroCtx.strokeStyle='rgba(255,220,80,.9)';caroCtx.lineWidth=4;
+    caroCtx.lineCap='round';caroCtx.shadowColor='#ffd700';caroCtx.shadowBlur=14;
+    caroCtx.beginPath();caroCtx.moveTo(c0*CELL+CELL/2,r0*CELL+CELL/2);
+    caroCtx.lineTo(c1*CELL+CELL/2,r1*CELL+CELL/2);caroCtx.stroke();caroCtx.restore();
+  }
+}
+
+function caroClick(e,d,id){
+  if(d.turn!==myRole||d.status!=='playing')return;
+  if(document.getElementById('waitBox'))return;
+  const rect=caroCanvas.getBoundingClientRect();
+  const sx=caroCanvas.width/rect.width,sy=caroCanvas.height/rect.height;
+  const c=Math.floor((e.clientX-rect.left)*sx/CELL),r=Math.floor((e.clientY-rect.top)*sy/CELL);
+  if(r<0||r>=ROWS||c<0||c>=COLS)return;
+  const cells=d.cells.map(row=>[...row]);
+  if(cells[r][c]){showToast('❌ Ô này đã có quân!');return}
+  cells[r][c]=myRole;
+  const wl=checkCaroWin(cells,r,c);
+  const full=cells.every(row=>row.every(v=>v));
+  const sc={...d.score||{host:0,guest:0,draw:0}};
+  let status='playing',winner=null;
+  if(wl){status='finished';winner=myRole;if(myRole==='host')sc.host=(sc.host||0)+1;else sc.guest=(sc.guest||0)+1}
+  else if(full){status='finished';sc.draw=(sc.draw||0)+1}
+  update(ref(db,`rooms/${id}`),{cells,turn:myRole==='host'?'guest':'host',status,lastMove:[r,c],caroWinner:winner||null,winLine:wl||null,score:sc});
+}
+
+function checkCaroWin(cells,r,c){
+  const v=cells[r][c];
+  for(const[dr,dc]of[[0,1],[1,0],[1,1],[1,-1]]){
+    const line=[[r,c]];
+    for(const d of[-1,1]){let nr=r+dr*d,nc=c+dc*d;while(nr>=0&&nr<ROWS&&nc>=0&&nc<COLS&&cells[nr][nc]===v){line.push([nr,nc]);nr+=dr*d;nc+=dc*d}}
+    if(line.length>=WIN)return line;
+  }return null;
+}
+
+window.rematch=async function(){
+  lastShown=null;closeModal();
+  await update(ref(db,`rooms/${currentRoom}`),{
+    cells:Array(ROWS).fill(null).map(()=>Array(COLS).fill(null)),
+    turn:'host',status:'playing',lastMove:null,caroWinner:null,winLine:null
+  });
+  showToast('🔄 Ván mới bắt đầu!');
+}
+
+// ══════════════════════════════════════════
+//  TÀI XỈU
+// ══════════════════════════════════════════
+const DICE_FACES=['','⚀','⚁','⚂','⚃','⚄','⚅'];
+let txRolling=false;
+
+function renderTaixiu(d,id){
+  const ga=document.getElementById('gameArea');
+  if(!document.getElementById('txArea')){
+    ga.innerHTML=`
+      <div class="game-topbar">
+        <div class="game-title-bar">🎲 Tài Xỉu
+          <span class="room-code-badge" onclick="copyRoomLink('${id}')">#${id} 📋</span>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-danger btn-sm" onclick="leaveRoom()">Thoát</button>
+        </div>
+      </div>
+      <div class="tx-area" id="txArea">
+        <div class="dice-display" id="diceDisplay">
+          <div class="die" id="d0">⚀</div>
+          <div class="die" id="d1">⚁</div>
+          <div class="die" id="d2">⚂</div>
+        </div>
+        <div class="tx-result" id="txResult" style="opacity:0">—</div>
+        <div class="tx-sum" id="txSum"></div>
+        <div class="bet-row">
+          <div class="bet-btn tai-btn" id="bTai" onclick="placeBet('tai')">🔼 TÀI<br><small style="font-weight:400;font-size:12px">Tổng 11–17</small></div>
+          <div class="bet-btn xiu-btn" id="bXiu" onclick="placeBet('xiu')">🔽 XỈU<br><small style="font-weight:400;font-size:12px">Tổng 4–10</small></div>
+        </div>
+        <div class="tx-players-bet" id="txBets"><div style="color:var(--muted);font-size:13px;text-align:center">Đặt cược để bắt đầu</div></div>
+        <button class="roll-btn" id="rollBtn" onclick="rollDice()" disabled>🎲 Lắc xúc xắc</button>
+        <div class="tx-round-res" id="txRoundRes" style="display:none"></div>
+      </div>`;
+  }
+  if(d.status==='waiting'){showWaiting(id);return}
+  const wb=document.getElementById('waitBox');if(wb)wb.remove();
+
+  // dice
+  const dice=d.dice||[1,1,1];
+  for(let i=0;i<3;i++)document.getElementById('d'+i).textContent=DICE_FACES[dice[i]];
+
+  // result
+  const sum=dice.reduce((a,b)=>a+b,0);
+  const res=document.getElementById('txResult');
+  if(d.phase==='result'){
+    const isTai=sum>=11;
+    res.textContent=isTai?'TÀI 🔼':'XỈU 🔽';
+    res.className='tx-result '+(isTai?'tai':'xiu');
+    res.style.opacity='1';
+    document.getElementById('txSum').textContent=`Tổng: ${sum}`;
+  }else{
+    res.style.opacity='0';
+    document.getElementById('txSum').textContent='';
+  }
+
+  // bets UI
+  const myBet=d.bets?.[myId];
+  const bTai=document.getElementById('bTai'),bXiu=document.getElementById('bXiu');
+  if(d.phase==='result'||myBet){bTai.disabled=true;bXiu.disabled=true}
+  else{bTai.disabled=false;bXiu.disabled=false}
+  bTai.className='bet-btn tai-btn'+(myBet==='tai'?' chosen':'');
+  bXiu.className='bet-btn xiu-btn'+(myBet==='xiu'?' chosen':'');
+
+  // all bets list
+  const bets=d.bets||{};
+  const players=[
+    {id:d.hostId,name:d.hostAv+d.hostName},
+    d.guestId&&{id:d.guestId,name:(d.guestAv||'')+(d.guestName||'')}
+  ].filter(Boolean);
+
+  document.getElementById('txBets').innerHTML=players.map(p=>{
+    const b=bets[p.id];
+    return`<div class="tx-bet-row">
+      <div class="tx-bet-name">${p.name}</div>
+      <div class="tx-bet-choice ${b?('tx-bet-'+b):''}">${b?b.toUpperCase():'Chưa đặt'}</div>
+    </div>`;
+  }).join('');
+
+  // roll button: only host can roll, when all bets in
+  const allBet=players.every(p=>bets[p.id]);
+  const rollBtn=document.getElementById('rollBtn');
+  rollBtn.disabled=!(myRole==='host'&&allBet&&d.phase==='bet');
+
+  // round result
+  const rr=document.getElementById('txRoundRes');
+  if(d.phase==='result'&&d.lastResult){
+    const lr=d.lastResult;const isTaiRes=sum>=11;
+    rr.style.display='flex';rr.style.flexDirection='column';rr.style.gap='6px';
+    rr.innerHTML=`<div style="font-size:12px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Kết quả</div>`+
+      players.map(p=>{
+        const pb=bets[p.id];const won=(pb==='tai')===isTaiRes;
+        return`<div class="tx-res-row"><span>${p.name}</span><span class="${won?'win-tag':'lose-tag'}">${won?'🏆 Thắng':'💀 Thua'}</span></div>`;
+      }).join('')+
+      `<button class="btn btn-primary" style="margin-top:8px" onclick="nextTxRound()">Ván tiếp →</button>`;
+  }else rr.style.display='none';
+}
+
+window.placeBet=async function(choice){
+  if(!currentRoom)return;
+  const snap=await get(ref(db,`rooms/${currentRoom}`));
+  const d=snap.val();
+  if(d.phase!=='bet'){showToast('⛔ Không thể đặt lúc này!');return}
+  if(d.bets?.[myId]){showToast('⚠️ Bạn đã đặt rồi!');return}
+  await update(ref(db,`rooms/${currentRoom}/bets`),{[myId]:choice});
+  showToast(choice==='tai'?'🔼 Đặt TÀI!':'🔽 Đặt XỈU!');
+}
+
+window.rollDice=async function(){
+  if(txRolling||myRole!=='host')return;
+  txRolling=true;
+  // animate
+  const interval=setInterval(()=>{
+    for(let i=0;i<3;i++){
+      document.getElementById('d'+i).textContent=DICE_FACES[Math.ceil(Math.random()*6)];
+      document.getElementById('d'+i).classList.add('rolling');
+    }
+  },80);
+  await new Promise(r=>setTimeout(r,900));
+  clearInterval(interval);
+  for(let i=0;i<3;i++)document.getElementById('d'+i).classList.remove('rolling');
+  const dice=[Math.ceil(Math.random()*6),Math.ceil(Math.random()*6),Math.ceil(Math.random()*6)];
+  txRolling=false;
+  await update(ref(db,`rooms/${currentRoom}`),{dice,phase:'result',lastResult:true});
+}
+
+window.nextTxRound=async function(){
+  await update(ref(db,`rooms/${currentRoom}`),{dice:[1,1,1],phase:'bet',bets:{},lastResult:false});
+}
+
+// ══════════════════════════════════════════
+//  CHAT
+// ══════════════════════════════════════════
+function listenChat(id){
+  if(chatUnsub)off(ref(db,`chats/${id}`));
+  chatUnsub=onValue(ref(db,`chats/${id}`),snap=>{
+    const msgs=snap.val()||{};
+    const box=document.getElementById('chatMessages');
+    box.innerHTML=Object.values(msgs).sort((a,b)=>a.ts-b.ts).map(m=>{
+      if(m.system)return`<div class="msg-system">${m.text}</div>`;
+      const isMe=m.uid===myId;
+      return`<div class="msg${isMe?' me':''}">
+        <div class="msg-header">
+          <span class="msg-av">${m.av||'😊'}</span>
+          <span class="msg-name${isMe?' me-name':''}">${m.name}</span>
+        </div>
+        <div class="msg-bubble">${escHtml(m.text)}</div>
+      </div>`;
+    }).join('');
+    box.scrollTop=box.scrollHeight;
+  });
+}
+
+function addSystemMsg(text){
+  if(!currentRoom)return;
+  push(ref(db,`chats/${currentRoom}`),{system:true,text,ts:Date.now()});
+}
+
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+window.sendChat=function(){
+  const inp=document.getElementById('chatInput');
+  const txt=inp.value.trim();if(!txt||!currentRoom)return;
+  inp.value='';
+  push(ref(db,`chats/${currentRoom}`),{uid:myId,name:myName,av:myAv,text:txt,ts:Date.now()});
+}
+
+function clearChat(){
+  document.getElementById('chatMessages').innerHTML='';
+}
+
+// ══════════════════════════════════════════
+//  MODAL / LEAVE
+// ══════════════════════════════════════════
+function showModal(em,title,sub){
+  document.getElementById('modEm').textContent=em;
+  document.getElementById('modTitle').textContent=title;
+  document.getElementById('modSub').textContent=sub;
+  document.getElementById('overlay').classList.add('on');
+}
+
+window.leaveRoom=async function(){
+  if(gameUnsub&&currentRoom)off(ref(db,`rooms/${currentRoom}`));
+  if(chatUnsub&&currentRoom)off(ref(db,`chats/${currentRoom}`));
+  if(currentRoom&&myRole==='host')await remove(ref(db,`rooms/${currentRoom}`));
+  leaveLocal();
+}
+
+function leaveLocal(){
+  currentRoom=null;myRole=null;lastShown=null;caroCanvas=null;caroCtx=null;
+  history.replaceState(null,'',location.pathname);
+  document.getElementById('overlay').classList.remove('on');
+  showHome();
+  listenPublicRooms();
+}
+
+// ── URL JOIN ──
+function checkUrlRoom(){
+  const p=new URLSearchParams(location.search);
+  if(p.has('room')){
+    const id=p.get('room').toUpperCase();
+    joinRoom(id);
+  }
+}
+</script>
+</body>
+</html>
