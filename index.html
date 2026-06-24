@@ -585,6 +585,9 @@ window.openGameLobby=function(game){
 
 // ── CREATE ROOM ──
 window.createRoom=async function(game){
+  // reset game area va canvas
+  document.getElementById("gameArea").innerHTML="";
+  caroCanvas=null; caroCtx=null; lastShown=null; liveGameData=null; liveRoomId=null;
   const id=uid();
   currentRoom=id; myRole='host';
   const g=GAMES[game];
@@ -611,6 +614,8 @@ window.createRoom=async function(game){
 
 // ── JOIN ROOM ──
 window.joinRoom=async function(id){
+  document.getElementById("gameArea").innerHTML="";
+  caroCanvas=null; caroCtx=null; lastShown=null; liveGameData=null; liveRoomId=null;
   if(!id){showToast('⚠️ Nhập mã phòng!');return}
   id=id.toUpperCase();
   const snap=await get(ref(db,`rooms/${id}`));
