@@ -262,7 +262,7 @@ input[type=text]::placeholder{color:var(--muted)}
     <div class="ggrid">
       <div class="gcard" onclick="openLobby('caro')"><span class="gbadge blv">🟢 Online</span><div class="gicon">⚔️</div><div class="gname">Caro</div><div class="gdesc">5 quân thắng, 20×20</div></div>
       <div class="gcard" onclick="openLobby('taixiu')"><span class="gbadge blv">🟢 Online</span><div class="gicon">🎲</div><div class="gname">Tài Xỉu</div><div class="gdesc">3 xúc xắc, đặt cược</div></div>
-      <div class="gcard" onclick="openLobby('xidach')"><span class="gbadge blv">🟢 Online</span><div class="gicon">🃏</div><div class="gname">Xì Dách</div><div class="gdesc">Blackjack nhiều người</div></div>
+      <div class="gcard" onclick="openLobby('xidach')"><span class="gbadge blv">🟢 Online</span><div class="gicon">🃏</div><div class="gname">Xì Dách</div><div class="gdesc">Người vs Người, 30s/lượt</div></div>
       <div class="gcard" onclick="openLobby('cotuong')"><span class="gbadge blv">🟢 Online</span><div class="gicon">🀄</div><div class="gname">Cờ Tướng</div><div class="gdesc">2 người, cờ cổ điển</div></div>
       <div class="gcard"><span class="gbadge bsn">Sắp ra</span><div class="gicon">♠️</div><div class="gname">Poker</div><div class="gdesc">Texas Hold'em</div></div>
       <div class="gcard"><span class="gbadge bsn">Sắp ra</span><div class="gicon">🏹</div><div class="gname">Tiến Lên</div><div class="gdesc">2–4 người chơi</div></div>
@@ -391,7 +391,7 @@ window.createRoom=async function(game){
   const data={game,gameName:g.name,icon:g.icon,hostId:h.id,hostName:h.name,hostAv:h.av,status:'waiting',public:true,ts:serverTimestamp()};
   if(game==='caro'){const c={};for(let r=0;r<20;r++){c[r]={};for(let k=0;k<20;k++)c[r][k]=null;}Object.assign(data,{cells:c,turn:'host',winner:null,winLine:null,score:{host:0,guest:0,draw:0}})}
   if(game==='taixiu')Object.assign(data,{dice:[1,1,1],phase:'bet',bets:{},coins:{}});
-  if(game==='xidach')Object.assign(data,{xdPhase:'lobby',players:{[h.id]:{name:h.name,av:h.av,coins:50000,bet:0,hand:[],done:false}},dealerHand:[],deck:[],xdTurn:null});
+  if(game==='xidach')Object.assign(data,{xdPhase:'lobby',players:{[h.id]:{name:h.name,av:h.av,coins:50000,bet:0,hand:[],done:false}},deck:[],xdDone:{},xdResult:{},xdDelta:{},xdShowAll:false,xdTimeLeft:0});
   if(game==='cotuong')Object.assign(data,{ctBoard:initCT(),ctTurn:'red',ctSel:null,ctStatus:'playing',ctScore:{red:0,black:0}});
   await set(ref(db,`rooms/${id}`),data);
   history.replaceState(null,'',`${location.pathname}?room=${id}`);
@@ -411,9 +411,10 @@ window.joinRoom=async function(id){
   // join game-specific
   const upd={guestId:h.id,guestName:h.name,guestAv:h.av,public:false};
   if(d.game==='xidach'){
-    // add player to xidach
-    upd[`players/${h.id}`]={name:h.name,av:h.av,coins:50000,bet:0,hand:[],done:false};
-    upd.status='waiting'; // keep waiting so more can join
+    // thêm người chơi vào xì dách
+    const existCoins=d.players?.[h.id]?.coins;
+    upd[`players/${h.id}`]={name:h.name,av:h.av,coins:existCoins!=null?existCoins:50000,bet:0,hand:[],done:false};
+    upd.status='waiting';
   } else {
     if(d.guestId&&d.status!=='waiting'){showToast('❌ Phòng đã đầy!');return}
     upd.status='playing';
@@ -622,15 +623,20 @@ window.txRoll=async function(){
 window.txNext=async()=>update(ref(db,`rooms/${room}`),{dice:[1,1,1],phase:'bet',bets:{},coins:{}});
 
 // ════════════════════════════════════════
-//  XÌ DÁCH — NHIỀU NGƯỜI, CÓ BANKROLL
+//  XÌ DÁCH — NGƯỜI VS NGƯỜI, CÓ BANKROLL
+//  Luật: 2 người chơi với nhau (không có nhà cái)
+//  Bài ẩn, đếm ngược 30s, show bài, so sánh, ai cao hơn thắng
 // ════════════════════════════════════════
 const SUITS=['♠','♥','♦','♣'],RANKS=['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
 const newDeck=()=>{const d=[];for(const s of SUITS)for(const r of RANKS)d.push(r+s);for(let i=d.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[d[i],d[j]]=[d[j],d[i]]}return d};
 const cVal=c=>{const r=c.slice(0,-1);if(['J','Q','K'].includes(r))return 10;if(r==='A')return 11;return parseInt(r)};
 const hVal=h=>{let v=h.reduce((a,c)=>a+cVal(c),0),a=h.filter(c=>c.startsWith('A')).length;while(v>21&&a-->0)v-=10;return v};
 const isRed=c=>['♥','♦'].some(s=>c.endsWith(s));
-const XD_CHIPS=[5000,10000,20000,'all'];
-const INIT_COINS=50000;
+const XD_CHIPS=[5000,10000,15000,20000];
+const XD_INIT=50000;
+
+// timer ref
+let xdTimerInterval=null;
 
 function mkCard(c,hide=false){
   if(hide)return`<div class="card-el card-back"><span style="font-size:22px">🂠</span></div>`;
@@ -641,6 +647,9 @@ function mkCard(c,hide=false){
 function renderXD(d,id){
   const h=me(),players=d.players||{};
   const myP=players[h.id];
+  const phase=d.xdPhase||'lobby';
+  const plist=Object.entries(players);
+
   if(!document.getElementById('xd-wrap')){
     document.getElementById('garea').innerHTML=`
       <div class="gtop"><div class="gtitle">🃏 Xì Dách <span class="cbadge" onclick="copyL('${id}')">#${id} 📋</span></div><button class="btn btn-d btn-sm" onclick="leaveRoom()">Thoát</button></div>
@@ -649,164 +658,316 @@ function renderXD(d,id){
   const wb=document.getElementById('wbox');
   if(d.status==='waiting'){if(!wb)mkWbox(id)}else{if(wb)wb.remove()}
   const wrap=document.getElementById('xd-wrap');
-  const phase=d.xdPhase||'lobby';
-  const dealer=d.dealerHand||[];
-  const showDealer=phase==='result';
-  const plist=Object.entries(players);
   let html='';
 
+  // ── LOBBY ──
   if(phase==='lobby'){
-    html+=`<div class="xd-panel" style="align-items:center;text-align:center;gap:14px">
-      <div style="font-size:32px">🃏</div>
-      <div style="font-size:15px;font-weight:800">Phòng Xì Dách</div>
-      <div style="font-size:12px;color:var(--muted2)">Vốn ban đầu: <b style="color:var(--gold)">50,000 xu</b> mỗi người<br>Mời bạn bè vào rồi bắt đầu!</div>
-      <div style="width:100%;display:flex;flex-direction:column;gap:6px">
-        ${plist.map(([pid,p])=>`<div style="display:flex;justify-content:space-between;font-size:13px"><span>${p.av||''}${p.name}</span><span style="color:var(--gold);font-weight:700">${(p.coins||0).toLocaleString()} xu</span></div>`).join('')}
+    html=`<div class="xd-panel" style="align-items:center;text-align:center;gap:14px">
+      <div style="font-size:40px">🃏</div>
+      <div style="font-size:16px;font-weight:900">Phòng Xì Dách</div>
+      <div style="font-size:12px;color:var(--muted2);line-height:1.6">Người chơi đấu với nhau<br>Bài ẩn — đếm ngược 30s — so bài<br>Vốn ban đầu: <b style="color:var(--gold)">50,000 xu</b></div>
+      <div style="width:100%;display:flex;flex-direction:column;gap:8px">
+        ${plist.map(([pid,p])=>`<div style="display:flex;justify-content:space-between;align-items:center;background:var(--s3);border-radius:8px;padding:8px 12px"><span style="font-weight:600">${p.av||''}${p.name}</span><span style="color:var(--gold);font-weight:700">${(p.coins||XD_INIT).toLocaleString()} xu</span></div>`).join('')}
       </div>
       <div class="lbox" onclick="copyL('${location.href.split('?')[0]}?room=${id}')">${location.href.split('?')[0]}?room=${id}</div>
-      ${role==='host'&&plist.length>=2?`<button class="btn btn-p" onclick="xdStart()">🃏 Bắt đầu ván!</button>`:`<div style="font-size:12px;color:var(--muted)">Cần ít nhất 2 người • ${role==='host'?'Chờ người vào...':'Chờ host bắt đầu...'}</div>`}
+      ${role==='host'&&plist.length>=2
+        ?`<button class="btn btn-p" onclick="xdStart()">🃏 Bắt đầu!</button>`
+        :`<div style="font-size:12px;color:var(--muted)">${role==='host'?'Cần ít nhất 2 người — Chờ bạn vào...':'Chờ host bắt đầu...'}</div>`}
     </div>`;
   }
 
+  // ── ĐẶT CƯỢC ──
   if(phase==='bet'){
-    html+=`<div class="xd-panel">
-      <div style="font-size:13px;font-weight:700;color:var(--muted2);margin-bottom:4px">💰 Đặt cược vòng này</div>
-      ${myP?`<div class="bankroll">${(myP.coins||0).toLocaleString()}<small>xu còn lại</small></div>
-      <div class="xd-chip-row">${XD_CHIPS.map(v=>{const label=v==='all'?'All In':v>=1000?v/1000+'K':v;const isOn=myP.bet===(v==='all'?myP.coins:v);return`<div class="xd-chip${isOn?' on':''}" onclick="xdChip(${v==='all'?myP.coins:v})">${label}</div>`}).join('')}</div>
-      <div style="font-size:13px;font-weight:700;color:var(--gold);text-align:center">${myP.bet?'Cược: '+(myP.bet||0).toLocaleString()+' xu':'Chọn mức cược'}</div>`:''}
-      <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px">
+    const myBet=myP?.bet||0;
+    html=`<div class="xd-panel">
+      <div style="text-align:center;margin-bottom:8px">
+        <div class="bankroll">${(myP?.coins||0).toLocaleString()}<small>xu còn lại</small></div>
+      </div>
+      <div style="font-size:13px;font-weight:700;color:var(--muted2);margin-bottom:8px;text-align:center">💰 Chọn mức cược ván này</div>
+      <div class="xd-chip-row">
+        ${XD_CHIPS.map(v=>{
+          const label=v>=1000?v/1000+'K':v;
+          const disabled=(v>(myP?.coins||0))||myBet===v;
+          return`<div class="xd-chip${myBet===v?' on':''}" onclick="xdChip(${v})" style="${disabled&&myBet!==v?'opacity:.35;cursor:not-allowed':''}">
+            ${label}K
+          </div>`;
+        }).join('')}
+        <div class="xd-chip${myBet===(myP?.coins||0)&&myBet>0?' on':''}" onclick="xdChip(${myP?.coins||0})">All In</div>
+      </div>
+      <div style="font-size:14px;font-weight:800;color:var(--gold);text-align:center;min-height:22px">${myBet?'✅ Cược: '+myBet.toLocaleString()+' xu':'Chọn mức cược'}</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px;padding-top:12px;border-top:1px solid var(--b1)">
         ${plist.map(([pid,p])=>`<div style="display:flex;justify-content:space-between;font-size:12px"><span>${p.av||''}${p.name}</span><span style="color:${p.bet?'var(--gold)':'var(--muted)'}">${p.bet?p.bet.toLocaleString()+' xu':'Chưa đặt'}</span></div>`).join('')}
       </div>
-      ${role==='host'&&plist.every(([,p])=>p.bet>0)?`<button class="btn btn-p" onclick="xdDeal()">🃏 Phát bài!</button>`:''}
+      ${role==='host'&&plist.every(([,p])=>p.bet>0)
+        ?`<button class="btn btn-p" onclick="xdDeal()">🃏 Phát bài!</button>`
+        :`<div style="font-size:12px;color:var(--muted);text-align:center">Chờ tất cả đặt cược...</div>`}
     </div>`;
   }
 
+  // ── CHƠI ──
   if(phase==='play'||phase==='result'){
-    // dealer
-    html+=`<div class="xd-panel">
-      <div class="xd-panel-header">
-        <span class="xd-pname">🏦 Nhà Cái</span>
-        <span class="xd-val">${showDealer?hVal(dealer):'?'}</span>
-      </div>
-      <div class="hand-area">${dealer.map((c,i)=>mkCard(c,i>0&&!showDealer)).join('')}</div>
-    </div>`;
-    // players
-    plist.forEach(([pid,p])=>{
-      const ph=p.hand||[],pv=hVal(ph),pb=p.bet||0,pc=p.coins||0;
-      const bust=pv>21,bj=pv===21&&ph.length===2;
-      const isMe=pid===h.id,isMyTurn=d.xdTurn===pid&&phase==='play';
-      let statusHtml='',panelClass='xd-panel';
-      if(phase==='result'){
-        const dv=hVal(dealer);
-        if(bust){statusHtml=`<span class="xd-status bust">💀 Quắc</span>`;panelClass+=' bust'}
-        else if(bj){statusHtml=`<span class="xd-status bj">🎉 BJ!</span>`;panelClass+=' win'}
-        else if(dv>21||pv>dv){statusHtml=`<span class="xd-status win">🏆 +${pb.toLocaleString()}</span>`;panelClass+=' win'}
-        else if(pv===dv){statusHtml=`<span class="xd-status push">🤝 Hòa</span>`}
-        else{statusHtml=`<span class="xd-status lose">😢 -${pb.toLocaleString()}</span>`;panelClass+=' bust'}
-      }
-      html+=`<div class="${panelClass}${isMe?' me':''}">
-        <div class="xd-panel-header">
-          <span class="xd-pname">${p.av||''}${p.name}${isMyTurn?'<span style="color:var(--yellow);font-size:11px;margin-left:6px">← lượt bạn</span>':''}</span>
-          <div style="display:flex;align-items:center;gap:8px">
-            ${statusHtml}
-            <span class="xd-coins">${pc.toLocaleString()} xu</span>
+    const showAll=phase==='result'||d.xdShowAll;
+    const timeLeft=d.xdTimeLeft||0;
+    const myDone=d.xdDone?.[h.id];
+
+    // Timer bar
+    if(phase==='play'){
+      const pct=Math.round((timeLeft/30)*100);
+      const col=timeLeft>10?'var(--green)':timeLeft>5?'var(--yellow)':'var(--red)';
+      html+=`<div style="width:100%;max-width:460px;background:var(--s1);border:1px solid var(--b1);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:12px">
+        <span style="font-size:20px">⏱</span>
+        <div style="flex:1">
+          <div style="height:8px;background:var(--s3);border-radius:4px;overflow:hidden">
+            <div style="height:100%;width:${pct}%;background:${col};transition:width .9s linear;border-radius:4px"></div>
           </div>
         </div>
-        <div class="hand-area">${ph.map(c=>mkCard(c)).join('')}</div>
-        <div style="font-size:12px;color:${bust?'var(--red)':bj?'var(--gold)':'var(--muted2)'};font-weight:${bust||bj?700:400}">Tổng: ${pv}${bust?' — QUẮC!':bj?' — BLACKJACK!':''}</div>
-        ${isMe&&isMyTurn&&!bust?`<div class="xd-action-row"><button class="btn btn-p btn-sm" onclick="xdHit()">Rút thêm</button><button class="btn btn-g btn-sm" onclick="xdStand()">Dừng</button></div>`:''}
+        <span style="font-size:16px;font-weight:900;color:${col};min-width:28px;text-align:right">${timeLeft}s</span>
+      </div>`;
+    }
+
+    // Player panels
+    plist.forEach(([pid,p])=>{
+      const ph=p.hand||[];
+      const isMe=pid===h.id;
+      const pDone=d.xdDone?.[pid];
+      const showThisHand=showAll||isMe;
+      const pv=hVal(ph);
+      const bust=pv>21;
+
+      let statusBadge='',panelClass='xd-panel';
+      if(phase==='result'){
+        const result=d.xdResult?.[pid];
+        if(result==='win'){statusBadge=`<span class="xd-status win">🏆 Thắng</span>`;panelClass+=' win'}
+        else if(result==='lose'){statusBadge=`<span class="xd-status lose">😢 Thua</span>`;panelClass+=' bust'}
+        else if(result==='push'){statusBadge=`<span class="xd-status push">🤝 Hòa</span>`}
+        else if(result==='bust'){statusBadge=`<span class="xd-status bust">💀 Quắc</span>`;panelClass+=' bust'}
+      }
+
+      html+=`<div class="${panelClass}${isMe?' me':''}">
+        <div class="xd-panel-header">
+          <span class="xd-pname">${p.av||''}${p.name}${pDone&&phase==='play'?'<span style="color:var(--green);font-size:11px;margin-left:6px">✅ Dừng</span>':''}</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            ${statusBadge}
+            <span class="xd-coins">${(p.coins||0).toLocaleString()} xu</span>
+          </div>
+        </div>
+        <div class="hand-area">
+          ${showThisHand
+            ? ph.map(c=>mkCard(c)).join('')
+            : ph.map(()=>mkCard(null,true)).join('')}
+        </div>
+        ${showThisHand?`<div style="font-size:12px;color:${bust?'var(--red)':'var(--muted2)'};font-weight:${bust?700:400}">Tổng: ${pv}${bust?' — QUẮC!':''}</div>`:'<div style="font-size:12px;color:var(--muted2)">Bài ẩn 🂠</div>'}
+        ${isMe&&phase==='play'?`
+          <div class="xd-action-row">
+            <button class="btn btn-p btn-sm" onclick="xdHit()" ${bust||myDone?'disabled':''}>➕ Rút thêm</button>
+            <button class="btn btn-g btn-sm" onclick="xdStand()" ${bust||myDone?'disabled':''}>✋ Dừng</button>
+          </div>`:''}
       </div>`;
     });
-    if(phase==='result'){
-      const alive=plist.filter(([,p])=>(p.coins||0)>0);
-      if(alive.length<=1&&plist.length>1){
-        const winner=alive[0];
-        html+=`<div class="xd-panel" style="text-align:center;gap:10px;align-items:center">
-          <div style="font-size:36px">🏆</div>
-          <div style="font-size:16px;font-weight:900">${winner?winner[1].av+winner[1].name+' thắng cả phòng!':'Tất cả cháy túi!'}</div>
-          ${role==='host'?`<button class="btn btn-p" onclick="xdReset()">🔄 Chơi lại (reset tiền)</button>`:'<div style="font-size:12px;color:var(--muted)">Chờ host reset...</div>'}
-        </div>`;
-      } else {
-        html+=role==='host'?`<button class="btn btn-p" onclick="xdNextRound()">Ván tiếp →</button>`:'<div style="font-size:12px;color:var(--muted);text-align:center">Chờ host bắt đầu ván mới...</div>';
+
+    // Show bài button — khi chưa show
+    if(phase==='play'&&!d.xdShowAll){
+      const allDone=plist.every(([pid])=>d.xdDone?.[pid]);
+      if(allDone||role==='host'){
+        html+=`<button class="btn btn-y" onclick="xdReveal()" style="max-width:460px;width:100%">
+          👁 ${allDone?'Tất cả dừng — ':''}Mở bài xem kết quả!
+        </button>`;
       }
     }
+
+    // Kết quả
+    if(phase==='result'){
+      const delta=d.xdDelta||{};
+      html+=`<div class="xd-panel" style="align-items:center;text-align:center;gap:10px">
+        <div style="font-size:13px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:1px">Kết quả ván này</div>
+        ${plist.map(([pid,p])=>{
+          const dlt=delta[pid]||0;
+          return`<div style="display:flex;justify-content:space-between;align-items:center;width:100%;font-size:13px;font-weight:600">
+            <span>${p.av||''}${p.name}</span>
+            <span style="color:${dlt>0?'var(--green)':dlt<0?'var(--red)':'var(--muted2)'}">
+              ${dlt>0?'+ ':''}${dlt.toLocaleString()} xu
+            </span>
+          </div>`;
+        }).join('')}
+        ${role==='host'
+          ?`<div style="display:flex;gap:8px;width:100%;margin-top:4px">
+              <button class="btn btn-p" onclick="xdNextRound()" style="flex:1">Ván tiếp →</button>
+              <button class="btn btn-g" onclick="xdShowSummary()" style="flex:1">📊 Tổng kết</button>
+            </div>`
+          :`<div style="font-size:12px;color:var(--muted)">Chờ host bắt đầu ván mới...</div>`}
+      </div>`;
+    }
   }
+
+  // ── TỔNG KẾT ──
+  if(phase==='summary'){
+    const summary=d.xdSummary||{};
+    html=`<div class="xd-panel" style="align-items:center;gap:14px">
+      <div style="font-size:36px">📊</div>
+      <div style="font-size:16px;font-weight:900">Tổng kết phiên chơi</div>
+      <div style="width:100%;display:flex;flex-direction:column;gap:8px">
+        ${plist.sort(([,a],[,b])=>(b.coins||0)-(a.coins||0)).map(([pid,p],i)=>{
+          const net=(p.coins||0)-XD_INIT;
+          return`<div style="display:flex;justify-content:space-between;align-items:center;background:${i===0?'rgba(251,191,36,.12)':'var(--s3)'};border:1.5px solid ${i===0?'var(--gold)':'var(--b1)'};border-radius:10px;padding:10px 14px">
+            <div>
+              <div style="font-size:13px;font-weight:700">${i===0?'🏆 ':i===1?'🥈 ':'🥉 '}${p.av||''}${p.name}</div>
+              <div style="font-size:11px;color:var(--muted2)">${(p.coins||0).toLocaleString()} xu còn lại</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:16px;font-weight:900;color:${net>=0?'var(--green)':'var(--red)'}">${net>=0?'+':''}${net.toLocaleString()}</div>
+              <div style="font-size:10px;color:var(--muted2)">so với ban đầu</div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+      ${role==='host'
+        ?`<div style="display:flex;gap:8px;width:100%">
+            <button class="btn btn-p" onclick="xdRestart()" style="flex:1">🔄 Chơi lại</button>
+            <button class="btn btn-g" onclick="leaveRoom()" style="flex:1">🏠 Thoát</button>
+          </div>`
+        :`<div style="font-size:12px;color:var(--muted)">Chờ host quyết định...</div>`}
+    </div>`;
+  }
+
   wrap.innerHTML=html;
+
+  // Khởi động timer nếu đang play
+  if(phase==='play'){
+    if(xdTimerInterval)clearInterval(xdTimerInterval);
+    xdTimerInterval=null;
+  } else {
+    if(xdTimerInterval){clearInterval(xdTimerInterval);xdTimerInterval=null;}
+  }
 }
 
-window.xdChip=async function(v){
-  if(!room)return;
-  await update(ref(db,`rooms/${room}/players/${me().id}`),{bet:v});
-};
-
+// ── ACTIONS ──
 window.xdStart=async function(){
   if(role!=='host'||!room)return;
   await update(ref(db,`rooms/${room}`),{xdPhase:'bet',status:'playing'});
 };
 
+window.xdChip=async function(v){
+  if(!room)return;
+  const snap=await get(ref(db,`rooms/${room}`));
+  const d=snap.val();
+  if(d.xdPhase!=='bet'){showToast('⛔ Không thể đặt lúc này!');return}
+  const myCoins=d.players?.[me().id]?.coins||0;
+  const bet=Math.min(v,myCoins);
+  if(bet<=0){showToast('❌ Không đủ xu!');return}
+  await update(ref(db,`rooms/${room}/players/${me().id}`),{bet});
+  showToast('✅ Cược '+bet.toLocaleString()+' xu');
+};
+
 window.xdDeal=async function(){
   if(role!=='host'||!room)return;
   const snap=await get(ref(db,`rooms/${room}`));
-  const d=snap.val();const deck=newDeck();const players=d.players||{};
-  const upd={};
-  Object.keys(players).forEach(pid=>{upd[`players/${pid}/hand`]=[deck.pop(),deck.pop()]});
-  upd.dealerHand=[deck.pop(),deck.pop()];upd.deck=deck;upd.xdPhase='play';
-  const pids=Object.keys(players);upd.xdTurn=pids[0];upd.xdQueue=pids;upd.xdDoneList=[];
+  const d=snap.val();const players=d.players||{};
+  const deck=newDeck();
+  const upd={xdPhase:'play',xdShowAll:false,xdDone:{},xdResult:{},xdDelta:{},xdTimeLeft:30,deck};
+  Object.keys(players).forEach(pid=>{
+    // 2 bài ngẫu nhiên từ deck đã xáo
+    upd[`players/${pid}/hand`]=[deck.pop(),deck.pop()];
+    upd[`players/${pid}/done`]=false;
+  });
+  upd.deck=deck;
   await update(ref(db,`rooms/${room}`),upd);
+  // Host quản lý timer
+  if(role==='host') xdStartTimer();
 };
+
+function xdStartTimer(){
+  if(xdTimerInterval)clearInterval(xdTimerInterval);
+  let t=30;
+  xdTimerInterval=setInterval(async()=>{
+    t--;
+    await update(ref(db,`rooms/${room}`),{xdTimeLeft:t});
+    if(t<=0){
+      clearInterval(xdTimerInterval);xdTimerInterval=null;
+      await xdReveal();
+    }
+  },1000);
+}
 
 window.xdHit=async function(){
   if(!room)return;
   const snap=await get(ref(db,`rooms/${room}`));
   const d=snap.val();const h=me();
-  if(d.xdTurn!==h.id)return;
-  const deck=[...(d.deck||[])];const hand=[...(d.players?.[h.id]?.hand||[]),deck.pop()];
-  await update(ref(db,`rooms/${room}`),{[`players/${h.id}/hand`]:hand,deck});
-  if(hVal(hand)>=21)await xdAdvanceTurn(d,h.id);
+  if(d.xdPhase!=='play')return;
+  if(d.xdDone?.[h.id]){showToast('⚠️ Bạn đã dừng rồi!');return}
+  const deck=[...(d.deck||[])];
+  const hand=[...(d.players?.[h.id]?.hand||[]),deck.pop()];
+  const v=hVal(hand);
+  const upd={[`players/${h.id}/hand`]:hand,deck};
+  if(v>=21){upd[`xdDone/${h.id}`]=true;showToast(v===21?'🎉 21 điểm!':'💀 Quắc!')}
+  await update(ref(db,`rooms/${room}`),upd);
+  // check all done → auto reveal
+  const snap2=await get(ref(db,`rooms/${room}`));
+  const d2=snap2.val();
+  const pids=Object.keys(d2.players||{});
+  if(pids.every(pid=>d2.xdDone?.[pid])&&role==='host') await xdReveal();
 };
 
 window.xdStand=async function(){
   if(!room)return;
+  const h=me();
   const snap=await get(ref(db,`rooms/${room}`));
-  await xdAdvanceTurn(snap.val(),me().id);
+  const d=snap.val();
+  if(d.xdDone?.[h.id]){showToast('⚠️ Bạn đã dừng rồi!');return}
+  await update(ref(db,`rooms/${room}`),{[`xdDone/${h.id}`]:true});
+  // check all done
+  const snap2=await get(ref(db,`rooms/${room}`));
+  const d2=snap2.val();
+  const pids=Object.keys(d2.players||{});
+  if(pids.every(pid=>d2.xdDone?.[pid])&&role==='host') await xdReveal();
 };
 
-async function xdAdvanceTurn(d,currentId){
-  const snap2=await get(ref(db,`rooms/${room}`));const d2=snap2.val();
-  const queue=d2.xdQueue||Object.keys(d2.players||{});
-  const idx=queue.indexOf(currentId);
-  const next=queue[idx+1];
-  if(next){await update(ref(db,`rooms/${room}`),{xdTurn:next});return}
-  // dealer plays
-  if(role==='host'){
-    const deck=[...(d2.deck||[])];let dh=[...(d2.dealerHand||[])];
-    while(hVal(dh)<17)dh.push(deck.pop());
-    const dv=hVal(dh);const upd={dealerHand:dh,deck,xdPhase:'result',xdTurn:null};
-    // update coins
-    const players=d2.players||{};const doneList=d2.xdDoneList||[];
-    Object.entries(players).forEach(([pid,p])=>{
-      const ph=p.hand||[],pv=hVal(ph),pb=p.bet||0,pc=p.coins||0;
-      const bust=pv>21,bj=pv===21&&ph.length===2;
-      let newCoins=pc;
-      if(bust)newCoins=Math.max(0,pc-pb);
-      else if(bj)newCoins=pc+Math.floor(pb*1.5);
-      else if(dv>21||pv>dv)newCoins=pc+pb;
-      else if(pv===dv)newCoins=pc;
-      else newCoins=Math.max(0,pc-pb);
-      upd[`players/${pid}/coins`]=newCoins;
-      upd[`players/${pid}/done`]=true;
+window.xdReveal=async function(){
+  if(!room)return;
+  if(xdTimerInterval){clearInterval(xdTimerInterval);xdTimerInterval=null;}
+  const snap=await get(ref(db,`rooms/${room}`));
+  const d=snap.val();const players=d.players||{};
+  const plist=Object.entries(players);
+  const vals={};
+  plist.forEach(([pid,p])=>{vals[pid]=hVal(p.hand||[])});
+  // So sánh: loại bust trước
+  const notBust=plist.filter(([pid])=>vals[pid]<=21);
+  const result={},delta={};
+  if(notBust.length===0){
+    // all bust → all lose
+    plist.forEach(([pid,p])=>{result[pid]='bust';delta[pid]=-(p.bet||0)});
+  } else {
+    const maxVal=Math.max(...notBust.map(([pid])=>vals[pid]));
+    const winners=notBust.filter(([pid])=>vals[pid]===maxVal);
+    plist.forEach(([pid,p])=>{
+      const v=vals[pid],b=p.bet||0;
+      if(v>21){result[pid]='bust';delta[pid]=-b}
+      else if(v===maxVal){
+        if(winners.length>1){result[pid]='push';delta[pid]=0}
+        else{result[pid]='win';delta[pid]=b}
+      } else {result[pid]='lose';delta[pid]=-b}
     });
-    await update(ref(db,`rooms/${room}`),upd);
+    // winner gets from losers
+    if(winners.length===1){
+      const winPid=winners[0][0];
+      const totalLoss=plist.reduce((s,[pid,p])=>pid!==winPid&&vals[pid]<=21?s+(p.bet||0):s,0);
+      const totalBust=plist.reduce((s,[pid,p])=>vals[pid]>21?s+(p.bet||0):s,0);
+      delta[winPid]=totalLoss+totalBust;
+    }
   }
-}
+  // update coins
+  const upd={xdPhase:'result',xdShowAll:true,xdResult:result,xdDelta:delta,xdTimeLeft:0};
+  plist.forEach(([pid,p])=>{
+    upd[`players/${pid}/coins`]=Math.max(0,(p.coins||0)+delta[pid]);
+  });
+  await update(ref(db,`rooms/${room}`),upd);
+};
 
 window.xdNextRound=async function(){
   if(role!=='host'||!room)return;
   const snap=await get(ref(db,`rooms/${room}`));
   const d=snap.val();const players=d.players||{};
-  const upd={xdPhase:'bet',dealerHand:[],deck:[],xdTurn:null,xdQueue:null,xdDoneList:[]};
+  const upd={xdPhase:'bet',xdShowAll:false,xdDone:{},xdResult:{},xdDelta:{},xdTimeLeft:0,deck:[],dealerHand:[]};
   Object.keys(players).forEach(pid=>{
-    if((players[pid].coins||0)<=0){upd[`players/${pid}/coins`]=0}
     upd[`players/${pid}/hand`]=[];
     upd[`players/${pid}/bet`]=0;
     upd[`players/${pid}/done`]=false;
@@ -814,13 +975,18 @@ window.xdNextRound=async function(){
   await update(ref(db,`rooms/${room}`),upd);
 };
 
-window.xdReset=async function(){
+window.xdShowSummary=async function(){
+  if(!room)return;
+  await update(ref(db,`rooms/${room}`),{xdPhase:'summary'});
+};
+
+window.xdRestart=async function(){
   if(role!=='host'||!room)return;
   const snap=await get(ref(db,`rooms/${room}`));
   const d=snap.val();const players=d.players||{};
-  const upd={xdPhase:'lobby',dealerHand:[],deck:[],xdTurn:null};
+  const upd={xdPhase:'lobby',xdShowAll:false,xdDone:{},xdResult:{},xdDelta:{},xdTimeLeft:0,deck:[],dealerHand:[]};
   Object.keys(players).forEach(pid=>{
-    upd[`players/${pid}/coins`]=INIT_COINS;
+    upd[`players/${pid}/coins`]=XD_INIT;
     upd[`players/${pid}/hand`]=[];
     upd[`players/${pid}/bet`]=0;
     upd[`players/${pid}/done`]=false;
