@@ -705,22 +705,24 @@ function renderCaro(d,id){
 
   drawCaroBoard(d.cells||[],d.winLine||null,d.lastMove||null);
 
+  // xoa waitBox ngay khi ban vao phong
+  const wb=document.getElementById("waitBox");
+  if(d.status==="waiting"){ if(!wb) showWaiting(id); }
+  else { if(wb) wb.remove(); }
+
   // show result
-  if(d.status==='finished'&&lastShown!==id+(d.caroWinner||'draw')){
-    lastShown=id+(d.caroWinner||'draw');
+  if(d.status==="finished"&&lastShown!==id+(d.caroWinner||"draw")){
+    lastShown=id+(d.caroWinner||"draw");
     const iWin=d.caroWinner===myRole;
     const isDraw=!d.caroWinner;
-    const winName=d.caroWinner==='host'?hName:gName;
+    const winName=d.caroWinner==="host"?hName:gName;
     showModal(
-      isDraw?'🤝':iWin?'🏆':'😢',
-      isDraw?'Hòa!':iWin?'Bạn thắng!':'Thua rồi!',
-      isDraw?'Không ai thắng ván này.':`${winName} thắng ván này!`
+      isDraw?"🤝":iWin?"🏆":"😢",
+      isDraw?"Hòa!":iWin?"Bạn thắng!":"Thua rồi!",
+      isDraw?"Không ai thắng ván này.":`${winName} thắng ván này!`
     );
   }
-  // waiting overlay
-  if(d.status==='waiting'){
-    showWaiting(id);
-  }
+}
 }
 
 function showWaiting(id){
@@ -776,7 +778,6 @@ function caroClick(e){
   const d=liveGameData,id=liveRoomId;
   if(!d||!id)return;
   if(d.turn!==myRole||d.status!=="playing"){showToast("⏳ Chưa đến lượt bạn!");return}
-  if(document.getElementById("waitBox"))return;
   const rect=caroCanvas.getBoundingClientRect();
   const sx=caroCanvas.width/rect.width,sy=caroCanvas.height/rect.height;
   const c=Math.floor((e.clientX-rect.left)*sx/CELL),r=Math.floor((e.clientY-rect.top)*sy/CELL);
