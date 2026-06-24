@@ -266,6 +266,8 @@ input[type=text]::placeholder{color:var(--muted)}
       <div class="gcard" onclick="openLobby('cotuong')"><span class="gbadge blv">🟢 Online</span><div class="gicon">🀄</div><div class="gname">Cờ Tướng</div><div class="gdesc">2 người, cờ cổ điển</div></div>
       <div class="gcard" onclick="openLobby('baucua')"><span class="gbadge blv">🟢 Online</span><div class="gicon">🦀</div><div class="gname">Bầu Cua</div><div class="gdesc">6 con vật, lắc 3 xúc xắc</div></div>
       <div class="gcard" onclick="openLobby('oantuti')"><span class="gbadge blv">🟢 Online</span><div class="gicon">✊</div><div class="gname">Oẳn Tù Tì</div><div class="gdesc">Tốt nhất 3/5 ván thắng</div></div>
+      <div class="gcard" onclick="openLobby('speedmath')"><span class="gbadge blv">🟢 Online</span><div class="gicon">🔢</div><div class="gname">Đếm Nhanh</div><div class="gdesc">Ai bấm đúng trước thắng</div></div>
+      <div class="gcard" onclick="openLobby('guessnumber')"><span class="gbadge blv">🟢 Online</span><div class="gicon">🎯</div><div class="gname">Số May Mắn</div><div class="gdesc">Đoán số 1-100, ai gần hơn thắng</div></div>
       <div class="gcard"><span class="gbadge bsn">Sắp ra</span><div class="gicon">♠️</div><div class="gname">Poker</div><div class="gdesc">Texas Hold'em</div></div>
       <div class="gcard"><span class="gbadge bsn">Sắp ra</span><div class="gicon">🏹</div><div class="gname">Tiến Lên</div><div class="gdesc">2–4 người chơi</div></div>
     </div>
@@ -371,14 +373,18 @@ function listenRooms(){
 }
 
 // ── LOBBY ──
-const GAMES={caro:{name:'Caro',icon:'⚔️'},taixiu:{name:'Tài Xỉu',icon:'🎲'},xidach:{name:'Xì Dách',icon:'🃏'},cotuong:{name:'Cờ Tướng',icon:'🀄'},baucua:{name:'Bầu Cua',icon:'🦀'},oantuti:{name:'Oẳn Tù Tì',icon:'✊'}};
+const GAMES={caro:{name:'Caro',icon:'⚔️'},taixiu:{name:'Tài Xỉu',icon:'🎲'},xidach:{name:'Xì Dách',icon:'🃏'},cotuong:{name:'Cờ Tướng',icon:'🀄'},baucua:{name:'Bầu Cua',icon:'🦀'},oantuti:{name:'Oẳn Tù Tì',icon:'✊'},speedmath:{name:'Đếm Nhanh',icon:'🔢'},guessnumber:{name:'Số May Mắn',icon:'🎯'}};
 window.openLobby=function(game){
   resetArea();showRoom();
   const g=GAMES[game];
+  const aiGames=['caro','taixiu','oantuti','baucua','xidach'];
+  const hasAI=aiGames.includes(game);
   document.getElementById('garea').innerHTML=`<div class="lobby">
     <div class="lobby-title">${g.icon} ${g.name}</div>
-    <div class="lobby-sub">Tạo phòng → gửi link → chiến ngay!</div>
-    <button class="btn btn-p" onclick="createRoom('${game}')">🎮 Tạo phòng mới</button>
+    <div class="lobby-sub">Chơi với bạn bè hoặc thử sức với AI!</div>
+    ${hasAI?`<button class="btn btn-y" onclick="createRoomAI('${game}')" style="border-radius:12px">🤖 Chơi với AI</button>
+    <div style="display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px"><div style="flex:1;height:1px;background:var(--b1)"></div>hoặc<div style="flex:1;height:1px;background:var(--b1)"></div></div>`:''}
+    <button class="btn btn-p" onclick="createRoom('${game}')">🎮 Tạo phòng với bạn</button>
     <div class="joinrow"><input type="text" id="jcode" placeholder="Mã phòng..." maxlength="6" onkeydown="if(event.key==='Enter')joinRoom(document.getElementById('jcode').value.trim().toUpperCase())"><button class="btn btn-g btn-sm" onclick="joinRoom(document.getElementById('jcode').value.trim().toUpperCase())">Vào</button></div>
     <button class="btn btn-g" onclick="goHome()">← Quay lại</button>
   </div>`;
@@ -397,6 +403,8 @@ window.createRoom=async function(game){
   if(game==='cotuong')Object.assign(data,{ctBoard:initCT(),ctTurn:'red',ctSel:null,ctStatus:'playing',ctScore:{red:0,black:0}});
   if(game==='baucua')Object.assign(data,{bcPhase:'bet',bcDice:[0,0,0],bcBets:{},bcCoins:{},bcWallets:{[h.id]:500000}});
   if(game==='oantuti')Object.assign(data,{otPhase:'choose',otChoices:{},otScore:{host:0,guest:0},otRound:1,otTotal:5});
+  if(game==='speedmath'){const q=smGenQuestion();Object.assign(data,{smPhase:'question',smQuestion:q,smAnswered:{},smRound:1,smScore:{host:0,guest:0},smRoundWinner:null})}
+  if(game==='guessnumber'){const s=Math.ceil(Math.random()*100);Object.assign(data,{gnPhase:'guess',gnSecret:s,gnGuesses:{},gnRound:1,gnScore:{host:0,guest:0},gnWinner:null})}
   await set(ref(db,`rooms/${id}`),data);
   history.replaceState(null,'',`${location.pathname}?room=${id}`);
   listen(id,game);
@@ -423,6 +431,9 @@ window.joinRoom=async function(id){
     upd.status='playing';
     if(!d.bcWallets?.[h.id]) upd[`bcWallets/${h.id}`]=500000;
   } else if(d.game==='oantuti'){
+    if(d.guestId&&d.status!=='waiting'){showToast('❌ Phòng đã đầy!');return}
+    upd.status='playing';
+  } else if(d.game==='speedmath'||d.game==='guessnumber'){
     if(d.guestId&&d.status!=='waiting'){showToast('❌ Phòng đã đầy!');return}
     upd.status='playing';
   } else if(d.game==='taixiu'){
@@ -454,6 +465,9 @@ function listen(id,game){
     else if(game==='cotuong')renderCT(d,id);
     else if(game==='baucua')renderBC(d,id);
     else if(game==='oantuti')renderOT(d,id);
+    else if(game==='speedmath')renderSM(d,id);
+    else if(game==='guessnumber')renderGN(d,id);
+    checkAIReact(d,id,game);
     const cnt=Object.keys(d.players||{}).length||((d.hostId?1:0)+(d.guestId?1:0));
     document.getElementById('ocnt').textContent=cnt+' online';
   });
@@ -1927,7 +1941,7 @@ function renderOT(d,id){
   let html='';
   // Score & round
   html+=`<div style="width:100%;background:var(--s1);border:1px solid var(--b1);border-radius:14px;padding:16px;text-align:center">
-    <div style="font-size:12px;color:var(--muted2);margin-bottom:8px">Ván ${round}/${total} · Thắng 3 ván trước</div>
+    <div style="font-size:12px;color:var(--muted2);margin-bottom:8px">Ván ${round} · Bo5 — Thắng 3 ván trước</div>
     <div style="display:flex;justify-content:space-around;align-items:center">
       <div><div style="font-size:13px;font-weight:700">${hName}</div><div style="font-size:36px;font-weight:900;color:var(--purple)">${score.host||0}</div></div>
       <div style="font-size:20px;color:var(--muted)">VS</div>
@@ -2021,7 +2035,7 @@ window.otReveal=async function(){
   const sc={...(d.otScore||{host:0,guest:0})};
   if(rr==='host')sc.host=(sc.host||0)+1;
   else if(rr==='guest')sc.guest=(sc.guest||0)+1;
-  const needWin=Math.ceil((d.otTotal||5)/2)+1;
+  const needWin=3; // Bo5: thắng 3 trước là chốt
   let phase='reveal',winner=null;
   if(sc.host>=needWin){phase='gameover';winner='host'}
   else if(sc.guest>=needWin){phase='gameover';winner='guest'}
@@ -2038,6 +2052,406 @@ window.otNext=async function(){
 window.otRestart=async function(){
   if(role!=='host'||!room)return;
   await update(ref(db,`rooms/${room}`),{otPhase:'choose',otChoices:{},otScore:{host:0,guest:0},otRound:1,otRoundResult:null,otWinner:null});
+};
+
+// ════════════════════════════════════════
+//  AI MODE — chơi một mình với AI
+// ════════════════════════════════════════
+const AI_ID='__AI__';
+const AI_NAMES=['Robo 🤖','HAL 9000','DeepBlue','AlphaBot','Jarvis'];
+const AI_NAME=AI_NAMES[Math.floor(Math.random()*AI_NAMES.length)];
+
+window.createRoomAI=async function(game){
+  resetArea();
+  const id=Math.random().toString(36).substr(2,6).toUpperCase();
+  room=id; role='host';
+  const g=GAMES[game],h=me();
+  const data={game,gameName:g.name,icon:g.icon,hostId:h.id,hostName:h.name,hostAv:h.av,
+    guestId:AI_ID,guestName:AI_NAME,guestAv:'🤖',
+    status:'playing',public:false,isAI:true,ts:serverTimestamp()};
+  if(game==='caro'){
+    const c={};for(let r=0;r<20;r++){c[r]={};for(let k=0;k<20;k++)c[r][k]=null;}
+    Object.assign(data,{cells:c,turn:'host',winner:null,winLine:null,score:{host:0,guest:0,draw:0}});
+  }
+  if(game==='taixiu')Object.assign(data,{dice:[1,1,1],phase:'bet',bets:{},coins:{},wallets:{[h.id]:500000,[AI_ID]:500000}});
+  if(game==='oantuti')Object.assign(data,{otPhase:'choose',otChoices:{},otScore:{host:0,guest:0},otRound:1,otTotal:5,isAI:true});
+  if(game==='baucua')Object.assign(data,{bcPhase:'bet',bcDice:[0,0,0],bcBets:{},bcCoins:{},bcWallets:{[h.id]:500000,[AI_ID]:500000}});
+  if(game==='xidach')Object.assign(data,{xdPhase:'lobby',players:{
+    [h.id]:{name:h.name,av:h.av,coins:500000,bet:0,hand:[],done:false},
+    [AI_ID]:{name:AI_NAME,av:'🤖',coins:500000,bet:0,hand:[],done:false}
+  },deck:[],xdDone:{},xdResult:{},xdDelta:{},xdShowAll:false,xdTimeLeft:0});
+  await set(ref(db,`rooms/${id}`),data);
+  history.replaceState(null,'',`${location.pathname}?room=${id}`);
+  listen(id,game);
+  // AI setup
+  if(game==='taixiu') setTimeout(()=>aiTXBet(id),800);
+  if(game==='baucua') setTimeout(()=>aiBCBet(id),800);
+  if(game==='oantuti') setTimeout(()=>aiOTChoose(id),600+Math.random()*1000);
+};
+
+// ── AI: Tài Xỉu ──
+async function aiTXBet(id){
+  const snap=await get(ref(db,`rooms/${id}`));
+  if(!snap.exists())return;
+  const d=snap.val();
+  if(d.phase!=='bet')return;
+  const choice=Math.random()<0.5?'tai':'xiu';
+  const coin=TX_CHIPS[Math.floor(Math.random()*TX_CHIPS.length)];
+  await update(ref(db,`rooms/${id}/bets`),{[AI_ID]:choice});
+  await update(ref(db,`rooms/${id}/coins`),{[AI_ID]:coin});
+}
+
+// ── AI: Bầu Cua ──
+async function aiBCBet(id){
+  const snap=await get(ref(db,`rooms/${id}`));
+  if(!snap.exists())return;
+  const d=snap.val();
+  if(d.bcPhase!=='bet')return;
+  const animal=Math.floor(Math.random()*6);
+  const coin=BC_CHIPS[Math.floor(Math.random()*BC_CHIPS.length)];
+  await update(ref(db,`rooms/${id}/bcCoins`),{[AI_ID]:coin});
+  await update(ref(db,`rooms/${id}/bcBets`),{[AI_ID]:{[animal]:coin}});
+}
+
+// ── AI: Oẳn Tù Tì ──
+async function aiOTChoose(id){
+  const snap=await get(ref(db,`rooms/${id}`));
+  if(!snap.exists())return;
+  const d=snap.val();
+  if(d.otPhase!=='choose')return;
+  const choice=Math.floor(Math.random()*3);
+  await update(ref(db,`rooms/${id}/otChoices`),{[AI_ID]:choice});
+  const snap2=await get(ref(db,`rooms/${id}`));
+  const d2=snap2.val();
+  const c=d2.otChoices||{};
+  if(c[d2.hostId]!=null&&c[d2.guestId]!=null){
+    await update(ref(db,`rooms/${id}`),{otPhase:'both_chose'});
+  }
+}
+
+// ── AI: Caro ── AI đánh ngay khi đến lượt
+async function aiCaroMove(id,board){
+  const snap=await get(ref(db,`rooms/${id}`));
+  if(!snap.exists())return;
+  const d=snap.val();
+  if(d.status!=='playing'||d.turn!=='guest')return;
+
+  // AI strategy: tìm nước đi tốt nhất
+  const NC=20,NR=20,WIN=5;
+  function gc2(cells,r,c){if(!cells)return null;const row=cells[r];if(!row)return null;return row[c]||null}
+
+  function score(cells,r,c,side){
+    let s=0;
+    const dirs=[[0,1],[1,0],[1,1],[1,-1]];
+    for(const[dr,dc]of dirs){
+      let cnt=1,open=0;
+      for(let d2=1;d2<5;d2++){const nr=r+dr*d2,nc=c+dc*d2;if(nr<0||nr>=NR||nc<0||nc>=NC)break;const v=gc2(cells,nr,nc);if(v===side)cnt++;else{if(!v)open++;break}else break}
+      for(let d2=1;d2<5;d2++){const nr=r-dr*d2,nc=c-dc*d2;if(nr<0||nr>=NR||nc<0||nc>=NC)break;const v=gc2(cells,nr,nc);if(v===side)cnt++;else{if(!v)open++;break}else break}
+      if(cnt>=5)return 100000;
+      s+=cnt*(cnt+open)*10;
+    }
+    return s;
+  }
+
+  const cells=d.cells||{};
+  let best=null,bestS=-1;
+  // Chỉ xét ô gần quân đã đi
+  const cands=new Set();
+  for(let r=0;r<NR;r++)for(let c=0;c<NC;c++){
+    if(!gc2(cells,r,c))continue;
+    for(let dr=-2;dr<=2;dr++)for(let dc=-2;dc<=2;dc++){
+      const nr=r+dr,nc=c+dc;
+      if(nr>=0&&nr<NR&&nc>=0&&nc<NC&&!gc2(cells,nr,nc))cands.add(nr*NC+nc);
+    }
+  }
+  // Nếu board trống → đánh giữa
+  if(cands.size===0)cands.add(10*NC+10);
+
+  for(const key of cands){
+    const r=Math.floor(key/NC),c=key%NC;
+    const atk=score(cells,r,c,'guest');
+    const def=score(cells,r,c,'host');
+    const s=atk*1.1+def;
+    if(s>bestS){bestS=s;best=[r,c]}
+  }
+
+  if(!best)return;
+  const[row,col]=best;
+  const newCells=JSON.parse(JSON.stringify(cells));
+  if(!newCells[row])newCells[row]={};
+  newCells[row][col]='guest';
+
+  // Check win
+  function checkW(cells2,r2,c2){
+    const v=gc2(cells2,r2,c2);if(!v)return null;
+    for(const[dr,dc]of[[0,1],[1,0],[1,1],[1,-1]]){
+      const line=[[r2,c2]];
+      for(const s of[-1,1]){let nr=r2+dr*s,nc=c2+dc*s;while(nr>=0&&nr<NR&&nc>=0&&nc<NC&&gc2(cells2,nr,nc)===v){line.push([nr,nc]);nr+=dr*s;nc+=dc*s}}
+      if(line.length>=WIN)return line;
+    }return null;
+  }
+  const wl=checkW(newCells,row,col);
+  let full=true;for(let r=0;r<NR&&full;r++)for(let c=0;c<NC&&full;c++)if(!gc2(newCells,r,c))full=false;
+  const sc={...(d.score||{host:0,guest:0,draw:0})};
+  let status='playing',winner=null;
+  if(wl){status='finished';winner='guest';sc.guest=(sc.guest||0)+1}
+  else if(full){status='finished';sc.draw=(sc.draw||0)+1}
+  caroLastTurn=null;
+  await update(ref(db,`rooms/${id}`),{cells:newCells,turn:'host',status,lastMove:[row,col],winner:winner||null,winLine:wl||null,score:sc,caroTime:10});
+}
+
+// AI reactions - called from the main listen onValue handler
+function checkAIReact(d,id,game){
+  if(!d.isAI||role!=='host')return;
+  if(game==='caro'&&d.turn==='guest'&&d.status==='playing'){
+    setTimeout(()=>aiCaroMove(id,d.cells),400+Math.random()*600);
+  }
+  if(game==='taixiu'&&d.phase==='bet'&&!d.bets?.[AI_ID]){
+    setTimeout(()=>aiTXBet(id),500+Math.random()*800);
+  }
+  if(game==='baucua'&&d.bcPhase==='bet'&&(!d.bcBets||!d.bcBets[AI_ID])){
+    setTimeout(()=>aiBCBet(id),500+Math.random()*800);
+  }
+  if(game==='oantuti'&&d.otPhase==='choose'&&d.otChoices?.[d.hostId]!=null&&d.otChoices?.[AI_ID]==null){
+    setTimeout(()=>aiOTChoose(id),600+Math.random()*1000);
+  }
+}
+
+// ════════════════════════════════════════
+//  GAME MỚI: ĐẾM SỐ NHANH (Speed Math)
+// ════════════════════════════════════════
+// 2 người, mỗi ván ra 1 phép tính, ai bấm đúng trước thắng điểm
+
+function renderSM(d,id){
+  const h=me();
+  if(!document.getElementById('sm-wrap')){
+    document.getElementById('garea').innerHTML=`
+      <div class="gtop"><div class="gtitle">🔢 Đếm Nhanh <span class="cbadge" onclick="copyL('${id}')">#${id} 📋</span></div><button class="btn btn-d btn-sm" onclick="leaveRoom()">Thoát</button></div>
+      <div style="width:100%;max-width:440px;display:flex;flex-direction:column;gap:14px;align-items:center;padding-bottom:20px" id="sm-wrap"></div>`;
+  }
+  const wb=document.getElementById('wbox');
+  if(d.status==='waiting'){if(!wb)mkWbox(id);return}
+  if(wb)wb.remove();
+
+  const wrap=document.getElementById('sm-wrap');
+  const phase=d.smPhase||'ready';
+  const sc=d.smScore||{host:0,guest:0};
+  const round=d.smRound||1,total=10;
+  const hName=(d.hostAv||'')+(d.hostName||'Host');
+  const gName=d.guestName?(d.guestAv||'')+(d.guestName):'Chờ...';
+
+  let html=`<div style="width:100%;background:var(--s1);border:1px solid var(--b1);border-radius:14px;padding:16px;text-align:center">
+    <div style="font-size:12px;color:var(--muted2);margin-bottom:8px">Câu ${round}/${total} · Ai bấm đúng trước thắng</div>
+    <div style="display:flex;justify-content:space-around">
+      <div><div style="font-size:13px;font-weight:700">${hName}</div><div style="font-size:34px;font-weight:900;color:var(--purple)">${sc.host||0}</div></div>
+      <div style="font-size:20px;color:var(--muted);align-self:center">VS</div>
+      <div><div style="font-size:13px;font-weight:700">${gName}</div><div style="font-size:34px;font-weight:900;color:var(--pink)">${sc.guest||0}</div></div>
+    </div>
+  </div>`;
+
+  if(phase==='ready'){
+    html+=`<div style="font-size:15px;font-weight:700;color:var(--muted2);text-align:center">Sẵn sàng chưa?</div>
+    ${role==='host'?`<button class="btn btn-p" onclick="smStart()" style="max-width:200px">▶️ Bắt đầu!</button>`:`<div style="font-size:13px;color:var(--muted2)">Chờ host bắt đầu...</div>`}`;
+  }
+
+  if(phase==='question'){
+    const q=d.smQuestion||{expr:'?',answer:0};
+    const ans=d.smAnswered;
+    const myAns=ans?.[h.id];
+    html+=`<div style="background:var(--s1);border:1px solid var(--b1);border-radius:16px;padding:28px;text-align:center;width:100%">
+      <div style="font-size:42px;font-weight:900;letter-spacing:-1px;margin-bottom:16px">${q.expr} = ?</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        ${(q.choices||[]).map(c2=>`<button onclick="smAnswer(${c2})" class="btn ${myAns===c2?'btn-p':'btn-g'}" style="padding:14px;font-size:18px;font-weight:800;border-radius:12px" ${myAns!=null?'disabled':''}>${c2}</button>`).join('')}
+      </div>
+    </div>`;
+    if(ans&&Object.keys(ans).length>0){
+      html+=`<div style="font-size:12px;color:var(--muted2);text-align:center">${Object.keys(ans).length}/2 đã trả lời</div>`;
+    }
+  }
+
+  if(phase==='answer'){
+    const q=d.smQuestion||{expr:'?',answer:0};
+    const winner=d.smRoundWinner;
+    const wName=winner==='host'?hName:winner==='guest'?gName:'Không ai';
+    const iw=winner===role;
+    html+=`<div style="background:${iw?'rgba(16,185,129,.1)':'rgba(239,68,68,.05)'};border:1.5px solid ${iw?'var(--green)':'var(--b1)'};border-radius:16px;padding:24px;text-align:center;width:100%">
+      <div style="font-size:36px;font-weight:900;margin-bottom:8px">${q.expr} = <span style="color:var(--gold)">${q.answer}</span></div>
+      <div style="font-size:18px;font-weight:800;color:${iw?'var(--green)':winner==='draw'?'var(--muted2)':'var(--red)'}">${winner==='draw'?'🤝 Hòa!':iw?'🏆 Bạn trả lời đúng trước!':'😢 '+wName+' nhanh hơn!'}</div>
+    </div>
+    ${role==='host'?`<button class="btn btn-p" onclick="smNext()" style="max-width:200px">${round>=total?'📊 Kết quả':'Câu tiếp →'}</button>`:`<div style="font-size:12px;color:var(--muted)">Chờ host...</div>`}`;
+  }
+
+  if(phase==='gameover'){
+    const w=sc.host>sc.guest?'host':sc.guest>sc.host?'guest':'draw';
+    const iw=w===role;
+    html+=`<div style="text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px;padding:20px 0;width:100%">
+      <div style="font-size:56px">${w==='draw'?'🤝':iw?'🏆':'😢'}</div>
+      <div style="font-size:22px;font-weight:900">${w==='draw'?'Hòa!':iw?'Bạn thắng!':'Thua rồi!'}</div>
+      <div style="font-size:13px;color:var(--muted2)">Tỉ số: ${hName} ${sc.host||0} - ${sc.guest||0} ${gName}</div>
+      ${role==='host'?`<button class="btn btn-p" style="max-width:200px" onclick="smRestart()">🔄 Chơi lại</button>`:`<div style="font-size:12px;color:var(--muted)">Chờ host...</div>`}
+    </div>`;
+  }
+
+  wrap.innerHTML=html;
+}
+
+function smGenQuestion(){
+  const ops=['+','-','×','÷'];
+  const op=ops[Math.floor(Math.random()*4)];
+  let a,b,answer;
+  if(op==='+'){a=Math.floor(Math.random()*50)+1;b=Math.floor(Math.random()*50)+1;answer=a+b}
+  else if(op==='-'){a=Math.floor(Math.random()*50)+10;b=Math.floor(Math.random()*a)+1;answer=a-b}
+  else if(op==='×'){a=Math.floor(Math.random()*12)+2;b=Math.floor(Math.random()*12)+2;answer=a*b}
+  else{b=Math.floor(Math.random()*9)+2;answer=Math.floor(Math.random()*10)+1;a=b*answer}
+  const expr=`${a} ${op} ${b}`;
+  // 4 đáp án (1 đúng, 3 sai)
+  const wrongs=new Set();
+  while(wrongs.size<3){const w=answer+Math.floor(Math.random()*20)-10;if(w!==answer&&w>0)wrongs.add(w)}
+  const choices=[answer,...wrongs].sort(()=>Math.random()-.5);
+  return{expr,answer,choices};
+}
+
+window.smStart=async function(){
+  if(role!=='host'||!room)return;
+  const q=smGenQuestion();
+  await update(ref(db,`rooms/${room}`),{smPhase:'question',smQuestion:q,smAnswered:{},smRoundWinner:null});
+};
+
+window.smAnswer=async function(ans){
+  if(!room)return;
+  const snap=await get(ref(db,`rooms/${room}`));
+  const d=snap.val(); const h=me();
+  if(d.smPhase!=='question')return;
+  if(d.smAnswered?.[h.id]!=null)return;
+  await update(ref(db,`rooms/${room}/smAnswered`),{[h.id]:ans});
+  // Check result (host decides)
+  if(role==='host'){
+    setTimeout(async()=>{
+      const snap2=await get(ref(db,`rooms/${room}`));
+      const d2=snap2.val();
+      const answered=d2.smAnswered||{};
+      const q=d2.smQuestion||{answer:0};
+      const hAns=answered[d2.hostId],gAns=answered[d2.guestId];
+      let winner='draw';
+      const hCorrect=hAns===q.answer,gCorrect=gAns===q.answer;
+      if(hCorrect&&!gCorrect)winner='host';
+      else if(gCorrect&&!hCorrect)winner='guest';
+      else if(!hCorrect&&!gCorrect)winner='none';
+      const sc={...(d2.smScore||{host:0,guest:0})};
+      if(winner==='host')sc.host=(sc.host||0)+1;
+      else if(winner==='guest')sc.guest=(sc.guest||0)+1;
+      const round=(d2.smRound||1);
+      const phase=round>=10?'gameover':'answer';
+      await update(ref(db,`rooms/${room}`),{smPhase:phase,smRoundWinner:winner,smScore:sc});
+    },1500); // chờ 1.5s để người kia có thể trả lời
+  }
+};
+
+window.smNext=async function(){
+  if(role!=='host'||!room)return;
+  const snap=await get(ref(db,`rooms/${room}`));
+  const d=snap.val();
+  const round=(d.smRound||1)+1;
+  const q=smGenQuestion();
+  await update(ref(db,`rooms/${room}`),{smPhase:'question',smQuestion:q,smAnswered:{},smRound:round,smRoundWinner:null});
+};
+
+window.smRestart=async function(){
+  if(role!=='host'||!room)return;
+  const q=smGenQuestion();
+  await update(ref(db,`rooms/${room}`),{smPhase:'question',smQuestion:q,smAnswered:{},smRound:1,smScore:{host:0,guest:0},smRoundWinner:null});
+};
+
+// ════════════════════════════════════════
+//  GAME MỚI: SỐ MAY MẮN (Guess the Number)
+// ════════════════════════════════════════
+function renderGN(d,id){
+  const h=me();
+  if(!document.getElementById('gn-wrap')){
+    document.getElementById('garea').innerHTML=`
+      <div class="gtop"><div class="gtitle">🎯 Số May Mắn <span class="cbadge" onclick="copyL('${id}')">#${id} 📋</span></div><button class="btn btn-d btn-sm" onclick="leaveRoom()">Thoát</button></div>
+      <div style="width:100%;max-width:420px;display:flex;flex-direction:column;gap:14px;align-items:center;padding-bottom:20px" id="gn-wrap"></div>`;
+  }
+  const wb=document.getElementById('wbox');
+  if(d.status==='waiting'){if(!wb)mkWbox(id);return}
+  if(wb)wb.remove();
+
+  const wrap=document.getElementById('gn-wrap');
+  const phase=d.gnPhase||'guess';
+  const secret=d.gnSecret;
+  const guesses=d.gnGuesses||{};
+  const round=d.gnRound||1;
+  const sc=d.gnScore||{host:0,guest:0};
+  const hName=(d.hostAv||'')+(d.hostName||'Host');
+  const gName=d.guestName?(d.guestAv||'')+(d.guestName):'Chờ...';
+
+  let html=`<div style="width:100%;background:var(--s1);border:1px solid var(--b1);border-radius:14px;padding:14px;display:flex;justify-content:space-around;text-align:center">
+    <div><div style="font-size:12px;color:var(--muted2)">${hName}</div><div style="font-size:28px;font-weight:900;color:var(--purple)">${sc.host||0}</div></div>
+    <div style="font-size:13px;color:var(--muted);align-self:center">Ván ${round}</div>
+    <div><div style="font-size:12px;color:var(--muted2)">${gName}</div><div style="font-size:28px;font-weight:900;color:var(--pink)">${sc.guest||0}</div></div>
+  </div>`;
+
+  if(phase==='guess'){
+    const myG=guesses[h.id];
+    html+=`<div style="width:100%;background:var(--s1);border:1px solid var(--b1);border-radius:14px;padding:20px;text-align:center;display:flex;flex-direction:column;gap:12px">
+      <div style="font-size:15px;font-weight:700">🎯 Đoán số từ 1–100</div>
+      <div style="font-size:12px;color:var(--muted2)">Ai đoán gần số bí mật hơn thắng!</div>
+      ${myG!=null?`<div style="font-size:28px;font-weight:900;color:var(--purple)">Bạn đoán: ${myG}</div>
+      <div style="font-size:13px;color:var(--muted2)">Chờ đối thủ đoán...</div>`:`
+      <input type="number" id="gn-inp" min="1" max="100" placeholder="Nhập 1-100..."
+        style="text-align:center;font-size:20px;font-weight:800;padding:12px;border-radius:10px;background:var(--s3);border:1.5px solid var(--b2);color:var(--text);width:100%;outline:none"
+        onkeydown="if(event.key==='Enter')gnGuess()">
+      <button class="btn btn-p" onclick="gnGuess()" style="border-radius:10px">✅ Xác nhận</button>`}
+      <div style="font-size:12px;color:var(--muted2)">${Object.keys(guesses).length}/2 đã đoán</div>
+    </div>`;
+  }
+
+  if(phase==='reveal'){
+    const hG=guesses[d.hostId]||'?',gG=guesses[d.guestId]||'?';
+    const winner=d.gnWinner;
+    const iw=winner===role;
+    html+=`<div style="width:100%;background:var(--s1);border:1px solid var(--b1);border-radius:14px;padding:20px;text-align:center;display:flex;flex-direction:column;gap:12px">
+      <div style="font-size:18px;font-weight:700;color:var(--muted2)">Số bí mật là...</div>
+      <div style="font-size:52px;font-weight:900;color:var(--gold)">${secret}</div>
+      <div style="display:flex;justify-content:space-around">
+        <div style="text-align:center"><div style="font-size:12px;color:var(--muted2)">${hName}</div><div style="font-size:28px;font-weight:900;color:${winner==='host'?'var(--green)':'var(--muted2)'}">${hG}</div><div style="font-size:11px;color:var(--muted2)">Lệch ${Math.abs(hG-secret)}</div></div>
+        <div style="font-size:20px;color:var(--muted);align-self:center">VS</div>
+        <div style="text-align:center"><div style="font-size:12px;color:var(--muted2)">${gName}</div><div style="font-size:28px;font-weight:900;color:${winner==='guest'?'var(--green)':'var(--muted2)'}">${gG}</div><div style="font-size:11px;color:var(--muted2)">Lệch ${Math.abs(gG-secret)}</div></div>
+      </div>
+      <div style="font-size:18px;font-weight:900;color:${iw?'var(--green)':winner==='draw'?'var(--muted2)':'var(--red)'}">${winner==='draw'?'🤝 Hòa!':iw?'🏆 Bạn gần hơn!':'😢 Đối thủ gần hơn!'}</div>
+      ${role==='host'?`<button class="btn btn-p" onclick="gnNext()">Ván tiếp →</button>`:`<div style="font-size:12px;color:var(--muted)">Chờ host...</div>`}
+    </div>`;
+  }
+
+  wrap.innerHTML=html;
+}
+
+window.gnGuess=async function(){
+  if(!room)return;
+  const inp=document.getElementById('gn-inp');
+  const v=parseInt(inp?.value||0);
+  if(!v||v<1||v>100){showToast('❌ Nhập số 1-100!');return}
+  const h=me();
+  await update(ref(db,`rooms/${room}/gnGuesses`),{[h.id]:v});
+  const snap=await get(ref(db,`rooms/${room}`));
+  const d=snap.val();
+  const guesses=d.gnGuesses||{};
+  if(guesses[d.hostId]!=null&&guesses[d.guestId]!=null&&role==='host'){
+    const secret=d.gnSecret||Math.ceil(Math.random()*100);
+    const hD=Math.abs(guesses[d.hostId]-secret),gD=Math.abs(guesses[d.guestId]-secret);
+    let winner=hD<gD?'host':gD<hD?'guest':'draw';
+    const sc={...(d.gnScore||{host:0,guest:0})};
+    if(winner==='host')sc.host=(sc.host||0)+1;
+    else if(winner==='guest')sc.guest=(sc.guest||0)+1;
+    await update(ref(db,`rooms/${room}`),{gnPhase:'reveal',gnSecret:secret,gnWinner:winner,gnScore:sc});
+  }
+};
+
+window.gnNext=async function(){
+  if(role!=='host'||!room)return;
+  const secret=Math.ceil(Math.random()*100);
+  const snap=await get(ref(db,`rooms/${room}`));
+  await update(ref(db,`rooms/${room}`),{gnPhase:'guess',gnSecret:secret,gnGuesses:{},gnWinner:null,gnRound:(snap.val()?.gnRound||1)+1});
 };
 
 // ════════════════════════════════════════
