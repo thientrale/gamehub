@@ -268,6 +268,28 @@ canvas#caroBoard.wait{cursor:not-allowed;opacity:.8}
 </div>
 <div class="toast" id="toast"></div>
 
+<script>
+// Avatar và setup chạy ngay lập tức
+const AVATARS = ["😎","🦊","🐼","🦁","🐸","🦄","🤖","👻","🐯","🐧","🦋","🎃"];
+let myAv = "😎";
+document.addEventListener("DOMContentLoaded", function() {
+  const avRow = document.getElementById("avatarRow");
+  AVATARS.forEach(a => {
+    const d = document.createElement("div");
+    d.className = "av" + (a === "😎" ? " selected" : "");
+    d.textContent = a;
+    d.onclick = () => {
+      document.querySelectorAll(".av").forEach(x => x.classList.remove("selected"));
+      d.classList.add("selected");
+      myAv = a;
+      window._myAv = a;
+    };
+    avRow.appendChild(d);
+  });
+  window._myAv = myAv;
+});
+</script>
+
 <script type="module">
 import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import{getDatabase,ref,set,get,onValue,update,remove,push,serverTimestamp,off}
@@ -290,37 +312,22 @@ const firebaseConfig = {
 const fbApp = initializeApp(firebaseConfig);
 const db = getDatabase(fbApp);
 
-const AVATARS = ['😎','🦊','🐼','🦁','🐸','🦄','🤖','👻','🐯','🐧','🦋','🎃'];
-let myName='', myAv='😎', myId='';
+let myName='', myId='';
 let currentRoom=null, myRole=null;
 let gameUnsub=null, chatUnsub=null;
-// caro state
 let caroCanvas=null, caroCtx=null, lastShown=null, liveData=null;
-// taixiu
 let txRolling=false;
-
-// ── SETUP AVATARS ──
-const avRow = document.getElementById('avatarRow');
-AVATARS.forEach(a => {
-  const d = document.createElement('div');
-  d.className = 'av' + (a === '😎' ? ' selected' : '');
-  d.textContent = a;
-  d.onclick = () => {
-    document.querySelectorAll('.av').forEach(x => x.classList.remove('selected'));
-    d.classList.add('selected');
-    myAv = a;
-  };
-  avRow.appendChild(d);
-});
 
 // ── ENTER HUB ──
 window.enterHub = function() {
   const n = document.getElementById('setupName').value.trim();
   if (!n) { showToast('⚠️ Nhập tên trước nhé!'); return; }
   myName = n;
+  // avatar lấy từ script ngoài
   myId = 'u_' + Math.random().toString(36).substr(2, 8);
+  window._myName = myName; window._myId = myId;
   document.getElementById('chipName').textContent = myName;
-  document.getElementById('chipAv').textContent = myAv;
+  document.getElementById('chipAv').textContent = (window._myAv||'😎');
   document.getElementById('setup').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   listenPublicRooms();
@@ -420,7 +427,7 @@ window.createRoom = async function(game) {
   const g = GAMES[game];
   const data = {
     game, gameName:g.name, gameIcon:g.icon,
-    hostId:myId, hostName:myName, hostAv:myAv,
+    hostId:myId, hostName:myName, hostAv:(window._myAv||'😎'),
     status:'waiting', public:true,
     score:{host:0,guest:0,draw:0},
     createdAt:serverTimestamp()
@@ -435,7 +442,7 @@ window.createRoom = async function(game) {
   await set(ref(db,`rooms/${id}`), data);
   history.replaceState(null,'',`${location.pathname}?room=${id}`);
   listenRoom(id, game);
-  addSystemMsg(`${myAv} ${myName} tạo phòng`);
+  addSystemMsg(`${(window._myAv||'😎')} ${myName} tạo phòng`);
 };
 
 // ── JOIN ROOM ──
@@ -449,11 +456,11 @@ window.joinRoom = async function(id) {
   resetGameState();
   currentRoom = id; myRole = 'guest';
   await update(ref(db,`rooms/${id}`), {
-    guestId:myId, guestName:myName, guestAv:myAv, status:'playing', public:false
+    guestId:myId, guestName:myName, guestAv:(window._myAv||'😎'), status:'playing', public:false
   });
   history.replaceState(null,'',`${location.pathname}?room=${id}`);
   listenRoom(id, d.game);
-  addSystemMsg(`${myAv} ${myName} đã vào phòng`);
+  addSystemMsg(`${(window._myAv||'😎')} ${myName} đã vào phòng`);
 };
 
 // ── LISTEN ROOM ──
@@ -788,7 +795,7 @@ window.sendChat = function() {
   const inp=document.getElementById('chatInput');
   const txt=inp.value.trim(); if(!txt||!currentRoom)return;
   inp.value='';
-  push(ref(db,`chats/${currentRoom}`),{uid:myId,name:myName,av:myAv,text:txt,ts:Date.now()});
+  push(ref(db,`chats/${currentRoom}`),{uid:myId,name:myName,av:(window._myAv||'😎'),text:txt,ts:Date.now()});
 };
 
 // ══════════════════════
