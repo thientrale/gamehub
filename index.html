@@ -569,10 +569,8 @@ function drawBoard(cells, winLine, lastMove) {
     cCtx.fillStyle='rgba(255,255,255,.05)';
     cCtx.fillRect(c*C+1,r*C+1,C-2,C-2);
   }
-  // Đọc cells an toàn
   for(let r=0;r<NR;r++) for(let c=0;c<NC;c++) {
-    const rawRow = cells ? (cells[r] || null) : null;
-    const v = rawRow ? (rawRow[c] || null) : null; if(!v)continue;
+    const v = getCell(cells,r,c); if(!v) continue;
     const cx=c*C+C/2, cy=r*C+C/2, R=C*.32;
     if (v==='host') {
       cCtx.strokeStyle='#8b5cf6'; cCtx.lineWidth=C*.13; cCtx.lineCap='round';
@@ -593,19 +591,24 @@ function drawBoard(cells, winLine, lastMove) {
   }
 }
 
-// Chuyển Firebase object/array thành array 2D chuẩn 20x20
-function normCells(raw) {
-  const result = [];
+// Đọc cell từ Firebase (có thể là object hoặc array)
+function getCell(cells, r, c) {
+  if (!cells) return null;
+  const row = cells[r];
+  if (!row) return null;
+  return row[c] || null;
+}
+
+// Tạo bản sao cells 20x20 an toàn
+function cloneCells(cells) {
+  const out = {};
   for (let r = 0; r < NR; r++) {
-    const row = [];
-    const rawRow = raw ? (Array.isArray(raw) ? raw[r] : raw[r]) : null;
+    out[r] = {};
     for (let c = 0; c < NC; c++) {
-      const v = rawRow ? (Array.isArray(rawRow) ? rawRow[c] : rawRow[c]) : null;
-      row.push(v || null);
+      out[r][c] = getCell(cells, r, c);
     }
-    result.push(row);
   }
-  return result;
+  return out;
 }
 
 function caroClick(e) {
@@ -617,12 +620,11 @@ function caroClick(e) {
   const col = Math.floor((e.clientX - rect.left) * cCanvas.width / rect.width / C);
   const row = Math.floor((e.clientY - rect.top) * cCanvas.height / rect.height / C);
   if (row < 0 || row >= NR || col < 0 || col >= NC) return;
-  // Tạo cells mới hoàn toàn 20x20, không dùng .map() trên data Firebase
-  const cells = normCells(d.cells);
-  if (cells[row][col]) { showToast('❌ Ô này đã có quân!'); return; }
+  if (getCell(d.cells, row, col)) { showToast('❌ Ô này đã có quân!'); return; }
+  const cells = cloneCells(d.cells);
   cells[row][col] = myRole;
   const wl = checkWin(cells, row, col);
-  const full = cells.every(r => r.every(v => v));
+  const full = (() => { for(let r=0;r<NR;r++) for(let c=0;c<NC;c++) if(!cells[r][c]) return false; return true; })();
   const sc = { ...(d.score || { host: 0, guest: 0, draw: 0 }) };
   let status = 'playing', winner = null;
   if (wl) {
@@ -637,25 +639,22 @@ function caroClick(e) {
     status, lastMove: [row, col], winner: winner || null, winLine: wl || null, score: sc
   });
 }
-
-function checkWin(cells,r,c) {
-  const v = cells[r][c];
+function checkWin(cells, r, c) {
+  const v = getCell(cells, r, c);
   if (!v) return null;
-  function getCell(r2,c2) {
-    if (r2<0||r2>=NR||c2<0||c2>=NC) return null;
-    const row = cells[r2]; if (!row) return null;
-    return row[c2] || null;
-  }
-  for(const[dr,dc]of[[0,1],[1,0],[1,1],[1,-1]]){
-    const line=[[r,c]];
-    for(const s of[-1,1]){
-      let nr=r+dr*s,nc=c+dc*s;
-      while(getCell(nr,nc)===v){ line.push([nr,nc]); nr+=dr*s; nc+=dc*s; }
+  for (const [dr,dc] of [[0,1],[1,0],[1,1],[1,-1]]) {
+    const line = [[r,c]];
+    for (const s of [-1,1]) {
+      let nr=r+dr*s, nc=c+dc*s;
+      while (nr>=0&&nr<NR&&nc>=0&&nc<NC&&getCell(cells,nr,nc)===v) {
+        line.push([nr,nc]); nr+=dr*s; nc+=dc*s;
+      }
     }
-    if(line.length>=WIN)return line;
+    if (line.length >= WIN) return line;
   }
   return null;
 }
+
 
 window.rematch = async function() {
   lastRes = null;
