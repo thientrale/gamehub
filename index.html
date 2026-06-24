@@ -686,13 +686,13 @@ function renderXD(d,id){
       <div style="font-size:13px;font-weight:700;color:var(--muted2);margin-bottom:8px;text-align:center">💰 Chọn mức cược ván này</div>
       <div class="xd-chip-row">
         ${XD_CHIPS.map(v=>{
-          const label=v>=1000?v/1000+'K':v;
-          const disabled=(v>(myP?.coins||0))||myBet===v;
-          return`<div class="xd-chip${myBet===v?' on':''}" onclick="xdChip(${v})" style="${disabled&&myBet!==v?'opacity:.35;cursor:not-allowed':''}">
-            ${label}K
+          const label=v>=1000?(v/1000)+'K':v;
+          const disabled=(v>(myP?.coins||0))&&myBet!==v;
+          return`<div class="xd-chip${myBet===v?' on':''}" onclick="${disabled?'':'xdChip('+v+')'}" style="${disabled?'opacity:.35;cursor:not-allowed':'cursor:pointer'}">
+            ${label}
           </div>`;
         }).join('')}
-        <div class="xd-chip${myBet===(myP?.coins||0)&&myBet>0?' on':''}" onclick="xdChip(${myP?.coins||0})">All In</div>
+        <div class="xd-chip${myBet===(myP?.coins||0)&&myBet>0?' on':''}" onclick="xdChip(${myP?.coins||0})" style="${(myP?.coins||0)<=0?'opacity:.35;cursor:not-allowed':'cursor:pointer'}">All In</div>
       </div>
       <div style="font-size:14px;font-weight:800;color:var(--gold);text-align:center;min-height:22px">${myBet?'✅ Cược: '+myBet.toLocaleString()+' xu':'Chọn mức cược'}</div>
       <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px;padding-top:12px;border-top:1px solid var(--b1)">
@@ -709,30 +709,34 @@ function renderXD(d,id){
     const showAll=phase==='result'||d.xdShowAll;
     const timeLeft=d.xdTimeLeft||0;
     const myDone=d.xdDone?.[h.id];
+    // KHÔNG render Nhà Cái - game người vs người
 
     // Timer bar
     if(phase==='play'){
       const pct=Math.round((timeLeft/30)*100);
       const col=timeLeft>10?'var(--green)':timeLeft>5?'var(--yellow)':'var(--red)';
+      const allDoneNow=plist.every(([pid])=>d.xdDone?.[pid]);
       html+=`<div style="width:100%;max-width:460px;background:var(--s1);border:1px solid var(--b1);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:12px">
         <span style="font-size:20px">⏱</span>
         <div style="flex:1">
           <div style="height:8px;background:var(--s3);border-radius:4px;overflow:hidden">
             <div style="height:100%;width:${pct}%;background:${col};transition:width .9s linear;border-radius:4px"></div>
           </div>
+          <div style="font-size:11px;color:var(--muted2);margin-top:4px">${allDoneNow?'Tất cả đã dừng!':timeLeft>0?'Hết giờ tự động show bài':'Show bài!'}</div>
         </div>
         <span style="font-size:16px;font-weight:900;color:${col};min-width:28px;text-align:right">${timeLeft}s</span>
       </div>`;
     }
 
-    // Player panels
+    // Player panels - KHÔNG CÓ NHÀ CÁI, chỉ hiện bài mình
     plist.forEach(([pid,p])=>{
       const ph=p.hand||[];
       const isMe=pid===h.id;
       const pDone=d.xdDone?.[pid];
+      // Chỉ show bài của mình hoặc khi đã show all (kết quả)
       const showThisHand=showAll||isMe;
-      const pv=hVal(ph);
-      const bust=pv>21;
+      const pv=showThisHand?hVal(ph):0;
+      const bust=showThisHand&&pv>21;
 
       let statusBadge='',panelClass='xd-panel';
       if(phase==='result'){
@@ -754,7 +758,7 @@ function renderXD(d,id){
         <div class="hand-area">
           ${showThisHand
             ? ph.map(c=>mkCard(c)).join('')
-            : ph.map(()=>mkCard(null,true)).join('')}
+            : ph.map((_,i)=>mkCard('X♠',true)).join('')}
         </div>
         ${showThisHand?`<div style="font-size:12px;color:${bust?'var(--red)':'var(--muted2)'};font-weight:${bust?700:400}">Tổng: ${pv}${bust?' — QUẮC!':''}</div>`:'<div style="font-size:12px;color:var(--muted2)">Bài ẩn 🂠</div>'}
         ${isMe&&phase==='play'?`
@@ -765,13 +769,20 @@ function renderXD(d,id){
       </div>`;
     });
 
-    // Show bài button — khi chưa show
+    // Show bài button — host nhấn hoặc tất cả đã dừng
     if(phase==='play'&&!d.xdShowAll){
       const allDone=plist.every(([pid])=>d.xdDone?.[pid]);
-      if(allDone||role==='host'){
-        html+=`<button class="btn btn-y" onclick="xdReveal()" style="max-width:460px;width:100%">
-          👁 ${allDone?'Tất cả dừng — ':''}Mở bài xem kết quả!
-        </button>`;
+      // Chỉ host mới có thể bấm show bài
+      if(role==='host'){
+        html+=`<div style="max-width:460px;width:100%;display:flex;flex-direction:column;gap:8px">
+          <button class="btn btn-y" onclick="xdReveal()" style="width:100%">
+            👁 ${allDone?'Tất cả dừng — Mở bài!':'Mở bài sớm (hết giờ tự động)'}
+          </button>
+        </div>`;
+      } else {
+        html+=`<div style="max-width:460px;width:100%;text-align:center;font-size:12px;color:var(--muted);padding:8px">
+          ${allDone?'✅ Bạn đã dừng — Chờ host mở bài...':'⏳ Chờ hết giờ hoặc host mở bài...'}
+        </div>`;
       }
     }
 
@@ -863,13 +874,13 @@ window.xdDeal=async function(){
   const snap=await get(ref(db,`rooms/${room}`));
   const d=snap.val();const players=d.players||{};
   const deck=newDeck();
-  const upd={xdPhase:'play',xdShowAll:false,xdDone:{},xdResult:{},xdDelta:{},xdTimeLeft:30,deck};
+  const upd={xdPhase:'play',xdShowAll:false,xdDone:{},xdResult:{},xdDelta:{},xdTimeLeft:30,dealerHand:null};
+  const shuffledDeck=[...deck];
   Object.keys(players).forEach(pid=>{
-    // 2 bài ngẫu nhiên từ deck đã xáo
-    upd[`players/${pid}/hand`]=[deck.pop(),deck.pop()];
+    upd[`players/${pid}/hand`]=[shuffledDeck.pop(),shuffledDeck.pop()];
     upd[`players/${pid}/done`]=false;
   });
-  upd.deck=deck;
+  upd.deck=shuffledDeck;
   await update(ref(db,`rooms/${room}`),upd);
   // Host quản lý timer
   if(role==='host') xdStartTimer();
