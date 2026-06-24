@@ -419,7 +419,10 @@ window.createRoom = async function(game) {
     createdAt:serverTimestamp()
   };
   if (game==='caro') {
-    data.cells = Array(20).fill(null).map(()=>Array(20).fill(null));
+    // Tạo cells dạng object để Firebase lưu đúng
+    const emptyCells = {};
+    for(let r=0;r<20;r++){emptyCells[r]={};for(let c=0;c<20;c++)emptyCells[r][c]=null;}
+    data.cells = emptyCells;
     data.turn = 'host'; data.winner = null; data.winLine = null;
   }
   if (game==='taixiu') {
@@ -566,10 +569,10 @@ function drawBoard(cells, winLine, lastMove) {
     cCtx.fillStyle='rgba(255,255,255,.05)';
     cCtx.fillRect(c*C+1,r*C+1,C-2,C-2);
   }
-  // Firebase có thể trả object, convert sang array
-  const cellArr = Array.isArray(cells) ? cells : Object.values(cells||{});
+  // Đọc cells an toàn
   for(let r=0;r<NR;r++) for(let c=0;c<NC;c++) {
-    const row2 = cellArr[r]; const v = Array.isArray(row2)?row2[c]:(row2||{})[c]; if(!v)continue;
+    const rawRow = cells ? (cells[r] || null) : null;
+    const v = rawRow ? (rawRow[c] || null) : null; if(!v)continue;
     const cx=c*C+C/2, cy=r*C+C/2, R=C*.32;
     if (v==='host') {
       cCtx.strokeStyle='#8b5cf6'; cCtx.lineWidth=C*.13; cCtx.lineCap='round';
@@ -590,60 +593,75 @@ function drawBoard(cells, winLine, lastMove) {
   }
 }
 
-function toArray2D(raw) {
-  // Firebase có thể trả về object {0:[...], 1:[...]} thay vì array
-  if (Array.isArray(raw)) return raw.map(r => Array.isArray(r) ? [...r] : Object.values(r||{}));
-  return Object.values(raw||{}).map(r => Array.isArray(r) ? [...r] : Object.values(r||{}));
+// Chuyển Firebase object/array thành array 2D chuẩn 20x20
+function normCells(raw) {
+  const result = [];
+  for (let r = 0; r < NR; r++) {
+    const row = [];
+    const rawRow = raw ? (Array.isArray(raw) ? raw[r] : raw[r]) : null;
+    for (let c = 0; c < NC; c++) {
+      const v = rawRow ? (Array.isArray(rawRow) ? rawRow[c] : rawRow[c]) : null;
+      row.push(v || null);
+    }
+    result.push(row);
+  }
+  return result;
 }
 
 function caroClick(e) {
   const d = liveD;
-  if (!d||!currentRoom) { console.log('no liveD or room'); return; }
-  if (d.status!=='playing') { console.log('not playing:', d.status); return; }
-  if (d.turn!==myRole) { showToast('⏳ Chưa đến lượt bạn!'); return; }
+  if (!d || !currentRoom) return;
+  if (d.status !== 'playing') return;
+  if (d.turn !== myRole) { showToast('⏳ Chưa đến lượt bạn!'); return; }
   const rect = cCanvas.getBoundingClientRect();
-  const col = Math.floor((e.clientX-rect.left)*cCanvas.width/rect.width/C);
-  const row = Math.floor((e.clientY-rect.top)*cCanvas.height/rect.height/C);
-  if (row<0||row>=NR||col<0||col>=NC) return;
-  const cells = toArray2D(d.cells);
-  // đảm bảo đủ 20x20
-  while(cells.length<NR) cells.push(Array(NC).fill(null));
-  cells.forEach(r=>{ while(r.length<NC) r.push(null); });
+  const col = Math.floor((e.clientX - rect.left) * cCanvas.width / rect.width / C);
+  const row = Math.floor((e.clientY - rect.top) * cCanvas.height / rect.height / C);
+  if (row < 0 || row >= NR || col < 0 || col >= NC) return;
+  // Tạo cells mới hoàn toàn 20x20, không dùng .map() trên data Firebase
+  const cells = normCells(d.cells);
   if (cells[row][col]) { showToast('❌ Ô này đã có quân!'); return; }
   cells[row][col] = myRole;
-  const wl = checkWin(cells,row,col);
-  const full = cells.every(r=>r.every(v=>v));
-  const sc = {...(d.score||{host:0,guest:0,draw:0})};
-  let status='playing', winner=null;
+  const wl = checkWin(cells, row, col);
+  const full = cells.every(r => r.every(v => v));
+  const sc = { ...(d.score || { host: 0, guest: 0, draw: 0 }) };
+  let status = 'playing', winner = null;
   if (wl) {
-    status='finished'; winner=myRole;
-    if(myRole==='host') sc.host=(sc.host||0)+1; else sc.guest=(sc.guest||0)+1;
-  } else if (full) { status='finished'; sc.draw=(sc.draw||0)+1; }
-  update(ref(db,`rooms/${currentRoom}`),{
-    cells, turn:myRole==='host'?'guest':'host',
-    status, lastMove:[row,col], winner:winner||null, winLine:wl||null, score:sc
+    status = 'finished'; winner = myRole;
+    if (myRole === 'host') sc.host = (sc.host || 0) + 1;
+    else sc.guest = (sc.guest || 0) + 1;
+  } else if (full) {
+    status = 'finished'; sc.draw = (sc.draw || 0) + 1;
+  }
+  update(ref(db, `rooms/${currentRoom}`), {
+    cells, turn: myRole === 'host' ? 'guest' : 'host',
+    status, lastMove: [row, col], winner: winner || null, winLine: wl || null, score: sc
   });
 }
 
 function checkWin(cells,r,c) {
-  const v=cells[r][c];
+  const v = cells[r][c];
+  if (!v) return null;
+  function getCell(r2,c2) {
+    if (r2<0||r2>=NR||c2<0||c2>=NC) return null;
+    const row = cells[r2]; if (!row) return null;
+    return row[c2] || null;
+  }
   for(const[dr,dc]of[[0,1],[1,0],[1,1],[1,-1]]){
     const line=[[r,c]];
     for(const s of[-1,1]){
       let nr=r+dr*s,nc=c+dc*s;
-      while(nr>=0&&nr<NR&&nc>=0&&nc<NC&&(cells[nr]?.[nc]||null)===v){
-        line.push([nr,nc]);nr+=dr*s;nc+=dc*s;
-      }
+      while(getCell(nr,nc)===v){ line.push([nr,nc]); nr+=dr*s; nc+=dc*s; }
     }
     if(line.length>=WIN)return line;
-  }return null;
+  }
+  return null;
 }
 
 window.rematch = async function() {
   lastRes = null;
   document.getElementById('ovl').classList.remove('on');
   await update(ref(db,`rooms/${currentRoom}`),{
-    cells:Array(NR).fill(null).map(()=>Array(NC).fill(null)),
+    cells:(()=>{const e={};for(let r=0;r<NR;r++){e[r]={};for(let c=0;c<NC;c++)e[r][c]=null;}return e;})(),
     turn:'host',status:'playing',lastMove:null,winner:null,winLine:null
   });
 };
