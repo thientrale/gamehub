@@ -230,7 +230,7 @@ onValue(ref(db,'rooms'),snap=>{
 // LOBBY
 window.openLobby=function(game){
   resetA();showR();const g=G[game];
-  const ai=['caro','taixiu','xidach','baucua','oantuti','speedmath','guessnumber','cotuong'].includes(game);
+  const ai=['caro','taixiu','xidach','baucua','oantuti','speedmath','guessnumber','cotuong','tienlen','poker'].includes(game);
   document.getElementById('garea').innerHTML=`<div class="lobby">
     <div class="lobby-title">${g.i} ${g.n}</div>
     <div class="lobby-sub">Chơi với bạn bè hoặc AI!</div>
@@ -807,6 +807,8 @@ function aiReact(d,id,game){
   if(game==='xidach'&&d.xp==='play'&&!d.xdDone?.[AI]&&d.players?.[AI])setTimeout(()=>aiXDPlay(id),800+Math.random()*1000);
   if(game==='speedmath'&&d.smp==='question'&&d.smA?.[d.hid]!=null&&d.smA?.[AI]==null)setTimeout(()=>aiSM(id,d),1000+Math.random()*2000);
   if(game==='guessnumber'&&d.gnp==='guess'&&d.gnG?.[d.hid]!=null&&d.gnG?.[AI]==null)setTimeout(()=>aiGN(id,d),500+Math.random()*1000);
+  if(game==='tienlen'&&d.tlPhase==='playing'&&d.tlTurn===AI)setTimeout(()=>aiTL(d,id),700+Math.random()*800);
+  if(game==='poker'&&d.pkPhase==='playing'&&d.pkTurn===AI)setTimeout(()=>aiPK(d,id),800+Math.random()*700);
 }
 async function aiCT(d,id){
   if(!room||!d||d.ctTurn!=='black'||d.ctStatus!=='playing')return;
@@ -833,7 +835,175 @@ async function aiCT(d,id){
   await ctDo(best.from[0],best.from[1],best.to[0],best.to[1],d);
 }
 
-async function aiCaro(d,id){if(!room||!d||d.turn!=='guest'||d.status!=='playing')return;const cells=d.cells||{};const emp=[];for(let r=0;r<NR;r++)for(let c=0;c<NC;c++)if(!gc(cells,r,c))emp.push([r,c]);if(!emp.length)return;const cands=new Set();for(let r=0;r<NR;r++)for(let c=0;c<NC;c++){if(!gc(cells,r,c))continue;for(let dr=-2;dr<=2;dr++)for(let dc=-2;dc<=2;dc++){const nr=r+dr,nc=c+dc;if(nr>=0&&nr<NR&&nc>=0&&nc<NC&&!gc(cells,nr,nc))cands.add(nr*NC+nc)}}if(cands.size===0)cands.add(10*NC+10);let best=null,bestS=-1;for(const key of cands){const r=Math.floor(key/NC),c=key%NC;let s=0;for(const[dr,dc]of[[0,1],[1,0],[1,1],[1,-1]]){let ca=1,cd=1;for(const sg of[-1,1]){let nr=r+dr*sg,nc=c+dc*sg;for(let k=0;k<4;k++){if(nr<0||nr>=NR||nc<0||nc>=NC)break;const v=gc(cells,nr,nc);if(v==='guest')ca++;else if(v==='host')cd++;else break;nr+=dr*sg;nc+=dc*sg}}s+=ca*ca*10+cd*cd*8}if(s>bestS){bestS=s;best=[r,c]}}if(!best)best=emp[Math.floor(Math.random()*emp.length)];const[row,col]=best;const newC=clC(cells);newC[row][col]='guest';const wl=checkCW(newC,row,col);let full=true;for(let r=0;r<NR&&full;r++)for(let c=0;c<NC&&full;c++)if(!gc(newC,r,c))full=false;const sc={...(d.score||{h:0,g:0,d:0})};let st='playing',wn=null;if(wl){st='finished';wn='guest';sc.g=(sc.g||0)+1}else if(full){st='finished';sc.d=(sc.d||0)+1}cLast=null;await update(ref(db,`rooms/${id}`),{cells:newC,turn:'host',status:st,lastMove:[row,col],winner:wn||null,winLine:wl||null,score:sc,caroTime:10})}
+async function aiCaro(d,id){
+  if(!room||!d||d.turn!=='guest'||d.status!=='playing')return;
+  const cells=d.cells||{};
+  const ME='guest',OPP='host';
+
+  // Scan a line through (r,c) in direction (dr,dc) for given side.
+  // Returns: { cnt, open, space }
+  //   cnt   = consecutive pieces of 'side' touching this cell
+  //   open  = number of open ends (0,1,2)
+  //   space = total usable length of the window (cnt + open gaps)
+  function lineInfo(bd,r,c,dr,dc,side){
+    let cnt=1,open=0;
+    for(const s of[-1,1]){
+      let nr=r+dr*s,nc=c+dc*s;
+      while(nr>=0&&nr<NR&&nc>=0&&nc<NC&&gc(bd,nr,nc)===side){cnt++;nr+=dr*s;nc+=dc*s;}
+      if(nr>=0&&nr<NR&&nc>=0&&nc<NC&&gc(bd,nr,nc)===null)open++;
+    }
+    return{cnt,open};
+  }
+
+  // Threat score for placing at (r,c) for 'side'
+  // Key insight: a "blocked-on-one-end" threat (open=1) is HALF as dangerous
+  // as an "open-both-ends" threat (open=2) — because open=2 creates two attack
+  // vectors while open=1 has only one.
+  function threatScore(bd,r,c,side){
+    let score=0;
+    for(const[dr,dc]of[[0,1],[1,0],[1,1],[1,-1]]){
+      const{cnt,open}=lineInfo(bd,r,c,dr,dc,side);
+      if(cnt>=5)       score+=10000000;  // WIN immediately
+      else if(cnt===4){
+        if(open===2)   score+=500000;    // 4 both open = unstoppable
+        else if(open===1) score+=100000; // 4 one open = win next
+        else           score+=500;       // 4 blocked both = dead
+      }
+      else if(cnt===3){
+        if(open===2)   score+=50000;     // 3 both open = MUST BLOCK (two ways to make 4)
+        else if(open===1) score+=2000;   // 3 one open = dangerous but manageable
+        else           score+=50;
+      }
+      else if(cnt===2){
+        if(open===2)   score+=500;
+        else if(open===1) score+=100;
+      }
+      else if(cnt===1){
+        if(open===2)   score+=20;
+        else if(open===1) score+=5;
+      }
+    }
+    return score;
+  }
+
+  // Simulate placing a piece and return score
+  function simulate(bd,r,c,side){
+    const nb={};for(let rr=0;rr<NR;rr++){nb[rr]={};for(let cc=0;cc<NC;cc++)nb[rr][cc]=gc(bd,rr,cc)}
+    nb[r][c]=side;
+    return threatScore(nb,r,c,side);
+  }
+
+  // ── THREAT AWARENESS ──
+  // Check whether a specific direction of OPP's 3-chain is ALREADY blocked on one side.
+  // If yes, skip blocking the other end and attack instead (unless it becomes 4).
+  function oppDirAlreadyBlocked(bd,r,c,dr,dc){
+    // Walk in +dir from (r,c) counting OPP, then check beyond
+    let n1=r+dr,nc1=c+dc,cnt=0;
+    while(n1>=0&&n1<NR&&nc1>=0&&nc1<NC&&gc(bd,n1,nc1)===OPP){cnt++;n1+=dr;nc1+=dc;}
+    const end1Blocked=!(n1>=0&&n1<NR&&nc1>=0&&nc1<NC&&gc(bd,n1,nc1)===null);
+    let n2=r-dr,nc2=c-dc;
+    while(n2>=0&&n2<NR&&nc2>=0&&nc2<NC&&gc(bd,n2,nc2)===OPP){n2-=dr;nc2-=dc;}
+    const end2Blocked=!(n2>=0&&n2<NR&&nc2>=0&&nc2<NC&&gc(bd,n2,nc2)===null);
+    return{end1Blocked,end2Blocked,cnt};
+  }
+
+  // Build candidates (within 2 of any existing piece)
+  const cands=new Set();
+  let hasAny=false;
+  for(let r=0;r<NR;r++)for(let c=0;c<NC;c++){
+    if(!gc(cells,r,c))continue;
+    hasAny=true;
+    for(let dr=-2;dr<=2;dr++)for(let dc=-2;dc<=2;dc++){
+      const nr=r+dr,nc=c+dc;
+      if(nr>=0&&nr<NR&&nc>=0&&nc<NC&&!gc(cells,nr,nc))cands.add(nr*NC+nc);
+    }
+  }
+  if(!hasAny){
+    const cr=Math.floor(NR/2)+Math.floor(Math.random()*3-1);
+    const cc=Math.floor(NC/2)+Math.floor(Math.random()*3-1);
+    const newC=clC(cells);newC[cr][cc]=ME;
+    cLast=null;
+    return update(ref(db,`rooms/${id}`),{cells:newC,turn:OPP,status:'playing',lastMove:[cr,cc],winner:null,winLine:null,score:d.score||{h:0,g:0,d:0},caroTime:10});
+  }
+
+  // ── MAIN EVALUATION ──
+  let bestR=-1,bestC=-1,bestScore=-Infinity;
+
+  for(const key of cands){
+    const r=Math.floor(key/NC),col=key%NC;
+
+    // ATK: how good placing ME here is (after placing)
+    const atkScore=simulate(cells,r,col,ME);
+
+    // DEF: how dangerous OPP's threats are at this cell
+    const rawDef=simulate(cells,r,col,OPP);
+
+    // ── SMART DEFENCE: adjust defence based on whether the threat is truly open ──
+    // For each direction, check if OPP already has one end blocked by ME/wall.
+    // If already blocked on one end AND cnt<=3 AND we're not forced → reduce defence priority.
+    let adjustedDef=0;
+    for(const[dr,dc]of[[0,1],[1,0],[1,1],[1,-1]]){
+      // Score this direction for OPP placing at (r,col)
+      const nb={};for(let rr=0;rr<NR;rr++){nb[rr]={};for(let cc=0;cc<NC;cc++)nb[rr][cc]=gc(cells,rr,cc)}
+      nb[r][col]=OPP;
+      const{cnt,open}=lineInfo(nb,r,col,dr,dc,OPP);
+
+      let dirScore=0;
+      if(cnt>=5)         dirScore=10000000;
+      else if(cnt===4){
+        if(open===2)     dirScore=500000;
+        else if(open===1)dirScore=100000;
+        else             dirScore=500;
+      }
+      else if(cnt===3){
+        if(open===2){
+          // Both ends open after placing: must block
+          dirScore=50000;
+        } else if(open===1){
+          // One end open: check if the OTHER end (the blocked one) was
+          // blocked by ME (AI) or by the wall/OPP piece.
+          // If ME already blocked it → this is a single-direction threat,
+          // NOT a double threat → lower defence priority so AI can attack.
+          const{end1Blocked,end2Blocked}=oppDirAlreadyBlocked(cells,r,col,dr,dc);
+          const aiBlockedOne=(end1Blocked||end2Blocked);
+          dirScore=aiBlockedOne?800:2000; // still dangerous but can be deprioritised vs attack
+        } else {
+          dirScore=50; // dead chain
+        }
+      }
+      else if(cnt===2){
+        if(open===2)     dirScore=500;
+        else if(open===1)dirScore=80;
+      }
+      else if(cnt===1){
+        if(open===2)     dirScore=20;
+      }
+      adjustedDef+=dirScore;
+    }
+
+    // Final score: AI strongly prefers attacking unless defence is critical (cnt>=4 or open-3)
+    // Weight: ATK × 1.2 (aggressive) + adjustedDef
+    // If ATK creates a winning/near-winning move, always prefer it.
+    const total=(atkScore>=10000000?atkScore*10:atkScore)*1.2+adjustedDef;
+
+    if(total>bestScore){bestScore=total;bestR=r;bestC=col}
+  }
+
+  if(bestR<0){
+    const emp=[];for(let r=0;r<NR;r++)for(let c=0;c<NC;c++)if(!gc(cells,r,c))emp.push([r,c]);
+    if(!emp.length)return;
+    [bestR,bestC]=emp[Math.floor(Math.random()*emp.length)];
+  }
+
+  const newC=clC(cells);newC[bestR][bestC]=ME;
+  const wl=checkCW(newC,bestR,bestC);
+  let full=true;for(let r=0;r<NR&&full;r++)for(let c=0;c<NC&&full;c++)if(!gc(newC,r,c))full=false;
+  const sc={...(d.score||{h:0,g:0,d:0})};let st='playing',wn=null;
+  if(wl){st='finished';wn=ME;sc.g=(sc.g||0)+1}
+  else if(full){st='finished';sc.d=(sc.d||0)+1}
+  cLast=null;
+  await update(ref(db,`rooms/${id}`),{cells:newC,turn:OPP,status:st,lastMove:[bestR,bestC],winner:wn||null,winLine:wl||null,score:sc,caroTime:10});
+}
 async function aiTX(id){const coin=[5000,10000,20000,50000][Math.floor(Math.random()*4)];const c=Math.random()<.5?'tai':'xiu';await update(ref(db,`rooms/${id}/bets`),{[AI]:c});await update(ref(db,`rooms/${id}/coins`),{[AI]:coin})}
 async function aiBC(id){const a=Math.floor(Math.random()*6);const coin=[5000,10000,20000,50000][Math.floor(Math.random()*4)];await update(ref(db,`rooms/${id}/bcCoins`),{[AI]:coin});await update(ref(db,`rooms/${id}/bcBets`),{[AI]:{[a]:coin}})}
 async function aiOT(id){const c=Math.floor(Math.random()*3);await update(ref(db,`rooms/${id}/otC`),{[AI]:c});const sn=await get(ref(db,`rooms/${id}`));const d=sn.val();if(d.otC?.[d.hid]!=null&&d.otC?.[AI]!=null)await update(ref(db,`rooms/${id}`),{otp:'both_chose'})}
@@ -1233,7 +1403,7 @@ function renderPK(d,id){
         <div style="display:flex;gap:6px;flex-wrap:wrap">
           <button class="btn btn-d btn-sm" onclick="pkFold2()" style="flex:1;min-width:70px">🚫 Fold</button>
           <button class="btn btn-g btn-sm" onclick="pkCheck2()" style="flex:1;min-width:70px" ${(d.pkBet||0)>(p.bet||0)?'disabled':''}>✋ Check</button>
-          <button class="btn btn-p btn-sm" onclick="pkCall2()" style="flex:1;min-width:70px" ${!(d.pkBet||0)>'disabled':''}>📞 Call${(d.pkBet||0)>0?' '+Math.min(d.pkBet,p.chips):''}</button>
+          <button class="btn btn-p btn-sm" onclick="pkCall2()" style="flex:1;min-width:70px">📞 Call${(d.pkBet||0)>0?' '+(Math.min(d.pkBet-(p.bet||0),p.chips)).toString():''}</button>
           <button class="btn btn-y btn-sm" onclick="pkRaise2()" style="flex:1;min-width:70px">⬆️ Raise</button>
           <button class="btn btn-g btn-sm" onclick="pkAllIn2()" style="flex:1;min-width:70px">💥 All-in</button>
         </div>`:''}
