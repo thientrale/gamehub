@@ -440,20 +440,64 @@ function renderCaro(d,id){
     if(cLast!==tk){cLast=tk;startCaroTimer(d,id)}
   }else if(d.caroStatus!=='playing'){if(cTmr){clearInterval(cTmr);cTmr=null}cLast=null}
 
-  // Result modal
+  // Result modal + vote next round
   const rk=(d.winner||'x')+(d.caroStatus==='finished'?'1':'0');
-  if(d.caroStatus==='finished'&&lastRes!==rk){
-    lastRes=rk;
-    const iw=d.winner===role,no=!d.winner,wn=d.winner==='host'?hn:gn;
-    setTimeout(()=>{
-      modal(no?'🤝':iw?'🏆':'😢',no?'Hòa!':iw?'Bạn thắng!':'Thua rồi!',no?'Không ai thắng.':`${wn} thắng!`);
-      // Add rematch button in modal
-      const mb=document.querySelector('.modal');
-      if(mb&&!mb.querySelector('#rematch-btn')){
-        const rb2=document.createElement('button');rb2.id='rematch-btn';rb2.className='btn btn-p';rb2.style.marginTop='4px';rb2.textContent='🔄 Ván tiếp';rb2.onclick=()=>caroRematch();mb.insertBefore(rb2,mb.querySelector('.btn-g'));
-      }
-    },400);
+  if(d.caroStatus==='finished'){
+    // Show/update vote panel on every render (vote state may have changed)
+    const rk2=(d.winner||'x');
+    if(lastRes!==rk2){lastRes=rk2;setTimeout(()=>renderCaroVote(d,hn,gn),400)}
+    else renderCaroVote(d,hn,gn);
   }
+
+}
+
+function renderCaroVote(d,hn,gn){
+  const iw=d.winner===role,no=!d.winner,wn=d.winner==='host'?hn:gn;
+  const vote=d.caroVote||{};
+  const myVote=vote[role];
+  const oppVote=vote[role==='host'?'guest':'host'];
+
+  let panel=document.getElementById('caro-vote');
+  if(!panel){
+    panel=document.createElement('div');
+    panel.id='caro-vote';
+    panel.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px';
+    document.body.appendChild(panel);
+  }
+
+  // Handle opponent leaving immediately
+  if(oppVote==='leave'){showCaroOpponentLeft();return;}
+  const oppStatus=oppVote==='next'
+    ?'<div style="font-size:13px;color:var(--green);font-weight:600;margin-top:4px">✅ Đối thủ muốn chơi tiếp</div>'
+    :'<div style="font-size:13px;color:var(--muted2);margin-top:4px">⏳ Chờ đối thủ chọn...</div>';
+
+  panel.innerHTML=`<div style="background:var(--s1);border:1px solid var(--b2);border-radius:20px;padding:28px 24px;max-width:320px;width:100%;display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center;animation:pi .25s ease">
+    <div style="font-size:52px">${no?'🤝':iw?'🏆':'😢'}</div>
+    <div style="font-size:22px;font-weight:900">${no?'Hòa!':iw?'Bạn thắng!':'Thua rồi!'}</div>
+    <div style="font-size:14px;color:var(--muted2)">${no?'Không ai thắng.':wn+' thắng ván này!'}</div>
+    ${!myVote?`
+      <div style="display:flex;flex-direction:column;gap:8px;width:100%">
+        <button class="btn btn-p" onclick="caroVote('next')" style="border-radius:12px;padding:14px;font-size:15px">🔄 Ván tiếp</button>
+        <button class="btn btn-d" onclick="caroVote('leave')" style="border-radius:12px;padding:12px;font-size:14px">🚪 Thoát phòng</button>
+      </div>
+    `:`
+      <div style="font-size:14px;color:${myVote==='next'?'var(--green)':'var(--red)'};font-weight:700">
+        ${myVote==='next'?'✅ Bạn muốn chơi tiếp':'❌ Bạn đã chọn thoát'}
+      </div>
+    `}
+    ${oppStatus}
+  </div>`;
+}
+
+function showCaroOpponentLeft(){
+  const panel=document.getElementById('caro-vote');
+  if(!panel)return;
+  panel.innerHTML=`<div style="background:var(--s1);border:1px solid var(--b2);border-radius:20px;padding:28px 24px;max-width:320px;width:100%;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center">
+    <div style="font-size:48px">👋</div>
+    <div style="font-size:18px;font-weight:900">Đối thủ đã rời phòng</div>
+    <div style="font-size:13px;color:var(--muted2)">Ván đấu kết thúc — đối thủ đã chọn thoát.</div>
+    <button class="btn btn-g" onclick="caroGoHome()" style="border-radius:12px;max-width:200px">🏠 Về trang chủ</button>
+  </div>`;
 }
 
 window.caroSetReady=async function(){
@@ -553,17 +597,36 @@ function checkCW(cells,r,c){
   }return null;
 }
 
-window.caroRematch=async function(){
-  lastRes=null;cLast=null;document.getElementById('ovl').classList.remove('on');
+window.caroGoHome=function(){
+  const p=document.getElementById('caro-vote');if(p)p.remove();
   if(cTmr){clearInterval(cTmr);cTmr=null}
-  // Reset board, go back to ready screen, loser goes first next
+  leaveLocal();
+};
+
+window.caroVote=async function(choice){
+  if(!room)return;
+  await update(ref(db,`rooms/${room}`),{[`caroVote/${role}`]:choice});
+  if(choice==='leave'){
+    // Remove vote panel and leave
+    const p=document.getElementById('caro-vote');if(p)p.remove();
+    leaveRoom();
+    return;
+  }
+  // Check if both voted 'next'
   const sn=await get(ref(db,`rooms/${room}`));if(!sn.exists())return;
-  const d=sn.val();
-  const cells={};for(let r=0;r<NR;r++){cells[r]={};for(let k=0;k<NC;k++)cells[r][k]=null}
-  await update(ref(db,`rooms/${room}`),{
-    cells,caroStatus:'ready',turn:null,lastMove:null,winner:null,winLine:null,caroTime:null,
-    caroReady:{host:false,guest:false}
-  });
+  const d=sn.val(),vote=d.caroVote||{};
+  if(vote.host==='next'&&vote.guest==='next'){
+    // Both want next round — reset board
+    lastRes=null;cLast=null;
+    const p=document.getElementById('caro-vote');if(p)p.remove();
+    if(cTmr){clearInterval(cTmr);cTmr=null}
+    const cells={};for(let r=0;r<NR;r++){cells[r]={};for(let k=0;k<NC;k++)cells[r][k]=null}
+    const firstTurn=d.caroLastLoser||'host';
+    await update(ref(db,`rooms/${room}`),{
+      cells,caroStatus:'ready',turn:null,lastMove:null,winner:null,winLine:null,
+      caroTime:null,caroReady:{host:false,guest:false},caroVote:{}
+    });
+  }
 };
 
 // ── TÀI XỈU ──
