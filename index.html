@@ -118,9 +118,9 @@ input[type=text]:focus{border-color:var(--purple)}input[type=text]::placeholder{
       <div style="font-size:28px;font-weight:900;line-height:1.1">Chào mừng đến<br><span class="g">GameHub</span></div>
       <div style="font-size:13px;color:var(--muted2);margin-top:6px">Chơi game với bạn bè — gửi link là xong!</div>
     </div>
-    <div><div class="flabel">Tên của bạn</div><input type="text" id="sname" placeholder="Nhập tên..." maxlength="16" autofocus onkeydown="if(event.key==='Enter')enterHub()"></div>
+    <div><div class="flabel">Tên của bạn</div><input type="text" id="sname" placeholder="Nhập tên..." maxlength="16" autofocus oninput="validateName()" onkeydown="if(event.key==='Enter')enterHub()"></div>
     <div><div class="flabel">Chọn avatar</div><div class="avrow" id="avrow"></div></div>
-    <button class="btn btn-p" onclick="enterHub()">🚀 Vào GameHub</button>
+    <button class="btn btn-p" id="enter-btn" onclick="enterHub()" disabled style="opacity:.4;cursor:not-allowed">🚀 Vào GameHub</button>
   </div>
 </div>
 <div id="app">
@@ -169,9 +169,19 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 function showToast(m,ms){var t=document.getElementById('toast');t.textContent=m;t.classList.add('on');setTimeout(function(){t.classList.remove('on')},ms||2200)}
+function validateName(){
+  var n=document.getElementById('sname').value.trim();
+  var btn=document.getElementById('enter-btn');
+  if(btn){btn.disabled=!n;btn.style.opacity=n?'1':'.4';btn.style.cursor=n?'pointer':'not-allowed'}
+}
 function enterHub(){
   var n=document.getElementById('sname').value.trim();
-  if(!n){showToast('⚠️ Nhập tên trước!');return}
+  if(!n){
+    document.getElementById('sname').style.borderColor='var(--red)';
+    document.getElementById('sname').placeholder='Bạn phải nhập tên!';
+    showToast('⚠️ Nhập tên trước khi vào!');
+    return;
+  }
   window.HUB={name:n,av:chosenAv,id:'u'+Math.random().toString(36).substr(2,8)};
   document.getElementById('cav').textContent=chosenAv;
   document.getElementById('cname').textContent=n;
@@ -248,15 +258,15 @@ function initData(game,h,ai){
     status:ai?'playing':'waiting',pub:!ai,ts:serverTimestamp()};
   if(ai){d.gid=AI;d.gnm=AI_N;d.gav=AI_A;d.isAI=true}
   if(game==='caro'){const c={};for(let r=0;r<20;r++){c[r]={};for(let k=0;k<20;k++)c[r][k]=null}
-    Object.assign(d,{cells:c,turn:'host',winner:null,winLine:null,score:{h:0,g:0,d:0},caroTime:10})}
+    Object.assign(d,{cells:c,turn:null,winner:null,winLine:null,score:{h:0,g:0,d:0},caroTime:null,caroStatus:'waiting',caroReady:{host:false,guest:false},caroLastLoser:null})}
   if(game==='taixiu'){const w={[h.id]:5e5};if(ai)w[AI]=5e5;Object.assign(d,{dice:[1,1,1],phase:'bet',bets:{},coins:{},wallets:w})}
   if(game==='xidach'){const pl={[h.id]:{name:h.name,av:h.av,coins:5e5,bet:0,hand:[],done:false}};
     if(ai)pl[AI]={name:AI_N,av:AI_A,coins:5e5,bet:0,hand:[],done:false};
     Object.assign(d,{xp:'lobby',players:pl,deck:[],xdDone:{},xdResult:{},xdDelta:{},xdShow:false,xdTime:0,xdSpecials:{}})}
   if(game==='cotuong')Object.assign(d,{ctBoard:initCT(),ctTurn:'red',ctStatus:'playing',ctScore:{r:0,b:0}});
   // CT AI: red=host, black=AI guest
-  if(game==='tienlen'){const deck=ndeck().map(cd=>cd);const p={[h.id]:{name:h.name,av:h.av,hand:[],done:false}};if(ai)p[AI]={name:AI_N,av:AI_A,hand:[],done:false};Object.assign(d,{tlPhase:'waiting',tlPlayers:p,tlDeck:deck,tlCurrent:null,tlPile:[],tlTurn:h.id,tlPass:{},tlScore:{[h.id]:0}})}
-  if(game==='poker'){const deck=ndeck();const p={[h.id]:{name:h.name,av:h.av,hand:[],chips:1000,bet:0,folded:false,allin:false}};if(ai)p[AI]={name:AI_N,av:AI_A,hand:[],chips:1000,bet:0,folded:false,allin:false};Object.assign(d,{pkPhase:'waiting',pkPlayers:p,pkDeck:deck,pkCommunity:[],pkPot:0,pkTurn:h.id,pkRound:'preflop',pkBigBlind:20,pkBet:0})}
+  if(game==='tienlen'){const p={[h.id]:{name:h.name,av:h.av,hand:[],done:false}};if(ai)p[AI]={name:AI_N,av:AI_A,hand:[],done:false};Object.assign(d,{tlPhase:'waiting',tlPlayers:p,tlPile:[],tlTurn:h.id,tlPass:{},tlWinner:null})}
+  if(game==='poker'){const p={[h.id]:{name:h.name,av:h.av,hand:[],chips:1000,bet:0,folded:false,allin:false}};if(ai)p[AI]={name:AI_N,av:AI_A,hand:[],chips:1000,bet:0,folded:false,allin:false};Object.assign(d,{pkPhase:'waiting',pkPlayers:p,pkDeck:[],pkCommunity:[],pkPot:0,pkTurn:h.id,pkRound:'preflop',pkBigBlind:20,pkBet:0})}
   if(game==='chanle'){Object.assign(d,{clPhase:'bet',clBets:{},clCoins:{},clWallets:{[h.id]:1000},clResult:null,clSecret:null})}
   if(game==='baucua'){const w={[h.id]:5e5};if(ai)w[AI]=5e5;Object.assign(d,{bcp:'bet',bcDice:[0,0,0],bcBets:{},bcCoins:{},bcW:w,bcResult:null})}
   if(game==='oantuti')Object.assign(d,{otp:'choose',otC:{},otScore:{h:0,g:0},otRound:1,otRes:null,otWinner:null});
@@ -278,10 +288,13 @@ window.joinRoom=async function(id){
   if(!snap.exists()){showToast('❌ Không tìm thấy!');return}
   const d=snap.val();if(d.gid&&d.status!=='waiting'){showToast('❌ Phòng đã đầy!');return}
   resetA();room=id;role='guest';const h=me();
-  const u={gid:h.id,gnm:h.name,gav:h.av,status:'playing',pub:false};
+  const u={gid:h.id,gnm:h.name,gav:h.av,status:'playing',pub:false,...(d.game==='caro'?{caroStatus:'ready','caroReady/host':false,'caroReady/guest':false}:{})};
   if(d.game==='xidach')u[`players/${h.id}`]={name:h.name,av:h.av,coins:5e5,bet:0,hand:[],done:false};
   if(d.game==='taixiu')u[`wallets/${h.id}`]=5e5;
   if(d.game==='baucua')u[`bcW/${h.id}`]=5e5;
+  if(d.game==='chanle')u[`clWallets/${h.id}`]=1000;
+  if(d.game==='tienlen')u[`tlPlayers/${h.id}`]={name:h.name,av:h.av,hand:[],done:false};
+  if(d.game==='poker')u[`pkPlayers/${h.id}`]={name:h.name,av:h.av,hand:[],chips:1000,bet:0,folded:false,allin:false};
   await update(ref(db,`rooms/${id}`),u);
   history.replaceState(null,'',`${location.pathname}?room=${id}`);
   listen2(id,d.game);sysMsg(`${h.av} ${h.name} vào phòng`);
@@ -308,78 +321,182 @@ const rmW=()=>{const w=document.getElementById('wbox');if(w)w.remove()};
 
 // ── CARO ──
 const NC=20,NR=20,WIN=5;
+const CARO_TIME=15; // giây/lượt
 function getCaroSZ(){const w=document.getElementById('garea')?.clientWidth||window.innerWidth;return Math.min(560,w-24)}
-const gc=(c,r,col)=>{if(!c||!c[r])return null;return c[r][col]||null};
-const clC=c=>{const o={};for(let r=0;r<NR;r++){o[r]={};for(let k=0;k<NC;k++)o[r][k]=gc(c,r,k)}return o};
+const gc=(cells,r,col)=>{if(!cells||!cells[r])return null;return cells[r][col]||null};
+const clC=cells=>{const o={};for(let r=0;r<NR;r++){o[r]={};for(let k=0;k<NC;k++)o[r][k]=gc(cells,r,k)}return o};
 
 function renderCaro(d,id){
+  const hn=(d.hav||'')+(d.hn||'Host'),gn=d.gnm?(d.gav||'')+(d.gnm):'Chờ...';
+
   if(!document.getElementById('cboard')){
     document.getElementById('garea').innerHTML=`
-      <div class="gtop"><div class="gtitle">⚔️ Caro <span class="cbadge" onclick="copyL('${location.href.split('?')[0]}?room=${id}')">#${id} 📋</span></div>
-      <div class="gbtns"><button class="btn btn-g btn-sm" onclick="caroRematch()">🔄</button><button class="btn btn-d btn-sm" onclick="leaveRoom()">Thoát</button></div></div>
-      <div class="prow"><div class="ppill" id="px"><span class="sx">✕</span><span id="pxn" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">…</span></div>
-      <div class="tmid" id="tmid">VS</div><div class="ppill" id="po"><span class="so">○</span><span id="pon" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">…</span></div></div>
-      <div id="ctmr" style="width:100%;max-width:560px;display:none"><div style="display:flex;align-items:center;gap:10px;padding:4px 0">
-        <div style="flex:1;height:6px;background:var(--s3);border-radius:3px;overflow:hidden"><div id="ctmrbar" style="height:100%;width:100%;background:var(--green);transition:width 1s linear;border-radius:3px"></div></div>
-        <span id="ctmrtxt" style="font-size:13px;font-weight:800;color:var(--green);min-width:28px;text-align:right">10s</span></div></div>
-      <canvas id="cboard" id="cboard" width="560" height="560"></canvas>
-      <div class="scrow"><div class="sc"><div class="scl">✕ Thắng</div><div class="scv scvx" id="scx">0</div></div>
-      <div class="sc"><div class="scl">Hòa</div><div class="scv scvd" id="scd">0</div></div>
-      <div class="sc"><div class="scl">○ Thắng</div><div class="scv scvo" id="sco">0</div></div></div>`;
+      <div class="gtop">
+        <div class="gtitle">⚔️ Caro <span class="cbadge" onclick="copyL('${location.href.split('?')[0]}?room=${id}')">#${id} 📋</span></div>
+        <div class="gbtns"><button class="btn btn-d btn-sm" onclick="leaveRoom()">Thoát</button></div>
+      </div>
+      <div class="prow">
+        <div class="ppill" id="px"><span class="sx">✕</span><span id="pxn" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">…</span></div>
+        <div class="tmid" id="tmid">VS</div>
+        <div class="ppill" id="po"><span class="so">○</span><span id="pon" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">…</span></div>
+      </div>
+      <div id="ctmr" style="width:100%;max-width:560px;display:none">
+        <div style="display:flex;align-items:center;gap:10px;padding:4px 0">
+          <div style="flex:1;height:6px;background:var(--s3);border-radius:3px;overflow:hidden">
+            <div id="ctmrbar" style="height:100%;width:100%;background:var(--green);transition:width 1s linear;border-radius:3px"></div>
+          </div>
+          <span id="ctmrtxt" style="font-size:13px;font-weight:800;color:var(--green);min-width:32px;text-align:right">${CARO_TIME}s</span>
+        </div>
+      </div>
+      <canvas id="cboard" width="560" height="560"></canvas>
+      <div class="scrow">
+        <div class="sc"><div class="scl">✕ Thắng</div><div class="scv scvx" id="scx">0</div></div>
+        <div class="sc"><div class="scl">Hòa</div><div class="scv scvd" id="scd">0</div></div>
+        <div class="sc"><div class="scl">○ Thắng</div><div class="scv scvo" id="sco">0</div></div>
+      </div>`;
     cvs=document.getElementById('cboard');ctx=cvs.getContext('2d');
-    // Resize canvas to fill available width
     const SZ2=getCaroSZ();cvs.width=SZ2*2;cvs.height=SZ2*2;cvs.style.width=SZ2+'px';cvs.style.height=SZ2+'px';cvs.style.maxWidth='100%';
     cvs.addEventListener('click',caroClick);
     cvs.addEventListener('touchend',e=>{e.preventDefault();const t=e.changedTouches[0];caroClick({clientX:t.clientX,clientY:t.clientY})},{passive:false});
-    // Auto-resize on window resize
-    window._caroResize=()=>{if(!cvs)return;const SZ2=getCaroSZ()*2;cvs.width=SZ2;cvs.height=SZ2;cvs.style.width=(SZ2/2)+'px';cvs.style.height=(SZ2/2)+'px';if(liveD)drawCaro(liveD.cells||{},liveD.winLine||null,liveD.lastMove||null)};
+    window._caroResize=()=>{if(!cvs)return;const S=getCaroSZ();cvs.width=S*2;cvs.height=S*2;cvs.style.width=S+'px';cvs.style.height=S+'px';if(liveD)drawCaro(liveD.cells||{},liveD.winLine||null,liveD.lastMove||null)};
     window.addEventListener('resize',window._caroResize);
   }
-  const hn=(d.hav||'')+(d.hn||'Host'),gn=d.gnm?(d.gav||'')+(d.gnm):'Chờ...';
-  document.getElementById('pxn').textContent=hn;document.getElementById('pon').textContent=gn;
-  const myT=d.turn===role&&d.status==='playing';
-  document.getElementById('px').className='ppill'+(d.turn==='host'&&d.status==='playing'?' ax':'');
-  document.getElementById('po').className='ppill'+(d.turn==='guest'&&d.status==='playing'?' ao':'');
-  cvs.className=myT?'':'wait';
-  document.getElementById('tmid').textContent=d.status==='waiting'?'⏳':myT?'🎯 Bạn':d.status==='finished'?'⏹':'⏳';
-  const sc=d.score||{};document.getElementById('scx').textContent=sc.h||0;document.getElementById('sco').textContent=sc.g||0;document.getElementById('scd').textContent=sc.d||0;
+
+  // Update player names
+  const pxnEl=document.getElementById('pxn'),ponEl=document.getElementById('pon');
+  if(pxnEl)pxnEl.textContent=hn;
+  if(ponEl)ponEl.textContent=gn;
+
+  // ── READY PHASE: cả 2 bấm sẵn sàng ──
+  if(d.caroStatus==='ready'){
+    const myReady=d.caroReady?.[role]||false;
+    const hostReady=d.caroReady?.host||false;
+    const guestReady=d.caroReady?.guest||false;
+    const readyHtml=`<div style="background:var(--s1);border:1.5px solid var(--b2);border-radius:14px;padding:20px;display:flex;flex-direction:column;align-items:center;gap:14px;max-width:360px;width:100%;text-align:center">
+      <div style="font-size:28px">⚔️</div>
+      <div style="font-size:16px;font-weight:800">Sẵn sàng chiến chưa?</div>
+      <div style="display:flex;gap:16px;justify-content:center;width:100%">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex:1">
+          <div style="font-size:13px;font-weight:700;color:var(--muted2)">${hn}</div>
+          <div style="width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;background:${hostReady?'rgba(16,185,129,.2)':'var(--s3)'};border:2px solid ${hostReady?'var(--green)':'var(--b2)'}">${hostReady?'✅':'⏳'}</div>
+        </div>
+        <div style="font-size:20px;color:var(--muted);align-self:center">VS</div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex:1">
+          <div style="font-size:13px;font-weight:700;color:var(--muted2)">${gn}</div>
+          <div style="width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;background:${guestReady?'rgba(16,185,129,.2)':'var(--s3)'};border:2px solid ${guestReady?'var(--green)':'var(--b2)'}">${guestReady?'✅':'⏳'}</div>
+        </div>
+      </div>
+      ${!myReady
+        ?`<button class="btn btn-p" onclick="caroSetReady()" style="max-width:200px;border-radius:10px">✅ Tôi sẵn sàng!</button>`
+        :`<div style="font-size:13px;color:var(--green);font-weight:600">✅ Đã sẵn sàng — chờ đối thủ...</div>`}
+      <div style="font-size:12px;color:var(--muted2)">Cả hai sẵn sàng → tự động bắt đầu</div>
+    </div>`;
+    // Insert/update ready box
+    let rb=document.getElementById('caro-ready');
+    if(!rb){rb=document.createElement('div');rb.id='caro-ready';rb.style.cssText='display:flex;justify-content:center;width:100%;margin-bottom:4px';document.getElementById('garea').insertBefore(rb,document.getElementById('cboard'))}
+    rb.innerHTML=readyHtml;
+    // Hide canvas during ready
+    const cv=document.getElementById('cboard');if(cv)cv.style.display='none';
+    const tmr=document.getElementById('ctmr');if(tmr)tmr.style.display='none';
+    document.getElementById('tmid').textContent='⏳';
+    document.getElementById('px').className='ppill';
+    document.getElementById('po').className='ppill';
+    rmW();return;
+  }
+
+  // Hide ready box once game starts
+  const rb=document.getElementById('caro-ready');if(rb)rb.remove();
+  const cv2=document.getElementById('cboard');if(cv2)cv2.style.display='block';
+
+  // ── WAITING for 2nd player ──
+  if(d.status==='waiting'){if(!document.getElementById('wbox'))mkW(id);return}rmW();
+
+  const myT=d.turn===role&&d.caroStatus==='playing';
+  document.getElementById('px').className='ppill'+(d.turn==='host'&&d.caroStatus==='playing'?' ax':'');
+  document.getElementById('po').className='ppill'+(d.turn==='guest'&&d.caroStatus==='playing'?' ao':'');
+  if(cv2)cv2.className=myT?'':'wait';
+  document.getElementById('tmid').textContent=d.caroStatus==='ready'?'⏳':myT?'🎯 Bạn':d.caroStatus==='finished'?'⏹':'⏳ Chờ';
+
+  const sc=d.score||{};
+  document.getElementById('scx').textContent=sc.h||0;
+  document.getElementById('sco').textContent=sc.g||0;
+  document.getElementById('scd').textContent=sc.d||0;
+
   drawCaro(d.cells||{},d.winLine||null,d.lastMove||null);
+
+  // Timer bar
   const td=document.getElementById('ctmr'),tb=document.getElementById('ctmrbar'),tt=document.getElementById('ctmrtxt');
-  if(td&&d.status==='playing'&&d.caroTime!=null){
-    td.style.display='block';const t=d.caroTime||0;const col=t>5?'var(--green)':t>3?'var(--yellow)':'var(--red)';
-    if(tb){tb.style.width=(t/10*100)+'%';tb.style.background=col}if(tt){tt.textContent=t+'s';tt.style.color=col}
+  if(td&&d.caroStatus==='playing'&&d.caroTime!=null){
+    td.style.display='block';
+    const t=d.caroTime||0;
+    const col=t>7?'var(--green)':t>4?'var(--yellow)':'var(--red)';
+    if(tb){tb.style.width=(t/CARO_TIME*100)+'%';tb.style.background=col}
+    if(tt){tt.textContent=t+'s';tt.style.color=col}
   }else if(td)td.style.display='none';
-  if(d.status==='playing'&&role==='host'){
+
+  // Host drives timer
+  if(d.caroStatus==='playing'&&role==='host'){
     const tk=d.turn+'_'+(d.lastMove?d.lastMove.join(','):'x');
     if(cLast!==tk){cLast=tk;startCaroTimer(d,id)}
-  }else if(d.status!=='playing'){if(cTmr){clearInterval(cTmr);cTmr=null}cLast=null}
-  if(d.status==='waiting'){if(!document.getElementById('wbox'))mkW(id)}else rmW();
-  const rk=(d.winner||'x')+(d.status==='finished'?'1':'0');
-  if(d.status==='finished'&&lastRes!==rk){lastRes=rk;const iw=d.winner===role,no=!d.winner,wn=d.winner==='host'?hn:gn;
-    setTimeout(()=>modal(no?'🤝':iw?'🏆':'😢',no?'Hòa!':iw?'Bạn thắng!':'Thua rồi!',no?'Không ai thắng.':`${wn} thắng!`),400)}
+  }else if(d.caroStatus!=='playing'){if(cTmr){clearInterval(cTmr);cTmr=null}cLast=null}
+
+  // Result modal
+  const rk=(d.winner||'x')+(d.caroStatus==='finished'?'1':'0');
+  if(d.caroStatus==='finished'&&lastRes!==rk){
+    lastRes=rk;
+    const iw=d.winner===role,no=!d.winner,wn=d.winner==='host'?hn:gn;
+    setTimeout(()=>{
+      modal(no?'🤝':iw?'🏆':'😢',no?'Hòa!':iw?'Bạn thắng!':'Thua rồi!',no?'Không ai thắng.':`${wn} thắng!`);
+      // Add rematch button in modal
+      const mb=document.querySelector('.modal');
+      if(mb&&!mb.querySelector('#rematch-btn')){
+        const rb2=document.createElement('button');rb2.id='rematch-btn';rb2.className='btn btn-p';rb2.style.marginTop='4px';rb2.textContent='🔄 Ván tiếp';rb2.onclick=()=>caroRematch();mb.insertBefore(rb2,mb.querySelector('.btn-g'));
+      }
+    },400);
+  }
 }
+
+window.caroSetReady=async function(){
+  if(!room)return;
+  await update(ref(db,`rooms/${room}`),{[`caroReady/${role}`]:true});
+  // Check if both ready → start
+  const sn=await get(ref(db,`rooms/${room}`));const d=sn.val();
+  if(d.caroReady?.host&&d.caroReady?.guest){
+    // Determine first turn: loser of last game goes first; default host
+    const firstTurn=d.caroLastLoser||'host';
+    await update(ref(db,`rooms/${room}`),{caroStatus:'playing',turn:firstTurn,caroTime:CARO_TIME});
+  }
+};
+
 function startCaroTimer(d,id){
   if(cTmr){clearInterval(cTmr);cTmr=null}
-  let t=10;
+  let t=CARO_TIME;
   cTmr=setInterval(async()=>{
-    if(!room||!liveD||liveD.status!=='playing'){clearInterval(cTmr);cTmr=null;return}
-    t=Math.max(0,t-1);try{await update(ref(db,`rooms/${room}`),{caroTime:t})}catch(e){}
+    if(!room||!liveD||liveD.caroStatus!=='playing'){clearInterval(cTmr);cTmr=null;return}
+    t=Math.max(0,t-1);
+    try{await update(ref(db,`rooms/${room}`),{caroTime:t})}catch(e){}
     if(t<=0){
       clearInterval(cTmr);cTmr=null;
       const sn=await get(ref(db,`rooms/${room}`));if(!sn.exists())return;
-      const d2=sn.val();if(d2.status!=='playing')return;
+      const d2=sn.val();if(d2.caroStatus!=='playing')return;
+      // Auto-play random empty cell for current player
       const emp=[];for(let r=0;r<NR;r++)for(let c=0;c<NC;c++)if(!gc(d2.cells,r,c))emp.push([r,c]);
       if(!emp.length)return;
       const[row,col]=emp[Math.floor(Math.random()*emp.length)];
       const cells=clC(d2.cells);cells[row][col]=d2.turn;
-      const wl=checkCW(cells,row,col);const sc={...(d2.score||{h:0,g:0,d:0})};
-      let st='playing',wn=null;
+      const wl=checkCW(cells,row,col);
+      const sc={...(d2.score||{h:0,g:0,d:0})};let st='playing',wn=null;
       if(wl){st='finished';wn=d2.turn;if(d2.turn==='host')sc.h=(sc.h||0)+1;else sc.g=(sc.g||0)+1}
       cLast=null;
-      await update(ref(db,`rooms/${room}`),{cells,turn:d2.turn==='host'?'guest':'host',status:st,lastMove:[row,col],winner:wn||null,winLine:wl||null,score:sc,caroTime:10});
+      await update(ref(db,`rooms/${room}`),{
+        cells,turn:d2.turn==='host'?'guest':'host',caroStatus:st,
+        lastMove:[row,col],winner:wn||null,winLine:wl||null,score:sc,caroTime:CARO_TIME,
+        ...(wn?{caroLastLoser:wn==='host'?'guest':'host'}:{})
+      });
     }
   },1000);
 }
+
 function drawCaro(cells,wl,lm){
   if(!ctx||!cvs)return;
   const SZ=cvs.width/2,CS=SZ/NC;
@@ -388,18 +505,24 @@ function drawCaro(cells,wl,lm){
   ctx.strokeStyle='#ffffff0c';ctx.lineWidth=1;
   for(let i=0;i<=NC;i++){ctx.beginPath();ctx.moveTo(i*CS,0);ctx.lineTo(i*CS,SZ);ctx.stroke()}
   for(let i=0;i<=NR;i++){ctx.beginPath();ctx.moveTo(0,i*CS);ctx.lineTo(SZ,i*CS);ctx.stroke()}
-  if(lm){const[r,c]=lm;ctx.fillStyle='rgba(255,255,255,.05)';ctx.fillRect(c*CS+1,r*CS+1,CS-2,CS-2)}
+  if(lm){const[r,c]=lm;ctx.fillStyle='rgba(255,255,255,.06)';ctx.fillRect(c*CS+1,r*CS+1,CS-2,CS-2)}
   for(let r=0;r<NR;r++)for(let c=0;c<NC;c++){
     const v=gc(cells,r,c);if(!v)continue;
     const cx=c*CS+CS/2,cy=r*CS+CS/2,R=CS*.31;
     if(v==='host'){ctx.strokeStyle='#8b5cf6';ctx.lineWidth=CS*.13;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(cx-R,cy-R);ctx.lineTo(cx+R,cy+R);ctx.stroke();ctx.beginPath();ctx.moveTo(cx+R,cy-R);ctx.lineTo(cx-R,cy+R);ctx.stroke()}
     else{ctx.strokeStyle='#ec4899';ctx.lineWidth=CS*.11;ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);ctx.stroke()}
   }
-  if(wl&&wl.length){const[r0,c0]=wl[0],[r1,c1]=wl[wl.length-1];ctx.strokeStyle='rgba(255,215,0,.9)';ctx.lineWidth=4;ctx.lineCap='round';ctx.shadowColor='#ffd700';ctx.shadowBlur=12;ctx.beginPath();ctx.moveTo(c0*CS+CS/2,r0*CS+CS/2);ctx.lineTo(c1*CS+CS/2,r1*CS+CS/2);ctx.stroke()}
+  if(wl&&wl.length){
+    const[r0,c0]=wl[0],[r1,c1]=wl[wl.length-1];
+    ctx.strokeStyle='rgba(255,215,0,.9)';ctx.lineWidth=4;ctx.lineCap='round';ctx.shadowColor='#ffd700';ctx.shadowBlur=12;
+    ctx.beginPath();ctx.moveTo(c0*CS+CS/2,r0*CS+CS/2);ctx.lineTo(c1*CS+CS/2,r1*CS+CS/2);ctx.stroke();
+    ctx.shadowBlur=0;
+  }
   ctx.restore();
 }
+
 function caroClick(e){
-  const d=liveD;if(!d||!room||d.status!=='playing')return;
+  const d=liveD;if(!d||!room||d.caroStatus!=='playing')return;
   if(d.turn!==role){showToast('⏳ Chưa đến lượt!');return}
   const rect=cvs.getBoundingClientRect();
   const SZ=cvs.width/2,CS=SZ/NC;
@@ -408,14 +531,19 @@ function caroClick(e){
   if(row<0||row>=NR||col<0||col>=NC)return;
   if(gc(d.cells,row,col)){showToast('❌ Ô đã có quân!');return}
   const cells=clC(d.cells);cells[row][col]=role;
-  const wl=checkCW(cells,row,col);let full=true;
-  for(let r=0;r<NR&&full;r++)for(let c=0;c<NC&&full;c++)if(!gc(cells,r,c))full=false;
+  const wl=checkCW(cells,row,col);
+  let full=true;for(let r=0;r<NR&&full;r++)for(let c=0;c<NC&&full;c++)if(!gc(cells,r,c))full=false;
   const sc={...(d.score||{h:0,g:0,d:0})};let st='playing',wn=null;
   if(wl){st='finished';wn=role;if(role==='host')sc.h=(sc.h||0)+1;else sc.g=(sc.g||0)+1}
   else if(full){st='finished';sc.d=(sc.d||0)+1}
   cLast=null;
-  update(ref(db,`rooms/${room}`),{cells,turn:role==='host'?'guest':'host',status:st,lastMove:[row,col],winner:wn||null,winLine:wl||null,score:sc,caroTime:10});
+  update(ref(db,`rooms/${room}`),{
+    cells,turn:role==='host'?'guest':'host',caroStatus:st,
+    lastMove:[row,col],winner:wn||null,winLine:wl||null,score:sc,caroTime:CARO_TIME,
+    ...(wn?{caroLastLoser:wn==='host'?'guest':'host'}:{})
+  });
 }
+
 function checkCW(cells,r,c){
   const v=gc(cells,r,c);if(!v)return null;
   for(const[dr,dc]of[[0,1],[1,0],[1,1],[1,-1]]){
@@ -424,11 +552,18 @@ function checkCW(cells,r,c){
     if(line.length>=WIN)return line;
   }return null;
 }
+
 window.caroRematch=async function(){
   lastRes=null;cLast=null;document.getElementById('ovl').classList.remove('on');
   if(cTmr){clearInterval(cTmr);cTmr=null}
-  const c={};for(let r=0;r<NR;r++){c[r]={};for(let k=0;k<NC;k++)c[r][k]=null}
-  await update(ref(db,`rooms/${room}`),{cells:c,turn:'host',status:'playing',lastMove:null,winner:null,winLine:null,caroTime:10});
+  // Reset board, go back to ready screen, loser goes first next
+  const sn=await get(ref(db,`rooms/${room}`));if(!sn.exists())return;
+  const d=sn.val();
+  const cells={};for(let r=0;r<NR;r++){cells[r]={};for(let k=0;k<NC;k++)cells[r][k]=null}
+  await update(ref(db,`rooms/${room}`),{
+    cells,caroStatus:'ready',turn:null,lastMove:null,winner:null,winLine:null,caroTime:null,
+    caroReady:{host:false,guest:false}
+  });
 };
 
 // ── TÀI XỈU ──
@@ -798,7 +933,7 @@ window.gnNext=async function(){if(!room)return;const sn=await get(ref(db,`rooms/
 
 // ── AI ──
 function aiReact(d,id,game){
-  if(game==='caro'&&d.turn==='guest'&&d.status==='playing')setTimeout(()=>aiCaro(d,id),400+Math.random()*600);
+  if(game==='caro'&&d.turn==='guest'&&d.caroStatus==='playing')setTimeout(()=>aiCaro(d,id),400+Math.random()*600);
   if(game==='cotuong'&&d.ctTurn==='black'&&d.ctStatus==='playing'&&d.isAI)setTimeout(()=>aiCT(d,id),600+Math.random()*800);
   if(game==='taixiu'&&d.phase==='bet'&&!d.bets?.[AI])setTimeout(()=>aiTX(id),500+Math.random()*700);
   if(game==='baucua'&&d.bcp==='bet'&&(!d.bcBets||!d.bcBets[AI]))setTimeout(()=>aiBC(id),500+Math.random()*700);
@@ -836,7 +971,7 @@ async function aiCT(d,id){
 }
 
 async function aiCaro(d,id){
-  if(!room||!d||d.turn!=='guest'||d.status!=='playing')return;
+  if(!room||!d||d.turn!=='guest'||d.caroStatus!=='playing')return;
   const cells=d.cells||{};
   const ME='guest',OPP='host';
 
@@ -923,7 +1058,7 @@ async function aiCaro(d,id){
     const cc=Math.floor(NC/2)+Math.floor(Math.random()*3-1);
     const newC=clC(cells);newC[cr][cc]=ME;
     cLast=null;
-    return update(ref(db,`rooms/${id}`),{cells:newC,turn:OPP,status:'playing',lastMove:[cr,cc],winner:null,winLine:null,score:d.score||{h:0,g:0,d:0},caroTime:10});
+    return update(ref(db,`rooms/${id}`),{cells:newC,turn:OPP,caroStatus:'playing',lastMove:[cr,cc],winner:null,winLine:null,score:d.score||{h:0,g:0,d:0},caroTime:CARO_TIME});
   }
 
   // ── MAIN EVALUATION ──
@@ -1002,7 +1137,7 @@ async function aiCaro(d,id){
   if(wl){st='finished';wn=ME;sc.g=(sc.g||0)+1}
   else if(full){st='finished';sc.d=(sc.d||0)+1}
   cLast=null;
-  await update(ref(db,`rooms/${id}`),{cells:newC,turn:OPP,status:st,lastMove:[bestR,bestC],winner:wn||null,winLine:wl||null,score:sc,caroTime:10});
+  await update(ref(db,`rooms/${id}`),{cells:newC,turn:OPP,caroStatus:st,lastMove:[bestR,bestC],winner:wn||null,winLine:wl||null,score:sc,caroTime:CARO_TIME,...(wn?{caroLastLoser:'guest'}:{})});
 }
 async function aiTX(id){const coin=[5000,10000,20000,50000][Math.floor(Math.random()*4)];const c=Math.random()<.5?'tai':'xiu';await update(ref(db,`rooms/${id}/bets`),{[AI]:c});await update(ref(db,`rooms/${id}/coins`),{[AI]:coin})}
 async function aiBC(id){const a=Math.floor(Math.random()*6);const coin=[5000,10000,20000,50000][Math.floor(Math.random()*4)];await update(ref(db,`rooms/${id}/bcCoins`),{[AI]:coin});await update(ref(db,`rooms/${id}/bcBets`),{[AI]:{[a]:coin}})}
@@ -1085,7 +1220,7 @@ function renderTL(d,id){
   let html='';
 
   // Turn status
-  const turnP=players[d.tlTurn];
+  const turnP=d.tlTurn?players[d.tlTurn]:null;
   html+=`<div style="background:var(--s1);border:1.5px solid ${isMyTurn?'var(--purple)':'var(--b1)'};border-radius:12px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;transition:border-color .3s">
     <div style="font-size:13px;font-weight:700">🏹 Tiến Lên</div>
     <div style="font-size:13px;font-weight:800;color:${isMyTurn?'var(--purple)':'var(--muted2)'}">
@@ -1403,7 +1538,7 @@ function renderPK(d,id){
         <div style="display:flex;gap:6px;flex-wrap:wrap">
           <button class="btn btn-d btn-sm" onclick="pkFold2()" style="flex:1;min-width:70px">🚫 Fold</button>
           <button class="btn btn-g btn-sm" onclick="pkCheck2()" style="flex:1;min-width:70px" ${(d.pkBet||0)>(p.bet||0)?'disabled':''}>✋ Check</button>
-          <button class="btn btn-p btn-sm" onclick="pkCall2()" style="flex:1;min-width:70px">📞 Call${(d.pkBet||0)>0?' '+(Math.min(d.pkBet-(p.bet||0),p.chips)).toString():''}</button>
+          <button class="btn btn-p btn-sm" onclick="pkCall2()" style="flex:1;min-width:70px" ${(d.pkBet||0)<=(p.bet||0)?'disabled':''}>📞 Call${(d.pkBet||0)>(p.bet||0)?' '+(Math.min((d.pkBet||0)-(p.bet||0),p.chips||0)).toString():''}</button>
           <button class="btn btn-y btn-sm" onclick="pkRaise2()" style="flex:1;min-width:70px">⬆️ Raise</button>
           <button class="btn btn-g btn-sm" onclick="pkAllIn2()" style="flex:1;min-width:70px">💥 All-in</button>
         </div>`:''}
