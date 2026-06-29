@@ -336,6 +336,10 @@ function listen2(id,game){
     if(fn[game])fn[game](d,id);
     document.getElementById('ocnt').textContent=(d.gid?2:1)+' online';
     if(d.isAI&&role==='host')aiReact(d,id,game);
+    // Poker: host advances game when pkNeedAdvance is set (by guest's action)
+    if(game==='poker'&&role==='host'&&d.pkNeedAdvance&&d.pkPhase==='playing'){
+      pkNext2();
+    }
   });
   listenChat(id);
 }
@@ -1522,7 +1526,7 @@ function tlValidPlay(play){
   return sorted.every((v,i)=>i===0||v===sorted[i-1]+1)&&!sorted.includes(TL_R.indexOf('2'));
 }
 
-let tlSelected=[];let smTimerInterval=null;
+let tlSelected=[];let smTimerInterval=null;let pkRaiseAmt=0;let pkRaiseMode=false;
 
 function renderTL(d,id){
   const h=me(),players=d.tlPlayers||{},pids=Object.keys(players);
@@ -1812,332 +1816,444 @@ async function aiTL(d,id){
   }
 }
 
-// ── POKER (Texas Hold'em) ──
-// Hand rank evaluation
+// ── POKER (Texas Hold'em Heads-Up) ──
+// Ranks: 2=0, 3=1, ..., A=12  |  Suits: ♠♣♦♥
 const PK_RANKS=['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
-const pkRk=c=>PK_RANKS.indexOf(c.slice(0,-1));
-const pkSt=c=>c.slice(-1);
+const pkRk=card=>PK_RANKS.indexOf(card.slice(0,-1));
+const pkSt=card=>card.slice(-1);
 
-function pkEval(cards){
-  // Returns {rank:0-8, tiebreaker:[]} where rank 8=straight flush ... 0=high card
-  if(!cards||cards.length<5)return{rank:-1,tb:[]};
-  const use=cards.length>5?pkBestHand(cards):cards;
-  const ranks=use.map(pkRk).sort((a,b)=>b-a);
-  const suits=use.map(pkSt);
+// Evaluate best 5-card hand from 5-7 cards
+// Returns {rank:0-8, tb:[...tiebreakers]} — higher rank = stronger hand
+// 8=Royal/Straight Flush, 7=Four of a Kind, 6=Full House, 5=Flush,
+// 4=Straight, 3=Three of a Kind, 2=Two Pair, 1=One Pair, 0=High Card
+function pkEval5(cards){
+  if(!cards||cards.length!==5)return{rank:-1,tb:[]};
+  const ranks=cards.map(pkRk).sort((a,b)=>b-a);
+  const suits=cards.map(pkSt);
   const isFlush=suits.every(s=>s===suits[0]);
-  const ranksorted=[...ranks];
-  const isStraight=ranksorted.every((v,i)=>i===0||v===ranksorted[i-1]-1)||(ranksorted[0]===12&&ranksorted[1]===3&&ranksorted[2]===2&&ranksorted[3]===1&&ranksorted[4]===0);
-  const freq={};ranks.forEach(r=>freq[r]=(freq[r]||0)+1);
-  const groups=Object.entries(freq).map(([r,c])=>({r:parseInt(r),c})).sort((a,b)=>b.c-a.c||b.r-a.r);
-  if(isFlush&&isStraight)return{rank:8,tb:ranks};
-  if(groups[0].c===4)return{rank:7,tb:[groups[0].r,...ranks.filter(r=>r!==groups[0].r)]};
-  if(groups[0].c===3&&groups[1]?.c===2)return{rank:6,tb:[groups[0].r,groups[1].r]};
+  // Straight check (also A-2-3-4-5 wheel)
+  const r=[...ranks];
+  const isNormal=r.every((v,i)=>i===0||v===r[i-1]-1);
+  const isWheel=r[0]===12&&r[1]===3&&r[2]===2&&r[3]===1&&r[4]===0;
+  const isStraight=isNormal||isWheel;
+  const topStraight=isWheel?3:r[0]; // wheel top = 5 (index 3)
+  // Frequency groups
+  const freq={};ranks.forEach(v=>freq[v]=(freq[v]||0)+1);
+  const g=Object.entries(freq).map(([v,n])=>({v:+v,n})).sort((a,b)=>b.n-a.n||b.v-a.v);
+  // Determine hand rank
+  if(isFlush&&isStraight)return{rank:8,tb:[topStraight]};
+  if(g[0].n===4)return{rank:7,tb:[g[0].v,g[1].v]};
+  if(g[0].n===3&&g[1]?.n===2)return{rank:6,tb:[g[0].v,g[1].v]};
   if(isFlush)return{rank:5,tb:ranks};
-  if(isStraight)return{rank:4,tb:ranks};
-  if(groups[0].c===3)return{rank:3,tb:[groups[0].r,...ranks.filter(r=>r!==groups[0].r)]};
-  if(groups[0].c===2&&groups[1]?.c===2)return{rank:2,tb:[groups[0].r,groups[1].r,...ranks.filter(r=>r!==groups[0].r&&r!==groups[1].r)]};
-  if(groups[0].c===2)return{rank:1,tb:[groups[0].r,...ranks.filter(r=>r!==groups[0].r)]};
+  if(isStraight)return{rank:4,tb:[topStraight]};
+  if(g[0].n===3)return{rank:3,tb:[g[0].v,g[1].v,g[2].v]};
+  if(g[0].n===2&&g[1]?.n===2)return{rank:2,tb:[g[0].v,g[1].v,g[2].v]};
+  if(g[0].n===2)return{rank:1,tb:[g[0].v,...ranks.filter(v=>v!==g[0].v)]};
   return{rank:0,tb:ranks};
 }
 
+// Find best 5-card combo from 6-7 cards (brute-force C(n,5))
 function pkBestHand(cards){
-  // Try all C(n,5) combinations
-  let best=null,bestEval={rank:-1,tb:[]};
-  for(let i=0;i<cards.length-4;i++)for(let j=i+1;j<cards.length-3;j++)for(let k=j+1;k<cards.length-2;k++)for(let l=k+1;l<cards.length-1;l++)for(let m=l+1;m<cards.length;m++){
-    const hand=[cards[i],cards[j],cards[k],cards[l],cards[m]];
-    const ev=pkEval(hand);if(ev.rank>bestEval.rank||(ev.rank===bestEval.rank&&ev.tb[0]>bestEval.tb[0])){bestEval=ev;best=hand}
-  }
-  return best||cards.slice(0,5);
+  let best=null,bestR={rank:-1,tb:[]};
+  const n=cards.length;
+  for(let i=0;i<n-4;i++)for(let j=i+1;j<n-3;j++)for(let k=j+1;k<n-2;k++)
+    for(let l=k+1;l<n-1;l++)for(let m=l+1;m<n;m++){
+      const h=[cards[i],cards[j],cards[k],cards[l],cards[m]];
+      const r=pkEval5(h);
+      if(r.rank>bestR.rank||(r.rank===bestR.rank&&compareTb(r.tb,bestR.tb)>0)){bestR=r;best=h}
+    }
+  return{hand:best,eval:bestR};
 }
 
-function pkHandName(rank){return['High Card','One Pair','Two Pair','Three of a Kind','Straight','Flush','Full House','Four of a Kind','Straight Flush'][rank]||''}
+function compareTb(a,b){for(let i=0;i<Math.max(a.length,b.length);i++){const d=(a[i]||0)-(b[i]||0);if(d!==0)return d}return 0}
 
-// ── POKER (Texas Hold'em) ──
+const pkHandName=[
+  'Bài Cao','Một Đôi','Hai Đôi','Sám Cô','Sảnh','Thùng','Cù Lũ','Tứ Quý','Thùng Phá Sảnh / Sảnh Chúa'
+];
+
+// mkCard defined globally above
+
 function renderPK(d,id){
-  const h=me(),players=d.pkPlayers||{},pids=Object.keys(players),myP=players[h.id];
-  const com=d.pkCommunity||[],pot=d.pkPot||0,isMyTurn=d.pkTurn===h.id,phase=d.pkPhase||'waiting';
-  const roundNames={preflop:'Pre-Flop',flop:'Flop (3 lá chung)',turn:'Turn (lá 4)',river:'River (lá 5)',showdown:'Showdown'};
+  const h=me();
+  const players=d.pkPlayers||{},pids=Object.keys(players),myP=players[h.id];
+  const com=d.pkCommunity||[],pot=d.pkPot||0,phase=d.pkPhase||'waiting';
+  const isMyTurn=d.pkTurn===h.id&&phase==='playing';
+  // Reset raise mode when it's no longer my turn
+  if(!isMyTurn&&pkRaiseMode){pkRaiseMode=false;pkRaiseAmt=0;}
+  const dealer=d.pkDealer||0; // index in pids
   const bb=d.pkBigBlind||20;
 
   if(!document.getElementById('pkw')){
-    document.getElementById('garea').innerHTML='<div class="gtop"><div class="gtitle">♠️ Poker <span class="cbadge" onclick="copyL(window.location.href)">#'+id+'</span></div><button class="btn btn-d btn-sm" onclick="leaveRoom()">Thoát</button></div><div id="pkw" style="width:100%;max-width:560px;display:flex;flex-direction:column;gap:10px;padding-bottom:24px"></div>';
+    document.getElementById('garea').innerHTML='<div class="gtop"><div class="gtitle">♠️ Poker <span class="cbadge" onclick="copyL(window.location.href)">#'+id+'</span></div><button class="btn btn-d btn-sm" onclick="leaveRoom()">Thoát</button></div><div id="pkw" style="width:100%;max-width:560px;display:flex;flex-direction:column;gap:10px;padding-bottom:28px"></div>';
   }
   if(d.status==='waiting'){if(!document.getElementById('wbox'))mkW(id);return}rmW();
   let wrap=document.getElementById('pkw');
-  if(!wrap){const ga=document.getElementById('garea');if(ga)ga.innerHTML+='<div id="pkw" style="width:100%;max-width:560px;display:flex;flex-direction:column;gap:10px;padding-bottom:24px"></div>';wrap=document.getElementById('pkw');}
+  if(!wrap){const ga=document.getElementById('garea');if(ga)ga.innerHTML+='<div id="pkw" style="width:100%;max-width:560px;display:flex;flex-direction:column;gap:10px;padding-bottom:28px"></div>';wrap=document.getElementById('pkw');}
   if(!wrap)return;
+
+  const rndLabel={preflop:'Pre-Flop',flop:'Flop',turn:'Turn',river:'River',showdown:'Showdown'};
+  const sbIdx=dealer%pids.length,bbIdx=(dealer+1)%pids.length;
+  const sbId=pids[sbIdx],bbId=pids[bbIdx];
+
   let html='';
 
-  // ── Bàn poker ──
-  html+=`<div style="background:radial-gradient(ellipse at center,#1a5c2e 0%,#0d3321 60%,#061a10 100%);border:2px solid #2d7a3a;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:14px">
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <div><div style="font-size:10px;color:#6dbf7b;text-transform:uppercase;letter-spacing:1.5px">POT</div><div style="font-size:28px;font-weight:900;color:#fbbf24">${pot.toLocaleString()}<span style="font-size:14px"> 🪙</span></div></div>
+  // ── Bàn (Table) ──
+  html+=`<div style="background:radial-gradient(ellipse at 50% 40%,#166534 0%,#14532d 50%,#052e16 100%);border:3px solid #15803d;border-radius:50px;padding:20px 16px;display:flex;flex-direction:column;align-items:center;gap:14px">
+    <div style="display:flex;justify-content:space-between;align-items:center;width:100%">
       <div style="text-align:center">
-        <div style="font-size:11px;color:#6dbf7b;font-weight:700">${roundNames[d.pkRound||'preflop']||''}</div>
-        <div style="font-size:13px;font-weight:800;color:${isMyTurn&&phase==='playing'?'#4ade80':'#9ca3af'}">${phase==='waiting'?'⏳':phase==='showdown'?'🃏 Lật bài!':isMyTurn?'🎯 Lượt bạn!':'⏳ Chờ...'}</div>
+        <div style="font-size:9px;color:#86efac;text-transform:uppercase;letter-spacing:2px">Pot</div>
+        <div style="font-size:24px;font-weight:900;color:#fde68a">${pot.toLocaleString()} <small style="font-size:12px">🪙</small></div>
       </div>
-      <div style="text-align:right"><div style="font-size:10px;color:#6dbf7b">Big Blind</div><div style="font-size:14px;font-weight:700;color:#9ca3af">${bb} 🪙</div></div>
+      <div style="text-align:center">
+        <div style="font-size:11px;color:#86efac;font-weight:700">${rndLabel[d.pkRound||'preflop']||''}</div>
+        <div style="font-size:12px;color:${isMyTurn?'#4ade80':'#9ca3af'};font-weight:700">${phase==='waiting'?'Chờ bắt đầu':phase==='showdown'?'🃏 Showdown!':isMyTurn?'🎯 Lượt bạn!':'⏳ Chờ...'}</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:9px;color:#86efac;text-transform:uppercase;letter-spacing:2px">Blind</div>
+        <div style="font-size:12px;color:#fde68a;font-weight:700">SB ${bb/2} · BB ${bb}</div>
+      </div>
     </div>
-    <div style="display:flex;gap:8px;justify-content:center;align-items:center">
+    <div style="display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:wrap">
       ${com.map(card=>mkCard(card)).join('')}
-      ${Array(5-com.length).fill(0).map((_,i)=>'<div style="width:46px;height:66px;border:1.5px dashed rgba(109,191,123,.4);border-radius:8px;display:flex;align-items:center;justify-content:center;color:rgba(109,191,123,.4);font-size:20px">'+['♠','♣','♦','♥'][i%4]+'</div>').join('')}
+      ${Array(5-com.length).fill(0).map((_,i)=>`<div style="width:46px;height:66px;border:1.5px dashed rgba(134,239,172,.3);border-radius:8px;display:flex;align-items:center;justify-content:center;color:rgba(134,239,172,.3);font-size:16px">${['♠','♣','♦','♥'][i]}</div>`).join('')}
     </div>
   </div>`;
 
   // ── Players ──
-  pids.forEach(pid=>{
+  pids.forEach((pid,pidx)=>{
     const p=players[pid],isMe=pid===h.id,isTurn=d.pkTurn===pid&&phase==='playing';
+    const isSB=pid===sbId,isBB=pid===bbId,isDealer=pidx===dealer%pids.length;
     const showH=isMe||(phase==='showdown'&&!p.folded);
     const cards=p.hand||[];
-    const he=showH&&cards.length>=2&&com.length>=3?pkEval([...cards,...com]):null;
     const toCall=Math.max(0,(d.pkBet||0)-(p.bet||0));
-    html+=`<div style="background:${isMe?'rgba(139,92,246,.12)':'var(--s1)'};border:2px solid ${isTurn?'#4ade80':isMe?'var(--purple)':'var(--b1)'};border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px;transition:all .2s${p.folded?';opacity:.4':''}">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <span style="font-size:18px">${p.av||'🃏'}</span>
+    // Show best hand name at showdown
+    let handLabel='';
+    if(showH&&cards.length>=2&&com.length>=3){
+      const all=[...cards,...com];
+      const res=all.length>5?pkBestHand(all).eval:pkEval5(all);
+      if(res.rank>=0)handLabel=pkHandName[res.rank]||'';
+    }
+    html+=`<div style="background:${isMe?'rgba(139,92,246,.12)':'var(--s1)'};border:2px solid ${isTurn?'#4ade80':isMe?'#8b5cf6':'var(--b1)'};border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;transition:border-color .2s${p.folded?';opacity:.4':''}">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
+          <span style="font-size:20px">${p.av||'🎴'}</span>
           <span style="font-size:14px;font-weight:800">${p.name}</span>
-          ${pid===pids[0]?'<span style="font-size:10px;background:rgba(251,191,36,.2);color:#fbbf24;padding:2px 7px;border-radius:99px">SB</span>':''}
-          ${pid===pids[1]?'<span style="font-size:10px;background:rgba(139,92,246,.2);color:var(--purple);padding:2px 7px;border-radius:99px">BB</span>':''}
+          ${isDealer?'<span style="background:#1d4ed8;color:#fff;font-size:10px;padding:2px 7px;border-radius:99px;font-weight:800">D</span>':''}
+          ${isSB?'<span style="background:#92400e;color:#fde68a;font-size:10px;padding:2px 7px;border-radius:99px;font-weight:700">SB</span>':''}
+          ${isBB?'<span style="background:#5b21b6;color:#ddd6fe;font-size:10px;padding:2px 7px;border-radius:99px;font-weight:700">BB</span>':''}
           ${isTurn?'<span style="background:#4ade80;color:#000;font-size:10px;padding:2px 8px;border-radius:99px;font-weight:800">Lượt</span>':''}
-          ${p.folded?'<span style="background:rgba(239,68,68,.2);color:#f87171;font-size:10px;padding:2px 8px;border-radius:99px">Fold</span>':''}
-          ${p.allin?'<span style="background:rgba(251,191,36,.2);color:#fbbf24;font-size:10px;padding:2px 8px;border-radius:99px">All-in</span>':''}
-          ${he?`<span style="background:rgba(139,92,246,.2);color:var(--purple);font-size:10px;padding:2px 8px;border-radius:99px;font-weight:700">${pkHandName(he.rank)}</span>`:''}
+          ${p.folded?'<span style="background:rgba(239,68,68,.25);color:#fca5a5;font-size:10px;padding:2px 8px;border-radius:99px">Fold</span>':''}
+          ${p.allin?'<span style="background:rgba(251,191,36,.25);color:#fde68a;font-size:10px;padding:2px 8px;border-radius:99px">All-in</span>':''}
+          ${handLabel?`<span style="background:rgba(139,92,246,.25);color:#c4b5fd;font-size:10px;padding:2px 8px;border-radius:99px;font-weight:700">${handLabel}</span>`:''}
         </div>
-        <div style="text-align:right">
-          <div style="font-size:16px;font-weight:900;color:#fbbf24">${(p.chips||0).toLocaleString()} 🪙</div>
-          ${(p.bet||0)>0?`<div style="font-size:11px;color:var(--muted2)">Cược: ${p.bet}</div>`:''}
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:17px;font-weight:900;color:#fde68a">${(p.chips||0).toLocaleString()} 🪙</div>
+          ${(p.bet||0)>0?`<div style="font-size:11px;color:var(--muted2)">Đặt cược: ${p.bet}</div>`:''}
         </div>
       </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;min-height:40px;align-items:center">
-        ${cards.map(card=>showH?mkCard(card):'<div class="card-el card-back" style="display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.3)">🂠</div>').join('')}
-        ${cards.length===0?'<span style="font-size:12px;color:var(--muted)">Chưa có bài</span>':''}
+      <div style="display:flex;gap:6px;align-items:center;min-height:46px">
+        ${cards.map(card=>showH?mkCard(card):`<div class="card-el card-back" style="display:flex;align-items:center;justify-content:center;font-size:22px;color:rgba(255,255,255,.2)">🂠</div>`).join('')}
+        ${cards.length===0&&!p.folded?'<span style="font-size:12px;color:var(--muted)">Chờ phát bài...</span>':''}
       </div>
-      ${isMe&&isTurn&&!p.folded&&!p.allin&&phase==='playing'?`
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <button class="btn btn-d btn-sm" onclick="pkFold2()" style="flex:1;min-width:60px;border-radius:10px">🚫 Fold</button>
-          ${toCall===0?`<button class="btn btn-g btn-sm" onclick="pkCheck2()" style="flex:1;min-width:60px;border-radius:10px">✋ Check</button>`:''}
-          ${toCall>0?`<button class="btn btn-p btn-sm" onclick="pkCall2()" style="flex:1;min-width:60px;border-radius:10px">📞 Call<br><small>${Math.min(toCall,p.chips)}</small></button>`:''}
-          <button class="btn btn-y btn-sm" onclick="pkRaise2()" style="flex:1;min-width:60px;border-radius:10px">⬆️ Raise<br><small>×2</small></button>
-          <button class="btn" onclick="pkAllIn2()" style="flex:1;min-width:60px;border-radius:10px;background:rgba(239,68,68,.8);color:#fff;font-size:11px;padding:6px 4px">💥 All-in<br><small>${p.chips}</small></button>
-        </div>`:''}
+      ${isMe&&isTurn&&!p.folded&&!p.allin?`
+        ${pkRaiseMode?`
+          <div style="background:rgba(245,158,11,.1);border:1.5px solid rgba(245,158,11,.5);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px">
+            <div style="font-size:12px;color:#fbbf24;font-weight:700;text-align:center">⬆️ Chọn mức Raise</div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:12px;color:var(--muted2)">${Math.max((d.pkBet||bb)*2,bb*2)}</span>
+              <input type="range" id="pkRangeIn" min="${Math.max((d.pkBet||bb)*2,bb*2)}" max="${(p.bet||0)+(p.chips||0)}" step="${bb}" value="${pkRaiseAmt||Math.max((d.pkBet||bb)*2,bb*2)}" oninput="pkSetRaise(this.value)" style="flex:1;accent-color:#f59e0b">
+              <span style="font-size:12px;color:var(--muted2)">${(p.bet||0)+(p.chips||0)}</span>
+            </div>
+            <div style="font-size:18px;font-weight:900;color:#fbbf24;text-align:center">${pkRaiseAmt||Math.max((d.pkBet||bb)*2,bb*2)} 🪙</div>
+            <div style="display:flex;gap:8px">
+              <button onclick="pkCancelRaise()" style="flex:1;padding:10px;border-radius:10px;background:rgba(100,100,100,.5);color:#fff;font-size:13px;font-weight:800;border:none;cursor:pointer;font-family:inherit">✕ Huỷ</button>
+              <button onclick="pkConfirmRaise()" style="flex:2;padding:10px;border-radius:10px;background:rgba(245,158,11,.9);color:#000;font-size:13px;font-weight:800;border:none;cursor:pointer;font-family:inherit">✅ Xác nhận Raise ${pkRaiseAmt||Math.max((d.pkBet||bb)*2,bb*2)} 🪙</button>
+            </div>
+          </div>
+        `:`
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button onclick="pkFold2()" style="flex:1;min-width:56px;padding:10px 4px;border-radius:10px;background:rgba(239,68,68,.8);color:#fff;font-size:12px;font-weight:800;border:none;cursor:pointer;font-family:inherit">🚫 Fold</button>
+            ${toCall===0?`<button onclick="pkCheck2()" style="flex:1;min-width:56px;padding:10px 4px;border-radius:10px;background:rgba(16,185,129,.8);color:#fff;font-size:12px;font-weight:800;border:none;cursor:pointer;font-family:inherit">✋ Check</button>`:''}
+            ${toCall>0?`<button onclick="pkCall2()" style="flex:1;min-width:64px;padding:10px 4px;border-radius:10px;background:rgba(139,92,246,.9);color:#fff;font-size:12px;font-weight:800;border:none;cursor:pointer;font-family:inherit">📞 Call<br><small style="font-weight:400">${Math.min(toCall,p.chips)}</small></button>`:''}
+            ${(p.chips||0)>toCall?`<button onclick="pkOpenRaise(${Math.max((d.pkBet||bb)*2,bb*2)})" style="flex:1;min-width:56px;padding:10px 4px;border-radius:10px;background:rgba(245,158,11,.9);color:#000;font-size:12px;font-weight:800;border:none;cursor:pointer;font-family:inherit">⬆️ Raise</button>`:''}
+            <button onclick="pkAllIn2()" style="flex:1;min-width:56px;padding:10px 4px;border-radius:10px;background:rgba(220,38,38,.95);color:#fff;font-size:12px;font-weight:800;border:none;cursor:pointer;font-family:inherit">💥 All-in<br><small style="font-weight:400">${p.chips}</small></button>
+          </div>
+        `}
+      `:''}
     </div>`;
   });
 
-  // ── Showdown/winner ──
+  // ── Showdown result ──
   if(phase==='showdown'&&d.pkWinner){
     const wp=players[d.pkWinner];
-    html+=`<div style="background:rgba(251,191,36,.12);border:2px solid #fbbf24;border-radius:14px;padding:24px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px">
-      <div style="font-size:48px">🏆</div>
-      <div style="font-size:20px;font-weight:900">${wp?(wp.av||'')+wp.name+' thắng!':'...'}</div>
-      <div style="font-size:15px;color:#fbbf24;font-weight:700">+${pot.toLocaleString()} 🪙</div>
-      ${role==='host'?`<button class="btn btn-p" onclick="pkDeal2()" style="max-width:200px;border-radius:10px">🔄 Ván mới</button>`:`<div style="font-size:12px;color:var(--muted)">Chờ host...</div>`}
+    const winnerHand=wp?.hand?.length&&com.length>=3?pkBestHand([...wp.hand,...com]):null;
+    html+=`<div style="background:rgba(251,191,36,.1);border:2px solid #fbbf24;border-radius:16px;padding:22px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px">
+      <div style="font-size:50px">${d.pkWinner==='split'?'🤝':'🏆'}</div>
+      <div style="font-size:20px;font-weight:900">${d.pkWinner==='split'?'Chia đôi pot!':wp?(wp.av||'')+' '+wp.name+' thắng!':'...'}</div>
+      ${winnerHand?`<div style="font-size:14px;color:#c4b5fd;font-weight:700">${pkHandName[winnerHand.eval.rank]||''}</div>`:''}
+      <div style="font-size:14px;color:#fbbf24">+${pot.toLocaleString()} 🪙</div>
+      ${role==='host'?`<button class="btn btn-p" onclick="pkDeal2()" style="max-width:180px;border-radius:10px">🔄 Ván mới</button>`:`<div style="font-size:12px;color:var(--muted)">Chờ host...</div>`}
     </div>`;
   }
 
-  // ── Waiting / start ──
+  // ── Start / waiting ──
   if(phase==='waiting'){
-    html+=`<div style="background:var(--s1);border:1px solid var(--b1);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px">
-      <div style="font-size:13px;font-weight:700;text-align:center">♠️ Texas Hold'em Poker</div>
-      <div style="font-size:12px;color:var(--muted2);line-height:1.8;text-align:center">
-        🃏 Mỗi người 2 lá riêng + 5 lá chung<br>
-        📍 SB = ${bb/2} 🪙 · BB = ${bb} 🪙<br>
-        Fold · Check · Call · Raise · All-in<br>
-        Tay bài mạnh nhất từ 5/7 lá thắng
+    html+=`<div style="background:var(--s1);border:1px solid var(--b1);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px">
+      <div style="font-size:14px;font-weight:800;text-align:center">♠️ Texas Hold'em</div>
+      <div style="font-size:12px;color:var(--muted2);line-height:1.8">
+        🃏 Mỗi người <b>2 lá bài riêng</b> + 5 lá bài chung<br>
+        📌 <b>D (Dealer) = SB</b> đánh trước pre-flop, sau sau flop<br>
+        📌 <b>BB</b> đánh sau pre-flop, đánh trước từ flop<br>
+        🏆 Bài mạnh nhất từ 5 lá trong 7 lá thắng pot
       </div>
-      ${pids.length>=2&&role==='host'?`<button class="btn btn-p" onclick="pkDeal2()" style="border-radius:10px">♠️ Phát bài!</button>`:`<div style="font-size:13px;color:var(--muted2);text-align:center">${role==='host'?'⏳ Chờ người vào...':'⏳ Chờ host...'}</div>`}
+      ${pids.length>=2&&role==='host'?`<button class="btn btn-p" onclick="pkDeal2()" style="border-radius:10px">♠️ Phát bài — Bắt đầu!</button>`:`<div style="text-align:center;font-size:13px;color:var(--muted2)">${role==='host'?'⏳ Cần ít nhất 2 người...':'⏳ Chờ host bắt đầu...'}</div>`}
     </div>`;
   }
 
   wrap.innerHTML=html;
 }
 
-// ── Poker logic ──
-async function pkNext2(){
-  if(role!=='host')return;
-  const sn=await get(ref(db,`rooms/${room}`));const d=sn.val();
-  if(!d||d.pkPhase!=='playing')return;
-  const players=d.pkPlayers||{},pids=Object.keys(players);
-  const notFolded=pids.filter(pid=>!players[pid].folded);
-
-  // One player left → wins immediately
-  if(notFolded.length<=1){
-    const winner=notFolded[0]||pids[0];
-    const chips=(players[winner]?.chips||0)+(d.pkPot||0);
-    await update(ref(db,`rooms/${room}`),{pkPhase:'showdown',pkWinner:winner,[`pkPlayers/${winner}/chips`]:chips});
-    return;
-  }
-
-  // Figure out if betting round is over
-  // A round ends when: all active (not folded, not allin) players have bet the same amount
-  // AND each player has had at least one action this street
-  const active=notFolded.filter(pid=>!players[pid].allin);
-  const maxBet=Math.max(0,...pids.map(pid=>players[pid].bet||0));
-  const allCalled=active.length===0||active.every(pid=>(players[pid].bet||0)>=maxBet);
-  const acted=d.pkStreetActed||{};
-  const allActedOnce=active.every(pid=>acted[pid]);
-
-  if(allCalled&&allActedOnce){
-    // Street is over → deal next cards or showdown
-    await pkDealStreet(d,players,pids,notFolded);
-    return;
-  }
-
-  // Advance to next active player
-  const ci=pids.indexOf(d.pkTurn);
-  let next=pids[(ci+1)%pids.length];
-  let tries=0;
-  while(tries<pids.length){
-    if(!players[next]?.folded&&!players[next]?.allin)break;
-    next=pids[(pids.indexOf(next)+1)%pids.length];
-    tries++;
-  }
-  await update(ref(db,`rooms/${room}`),{pkTurn:next});
-}
-
-async function pkDealStreet(d,players,pids,notFolded){
-  const deck=[...(d.pkDeck||[])],com=[...(d.pkCommunity||[])],rnd=d.pkRound||'preflop';
-  let nextRound,newCards=[];
-  if(rnd==='preflop'){newCards=[deck.pop(),deck.pop(),deck.pop()];nextRound='flop'}
-  else if(rnd==='flop'){newCards=[deck.pop()];nextRound='turn'}
-  else if(rnd==='turn'){newCards=[deck.pop()];nextRound='river'}
-  else{
-    // Showdown
-    let bestPid=notFolded[0],bestEv=pkEval([...(players[notFolded[0]]?.hand||[]),...com]);
-    notFolded.slice(1).forEach(pid=>{
-      const ev=pkEval([...(players[pid]?.hand||[]),...com]);
-      if(ev.rank>bestEv.rank||(ev.rank===bestEv.rank&&(ev.tb[0]||0)>(bestEv.tb[0]||0))){bestEv=ev;bestPid=pid}
-    });
-    const upd={pkPhase:'showdown',pkRound:'showdown',pkWinner:bestPid};
-    upd[`pkPlayers/${bestPid}/chips`]=(players[bestPid]?.chips||0)+(d.pkPot||0);
-    await update(ref(db,`rooms/${room}`),upd);return;
-  }
-  // Reset bets for new street, find first to act (first non-folded after dealer=pids[0])
-  const upd={pkCommunity:[...com,...newCards],pkDeck:deck,pkRound:nextRound,pkBet:0,pkStreetActed:{}};
-  pids.forEach(pid=>{upd[`pkPlayers/${pid}/bet`]=0});
-  const firstActive=pids.find(pid=>!players[pid]?.folded&&!players[pid]?.allin)||pids[0];
-  upd.pkTurn=firstActive;
-  await update(ref(db,`rooms/${room}`),upd);
-}
+// ── Poker game logic ──
+// pkDealer: index of dealer (rotates each hand)
+// pkStreetActed: {pid: true} — who has acted this street
+// pkBet: current bet level (everyone must match this to continue)
 
 window.pkFold2=async function(){
   if(!room)return;const h=me();
   const sn=await get(ref(db,`rooms/${room}`));const d=sn.val();
-  await update(ref(db,`rooms/${room}`),{
-    [`pkPlayers/${h.id}/folded`]:true,
-    [`pkStreetActed/${h.id}`]:true
-  });
-  await pkNext2();
+  if(d.pkPhase!=='playing'||d.pkTurn!==h.id)return;
+  await update(ref(db,`rooms/${room}`),{[`pkPlayers/${h.id}/folded`]:true,[`pkStreetActed/${h.id}`]:true});
+  if(role==='host')await pkNext2();
+  else{const sn2=await get(ref(db,`rooms/${room}`));await pkHostCheck(sn2.val());}
 };
 
 window.pkCheck2=async function(){
   if(!room)return;const h=me();
+  const sn=await get(ref(db,`rooms/${room}`));const d=sn.val();
+  if(d.pkPhase!=='playing'||d.pkTurn!==h.id)return;
+  if((d.pkBet||0)>(d.pkPlayers?.[h.id]?.bet||0)){showToast('⚠️ Phải call trước!');return}
   await update(ref(db,`rooms/${room}`),{[`pkStreetActed/${h.id}`]:true});
-  await pkNext2();
+  if(role==='host')await pkNext2();
+  else{const sn2=await get(ref(db,`rooms/${room}`));await pkHostCheck(sn2.val());}
 };
 
 window.pkCall2=async function(){
   if(!room)return;const h=me();
   const sn=await get(ref(db,`rooms/${room}`));const d=sn.val();
+  if(d.pkPhase!=='playing'||d.pkTurn!==h.id)return;
   const p=d.pkPlayers?.[h.id]||{};
   const toCall=Math.min(Math.max(0,(d.pkBet||0)-(p.bet||0)),p.chips||0);
   const upd={[`pkStreetActed/${h.id}`]:true};
-  if(toCall>0){
-    upd[`pkPlayers/${h.id}/chips`]=(p.chips||0)-toCall;
-    upd[`pkPlayers/${h.id}/bet`]=(p.bet||0)+toCall;
-    upd.pkPot=(d.pkPot||0)+toCall;
-  }
+  if(toCall>0){upd[`pkPlayers/${h.id}/chips`]=(p.chips||0)-toCall;upd[`pkPlayers/${h.id}/bet`]=(p.bet||0)+toCall;upd.pkPot=(d.pkPot||0)+toCall;}
+  if((p.chips||0)-toCall<=0)upd[`pkPlayers/${h.id}/allin`]=true;
   await update(ref(db,`rooms/${room}`),upd);
-  await pkNext2();
+  if(role==='host')await pkNext2();
+  else{const sn2=await get(ref(db,`rooms/${room}`));await pkHostCheck(sn2.val());}
 };
 
-window.pkRaise2=async function(){
-  if(!room)return;const h=me();
+// pkRaise2 replaced by pkOpenRaise/pkConfirmRaise
+
+window.pkOpenRaise=function(minAmt){
+  pkRaiseMode=true;
+  pkRaiseAmt=minAmt;
+  if(liveD)renderPK(liveD,room);
+};
+window.pkCancelRaise=function(){
+  pkRaiseMode=false;pkRaiseAmt=0;
+  if(liveD)renderPK(liveD,room);
+};
+window.pkSetRaise=function(v){
+  pkRaiseAmt=parseInt(v)||0;
+  const el=document.querySelector('[id="pkRangeIn"]');
+  // Update displayed amount
+  const amtEl=el?.parentElement?.nextElementSibling;
+  if(amtEl)amtEl.textContent=pkRaiseAmt+' 🪙';
+  const btnEl=document.querySelector('[onclick="pkConfirmRaise()"]');
+  if(btnEl)btnEl.textContent='✅ Xác nhận Raise '+pkRaiseAmt+' 🪙';
+};
+window.pkConfirmRaise=async function(){
+  if(!room||!pkRaiseAmt)return;
+  const h=me();
   const sn=await get(ref(db,`rooms/${room}`));const d=sn.val();
-  const p=d.pkPlayers?.[h.id]||{};
-  // Raise to 2× current bet level
-  const newLevel=Math.max((d.pkBet||d.pkBigBlind||20)*2,d.pkBigBlind||20);
-  const addAmt=Math.min(Math.max(0,newLevel-(p.bet||0)),p.chips||0);
-  if(addAmt<=0){showToast('Không đủ chips để raise!');return}
-  // Reset everyone else's acted status so they can re-act
-  const pids=Object.keys(d.pkPlayers||{});
-  const upd={pkBet:(p.bet||0)+addAmt,pkPot:(d.pkPot||0)+addAmt,pkStreetActed:{},
+  if(d.pkPhase!=='playing'||d.pkTurn!==h.id){pkRaiseMode=false;pkRaiseAmt=0;return}
+  const p=d.pkPlayers?.[h.id]||{};const bb=d.pkBigBlind||20;
+  const targetTotal=Math.max(pkRaiseAmt,Math.max((d.pkBet||bb)*2,bb*2));
+  const addAmt=Math.min(Math.max(0,targetTotal-(p.bet||0)),p.chips||0);
+  if(addAmt<=0){showToast('⚠️ Không đủ chips!');return}
+  const upd={
+    pkBet:(p.bet||0)+addAmt,pkPot:(d.pkPot||0)+addAmt,
+    pkStreetActed:{}, // reset - everyone must respond
     [`pkPlayers/${h.id}/chips`]:(p.chips||0)-addAmt,
     [`pkPlayers/${h.id}/bet`]:(p.bet||0)+addAmt,
-    [`pkStreetActed/${h.id}`]:true};
+    [`pkStreetActed/${h.id}`]:true
+  };
+  if((p.chips||0)-addAmt<=0)upd[`pkPlayers/${h.id}/allin`]=true;
+  pkRaiseMode=false;pkRaiseAmt=0;
   await update(ref(db,`rooms/${room}`),upd);
-  await pkNext2();
+  if(role==='host')await pkNext2();
+  else{const sn2=await get(ref(db,`rooms/${room}`));await pkHostCheck(sn2.val());}
 };
-
 window.pkAllIn2=async function(){
   if(!room)return;const h=me();
   const sn=await get(ref(db,`rooms/${room}`));const d=sn.val();
+  if(d.pkPhase!=='playing'||d.pkTurn!==h.id)return;
   const p=d.pkPlayers?.[h.id]||{};const chips=p.chips||0;
-  if(!chips){showToast('Đã hết chips!');return}
-  const newBet=(p.bet||0)+chips;
-  const wasRaise=newBet>(d.pkBet||0);
-  const upd={
-    [`pkPlayers/${h.id}/chips`]:0,[`pkPlayers/${h.id}/bet`]:newBet,[`pkPlayers/${h.id}/allin`]:true,
-    pkPot:(d.pkPot||0)+chips,[`pkStreetActed/${h.id}`]:true
-  };
-  if(wasRaise){upd.pkBet=newBet;upd.pkStreetActed={};upd[`pkStreetActed/${h.id}`]=true}
+  if(!chips){showToast('⚠️ Đã hết chips!');return}
+  const newBet=(p.bet||0)+chips,wasRaise=newBet>(d.pkBet||0);
+  const upd={[`pkPlayers/${h.id}/chips`]:0,[`pkPlayers/${h.id}/bet`]:newBet,[`pkPlayers/${h.id}/allin`]:true,
+    pkPot:(d.pkPot||0)+chips,[`pkStreetActed/${h.id}`]:true};
+  if(wasRaise){upd.pkBet=newBet;upd.pkStreetActed={};upd[`pkStreetActed/${h.id}`]=true;}
   await update(ref(db,`rooms/${room}`),upd);
-  await pkNext2();
+  if(role==='host')await pkNext2();
+  else{const sn2=await get(ref(db,`rooms/${room}`));await pkHostCheck(sn2.val());}
 };
+
+// Guest triggers host to advance game (via special signal field)
+async function pkHostCheck(d){
+  if(!room||!d)return;
+  // Signal host to call pkNext2 (host listens via onValue and handles AI/logic)
+  await update(ref(db,`rooms/${room}`),{pkNeedAdvance:Date.now()});
+}
+
+async function pkNext2(){
+  if(!room||role!=='host')return;
+  const sn=await get(ref(db,`rooms/${room}`));const d=sn.val();
+  if(!d||d.pkPhase!=='playing')return;
+  const players=d.pkPlayers||{},pids=Object.keys(players);
+  const notFolded=pids.filter(pid=>!players[pid].folded);
+
+  // Only 1 left → wins immediately
+  if(notFolded.length<=1){
+    const winner=notFolded[0]||pids[0];
+    await update(ref(db,`rooms/${room}`),{
+      pkPhase:'showdown',pkWinner:winner,pkNeedAdvance:null,
+      [`pkPlayers/${winner}/chips`]:(players[winner]?.chips||0)+(d.pkPot||0)
+    });return;
+  }
+
+  // All active players have acted AND bets are equal → end street
+  const active=notFolded.filter(pid=>!players[pid].allin);
+  const maxBet=Math.max(0,...notFolded.map(pid=>players[pid].bet||0));
+  const betsEqual=active.length===0||active.every(pid=>(players[pid].bet||0)>=maxBet);
+  const acted=d.pkStreetActed||{};
+  const allActed=active.every(pid=>acted[pid]||players[pid].allin);
+
+  if(betsEqual&&allActed){
+    await pkDealStreet(d,players,pids,notFolded);return;
+  }
+
+  // Advance to next active player
+  const cur=d.pkTurn,ci=pids.indexOf(cur);
+  let next=pids[(ci+1)%pids.length],tries=0;
+  while(tries<pids.length&&(players[next]?.folded||players[next]?.allin)){
+    next=pids[(pids.indexOf(next)+1)%pids.length];tries++;
+  }
+  await update(ref(db,`rooms/${room}`),{pkTurn:next,pkNeedAdvance:null});
+}
+
+async function pkDealStreet(d,players,pids,notFolded){
+  const deck=[...(d.pkDeck||[])],com=[...(d.pkCommunity||[])],rnd=d.pkRound||'preflop';
+  let nextRound,newCards=[];
+  const dealer=d.pkDealer||0;
+  const bbId=pids[(dealer+1)%pids.length]; // BB acts first post-flop
+
+  if(rnd==='preflop'){newCards=[deck.pop(),deck.pop(),deck.pop()];nextRound='flop'}
+  else if(rnd==='flop'){newCards=[deck.pop()];nextRound='turn'}
+  else if(rnd==='turn'){newCards=[deck.pop()];nextRound='river'}
+  else{
+    // River → Showdown: find best hand
+    let bestPids=[notFolded[0]],bestEv=pkBestHand([...(players[notFolded[0]]?.hand||[]),...com]).eval;
+    notFolded.slice(1).forEach(pid=>{
+      const ev=pkBestHand([...(players[pid]?.hand||[]),...com]).eval;
+      const cmp=ev.rank-bestEv.rank||compareTb(ev.tb,bestEv.tb);
+      if(cmp>0){bestEv=ev;bestPids=[pid]}
+      else if(cmp===0)bestPids.push(pid); // tie
+    });
+    const isTie=bestPids.length>1;
+    const winner=isTie?'split':bestPids[0];
+    const upd={pkPhase:'showdown',pkRound:'showdown',pkWinner:winner,pkNeedAdvance:null};
+    if(isTie){
+      const share=Math.floor((d.pkPot||0)/bestPids.length);
+      bestPids.forEach(pid=>{upd[`pkPlayers/${pid}/chips`]=(players[pid]?.chips||0)+share});
+    }else{
+      upd[`pkPlayers/${winner}/chips`]=(players[winner]?.chips||0)+(d.pkPot||0);
+    }
+    await update(ref(db,`rooms/${room}`),upd);return;
+  }
+  // New street: reset bets, BB acts first post-flop
+  const upd={pkCommunity:[...com,...newCards],pkDeck:deck,pkRound:nextRound,pkBet:0,pkStreetActed:{},pkNeedAdvance:null};
+  pids.forEach(pid=>{upd[`pkPlayers/${pid}/bet`]=0});
+  // Post-flop: BB (non-dealer) acts first
+  const firstAct=pids.find(pid=>pid===bbId&&!players[pid]?.folded&&!players[pid]?.allin)
+    ||pids.find(pid=>!players[pid]?.folded&&!players[pid]?.allin)||pids[0];
+  upd.pkTurn=firstAct;
+  await update(ref(db,`rooms/${room}`),upd);
+}
 
 window.pkDeal2=async function(){
   if(!room||role!=='host')return;
   const sn=await get(ref(db,`rooms/${room}`));const d=sn.val();
   const pids=Object.keys(d.pkPlayers||{});
   if(pids.length<2){showToast('⚠️ Cần ít nhất 2 người!');return}
-  // Build + shuffle deck
-  const deck=[];for(const s of['♠','♣','♦','♥'])for(const r of PK_RANKS)deck.push(r+s);
+  // Build + shuffle 52-card deck
+  const deck=[];
+  for(const r of PK_RANKS)for(const s of['♠','♣','♦','♥'])deck.push(r+s);
   for(let i=deck.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]]}
+  const prevDealer=d.pkDealer||0;
+  const newDealer=(prevDealer+1)%pids.length; // rotate dealer each hand
+  const sbIdx=newDealer,bbIdx=(newDealer+1)%pids.length;
+  const sbId=pids[sbIdx],bbId=pids[bbIdx];
   const bb=d.pkBigBlind||20,sb=Math.max(1,Math.floor(bb/2));
-  // Deal 2 cards each
+  // Reset all players
   const players={};
   pids.forEach(pid=>{
-    const old=d.pkPlayers[pid];
+    const old=d.pkPlayers[pid]||{};
     players[pid]={...old,hand:[deck.pop(),deck.pop()],bet:0,folded:false,allin:false};
   });
-  // Post blinds
-  const sbId=pids[0],bbId=pids[1];
-  const sbChips=players[sbId].chips||500;const bbChips=players[bbId].chips||500;
+  // Post blinds (deduct from chips)
+  const sbChips=players[sbId].chips||500,bbChips=players[bbId].chips||500;
   const sbPost=Math.min(sb,sbChips),bbPost=Math.min(bb,bbChips);
   players[sbId].bet=sbPost;players[sbId].chips=sbChips-sbPost;
   players[bbId].bet=bbPost;players[bbId].chips=bbChips-bbPost;
-  // Preflop: SB acts first (in HU), BB has acted (already posted)
-  const preAct={[bbId]:true}; // BB already "acted" by posting
-  const upd={pkPlayers:players,pkDeck:deck,pkPhase:'playing',pkCommunity:[],
-    pkPot:sbPost+bbPost,pkBet:bb,pkRound:'preflop',pkTurn:sbId,
-    pkStreetActed:preAct,pkWinner:null};
-  await update(ref(db,`rooms/${room}`),upd);
+  if(players[sbId].chips<=0)players[sbId].allin=true;
+  if(players[bbId].chips<=0)players[bbId].allin=true;
+  // Pre-flop: SB (dealer) acts first; BB already acted by posting
+  const preActed={[bbId]:true};
+  await update(ref(db,`rooms/${room}`),{
+    pkPlayers:players,pkDeck:deck,pkPhase:'playing',pkCommunity:[],
+    pkPot:sbPost+bbPost,pkBet:bb,pkRound:'preflop',
+    pkTurn:sbId,pkDealer:newDealer,pkStreetActed:preActed,pkWinner:null,pkNeedAdvance:null
+  });
 };
 
-// Smart AI for Poker
+// AI for Poker
 async function aiPK(d,id){
   if(!room||d.pkTurn!==AI||d.pkPhase!=='playing')return;
   const p=d.pkPlayers?.[AI]||{};if(p.folded||p.allin)return;
   const hand=p.hand||[],com=d.pkCommunity||[];
-  const ev=hand.length?pkEval([...hand,...com]):{rank:-1,tb:[]};
-  const strength=ev.rank; // 0-8
-  const pot=d.pkPot||0,bet=d.pkBet||0,myBet=p.bet||0,chips=p.chips||0;
-  const toCall=Math.max(0,bet-myBet);
-  // Decision based on hand strength
-  const r=Math.random();
+  let strength=0;
+  if(hand.length>=2){
+    const res=com.length>=3?pkBestHand([...hand,...com]).eval:pkEval5(hand.length>=5?hand:[...hand,...com.slice(0,3)]);
+    strength=res.rank>=0?res.rank:0;
+  }
+  const bb=d.pkBigBlind||20,toCall=Math.max(0,(d.pkBet||0)-(p.bet||0));
+  const rng=Math.random();
   let action;
-  if(strength>=5)action=r<0.7?'raise':'call'; // strong: raise or call
-  else if(strength>=3)action=r<0.5?'call':r<0.7?'check':'fold';
-  else if(strength>=1)action=r<0.4?'call':r<0.5?'check':'fold';
-  else action=r<0.2?'call':'fold'; // weak: mostly fold
-  if(toCall===0)action=action==='fold'?'check':action; // can't fold if free to play
-  if(chips<=0)action='allin';
-  if(action==='fold'){await update(ref(db,`rooms/${id}`),{[`pkPlayers/${AI}/folded`]:true});await pkNext2();return}
-  if(action==='check'){await pkNext2();return}
-  if(action==='call'&&toCall>0){const pay=Math.min(toCall,chips);await update(ref(db,`rooms/${id}`),{[`pkPlayers/${AI}/chips`]:chips-pay,[`pkPlayers/${AI}/bet`]:myBet+pay,pkPot:pot+pay});await pkNext2();return}
-  if(action==='raise'){const raise=Math.min(bet*2,chips);await update(ref(db,`rooms/${id}`),{[`pkPlayers/${AI}/chips`]:chips-raise,[`pkPlayers/${AI}/bet`]:myBet+raise,pkPot:pot+raise,pkBet:myBet+raise});await pkNext2();return}
-  if(action==='allin'){await update(ref(db,`rooms/${id}`),{[`pkPlayers/${AI}/chips`]:0,[`pkPlayers/${AI}/bet`]:myBet+chips,[`pkPlayers/${AI}/allin`]:true,pkPot:pot+chips,pkBet:Math.max(bet,myBet+chips)});await pkNext2();return}
+  if(strength>=6)action=rng<0.7?'raise':'call';
+  else if(strength>=4)action=rng<0.5?'call':rng<0.7?'check':'fold';
+  else if(strength>=2)action=rng<0.4?'call':'fold';
+  else action=rng<0.15?'call':'fold';
+  if(toCall===0&&action==='fold')action='check';
+  if((p.chips||0)<=0)action='allin';
+  const upd={[`pkStreetActed/${AI}`]:true};
+  if(action==='fold'){upd[`pkPlayers/${AI}/folded`]=true}
+  else if(action==='check'){}
+  else if(action==='call'){const pay=Math.min(toCall,p.chips||0);upd[`pkPlayers/${AI}/chips`]=(p.chips||0)-pay;upd[`pkPlayers/${AI}/bet`]=(p.bet||0)+pay;upd.pkPot=(d.pkPot||0)+pay;if((p.chips||0)-pay<=0)upd[`pkPlayers/${AI}/allin`]=true}
+  else if(action==='raise'){const nl=Math.max((d.pkBet||bb)*2,bb*2);const add=Math.min(nl-(p.bet||0),p.chips||0);if(add>0){upd[`pkPlayers/${AI}/chips`]=(p.chips||0)-add;upd[`pkPlayers/${AI}/bet`]=(p.bet||0)+add;upd.pkBet=(p.bet||0)+add;upd.pkPot=(d.pkPot||0)+add;upd.pkStreetActed={};upd[`pkStreetActed/${AI}`]=true;if((p.chips||0)-add<=0)upd[`pkPlayers/${AI}/allin`]=true}}
+  await update(ref(db,`rooms/${id}`),upd);
   await pkNext2();
 }
+
 
 // ── CHẴN LẺ ──
 // Người tạo nắm xu (1-10), người kia đoán chẵn/lẻ
