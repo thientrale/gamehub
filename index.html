@@ -7,7 +7,7 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 :root{--bg:#080810;--s1:#11111e;--s2:#181828;--s3:#1f1f33;--b1:#ffffff10;--b2:#ffffff20;--text:#f0f0ff;--muted:#6b6b90;--muted2:#9090b0;--purple:#8b5cf6;--pink:#ec4899;--green:#10b981;--yellow:#f59e0b;--red:#ef4444;--gold:#fbbf24;--cyan:#06b6d4}
-*{box-sizing:border-box;margin:0;padding:0}html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);overflow:hidden}
+*{box-sizing:border-box;margin:0;padding:0}html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);overflow:hidden}html{touch-action:pan-y}
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--b2);border-radius:4px}
 #setup{position:fixed;inset:0;z-index:999;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto}
 .scard{background:var(--s1);border:1px solid var(--b2);border-radius:24px;padding:32px 28px;width:100%;max-width:400px;display:flex;flex-direction:column;gap:20px}
@@ -18,7 +18,7 @@ input[type=text]:focus{border-color:var(--purple)}input[type=text]::placeholder{
 .avrow{display:flex;gap:8px;flex-wrap:wrap}
 .av{width:44px;height:44px;border-radius:50%;font-size:22px;display:flex;align-items:center;justify-content:center;background:var(--s3);border:2.5px solid transparent;cursor:pointer;transition:all .15s;user-select:none;flex-shrink:0}
 .av:hover{transform:scale(1.12)}.av.sel{border-color:var(--purple);background:rgba(139,92,246,.25)}
-.btn{width:100%;padding:13px;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s}
+.btn{width:100%;padding:13px;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 .btn:active{transform:scale(.97)}.btn:disabled{opacity:.35;cursor:not-allowed;transform:none!important}
 .btn-p{background:linear-gradient(135deg,var(--purple),#a855f7);color:#fff}.btn-p:hover{opacity:.9}
 .btn-g{background:var(--s3);color:var(--text);border:1.5px solid var(--b2)}.btn-g:hover{border-color:var(--purple);color:var(--purple)}
@@ -44,7 +44,7 @@ input[type=text]:focus{border-color:var(--purple)}input[type=text]::placeholder{
 .rlist{display:flex;flex-direction:column;gap:8px;padding-bottom:20px}
 .ritem{background:var(--s1);border:1.5px solid var(--b1);border-radius:10px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px}
 .empty{text-align:center;padding:28px;color:var(--muted);font-size:13px}
-.garea{flex:1;overflow-y:auto;display:flex;flex-direction:column;align-items:center;padding:12px;gap:10px}
+.garea{flex:1;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;align-items:center;padding:12px;gap:10px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;background:var(--bg)}
 .gtop{width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--s1);border:1px solid var(--b1);border-radius:12px;padding:10px 14px;flex-shrink:0}
 .gtitle{font-size:13px;font-weight:800;display:flex;align-items:center;gap:7px;min-width:0}
 .cbadge{font-family:monospace;font-size:10px;background:var(--s3);border:1px solid var(--b2);padding:3px 8px;border-radius:99px;color:var(--purple);cursor:pointer}.cbadge:hover{border-color:var(--purple)}
@@ -78,9 +78,9 @@ input[type=text]:focus{border-color:var(--purple)}input[type=text]::placeholder{
 .card-back{background:linear-gradient(135deg,var(--purple),var(--pink))}.card-rank{font-size:13px;font-weight:900;line-height:1}.card-suit{font-size:16px;line-height:1}
 .hand-area{display:flex;gap:6px;flex-wrap:wrap;align-items:center;min-height:66px}
 .drow{display:flex;gap:12px;justify-content:center}
-.die{width:70px;height:70px;background:linear-gradient(135deg,var(--s2),var(--s3));border:2px solid var(--b2);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:36px}
+.die{width:clamp(64px,18vw,80px);height:clamp(64px,18vw,80px);background:linear-gradient(135deg,var(--s2),var(--s3));border:2px solid var(--b2);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:clamp(28px,8vw,40px)}
 .die.roll{animation:dr .4s ease infinite alternate}@keyframes dr{from{transform:rotate(-10deg) scale(.93)}to{transform:rotate(10deg) scale(1.07)}}
-.chip{padding:6px 12px;border-radius:99px;border:1.5px solid var(--b2);background:var(--s3);font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;color:var(--muted2)}.chip:hover,.chip.on{border-color:var(--gold);color:var(--gold);background:rgba(251,191,36,.12)}
+.chip{padding:8px 14px;border-radius:99px;border:1.5px solid var(--b2);background:var(--s3);font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;color:var(--muted2);white-space:nowrap;-webkit-tap-highlight-color:transparent}.chip:hover,.chip.on{border-color:var(--gold);color:var(--gold);background:rgba(251,191,36,.12)}
 .lobby{max-width:440px;width:100%;display:flex;flex-direction:column;gap:12px;padding:16px 0 20px}
 .lobby-title{font-size:24px;font-weight:900}.lobby-sub{font-size:13px;color:var(--muted2)}
 .joinrow{display:flex;gap:8px}.joinrow input{flex:1;min-width:0}
@@ -142,6 +142,9 @@ input[type=text]:focus{border-color:var(--purple)}input[type=text]::placeholder{
       <div class="gcard" onclick="openLobby('guessnumber')"><span class="gbadge blv">🟢</span><div class="gicon">🎯</div><div class="gname">Số May Mắn</div><div class="gdesc">Đoán số 1–100</div></div>
       <div class="gcard" onclick="openLobby('poker')"><span class="gbadge blv">🟢</span><div class="gicon">♠️</div><div class="gname">Poker</div><div class="gdesc">Texas Hold'em</div></div>
       <div class="gcard" onclick="openLobby('tienlen')"><span class="gbadge blv">🟢</span><div class="gicon">🏹</div><div class="gname">Tiến Lên</div><div class="gdesc">2–4 người</div></div>
+      <div class="gcard" onclick="openLobby('chanle')"><span class="gbadge blv">🟢</span><div class="gicon">🎰</div><div class="gname">Chẵn Lẻ</div><div class="gdesc">Nắm xu đoán chẵn/lẻ</div></div>
+      <div class="gcard" onclick="openLobby('xucxac')"><span class="gbadge blv">🟢</span><div class="gicon">🎲</div><div class="gname">Xúc Xắc Chiến</div><div class="gdesc">Cao hơn thắng</div></div>
+      <div class="gcard" onclick="openLobby('phanxa')"><span class="gbadge blv">🟢</span><div class="gicon">⚡</div><div class="gname">Phản Xạ</div><div class="gdesc">Bấm nhanh nhất</div></div>
     </div>
     <div class="sec">Phòng đang mở</div>
     <div class="rlist" id="rlist"><div class="empty">Chưa có phòng nào</div></div>
@@ -159,7 +162,7 @@ input[type=text]:focus{border-color:var(--purple)}input[type=text]::placeholder{
 <div class="toast" id="toast"></div>
 
 <script>
-var AV=['😎','🦊','🐼','🦁','🐸','🦄','🤖','👻','🐯','🐧','🦋','🎃'],chosenAv='😎';
+var AV=['😎','🦊','🐼','🦁','🐸','🦄','🤖','👻','🐯','🐧','🦋','🎃','🐔','🦆','🐙','🦑','🐳','🦀','🐉','🐮','🐷','🐭','🐹','🍄','🤡','🥸','💀','🔥','🌈','🎯','🎲','🏆','💎','🌙','🍀','🐬','🦈','🐊','🐻','🐨','🐺','🦝','🦎'],chosenAv='😎';
 document.addEventListener('DOMContentLoaded',function(){
   var row=document.getElementById('avrow');
   AV.forEach(function(a){
@@ -216,7 +219,7 @@ let room=null,role=null,gU=null,cU=null,liveD=null,lastRes=null;
 let cvs=null,ctx=null,cTmr=null,cLast=null,xTmr=null;
 let txR=false,bcR=false;
 
-const uid=()=>Math.random().toString(36).substr(2,6).toUpperCase();
+const uid=()=>String(Math.floor(100+Math.random()*900)); // 3-digit numeric code
 const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 window.closeModal=()=>document.getElementById('ovl').classList.remove('on');
 function modal(e,t,s){document.getElementById('mem').textContent=e;document.getElementById('mtitle').textContent=t;document.getElementById('msub').textContent=s;document.getElementById('ovl').classList.add('on')}
@@ -247,7 +250,7 @@ window.openLobby=function(game){
     ${ai?`<button class="btn btn-y" onclick="createRoom('${game}',true)">🤖 Chơi với AI</button><div class="divider">hoặc</div>`:''}
     <button class="btn btn-p" onclick="createRoom('${game}',false)">👥 Chơi với bạn bè</button>
     <div class="divider">hoặc vào phòng</div>
-    <div class="joinrow"><input type="text" id="jcode" placeholder="Mã phòng..." maxlength="6" onkeydown="if(event.key==='Enter')joinRoom(document.getElementById('jcode').value.trim().toUpperCase())"><button class="btn btn-g btn-sm" onclick="joinRoom(document.getElementById('jcode').value.trim().toUpperCase())">Vào</button></div>
+    <div class="joinrow"><input type="text" id="jcode" placeholder="Mã 3 số..." maxlength="3" inputmode="numeric" pattern="[0-9]*" onkeydown="if(event.key==='Enter')joinRoom(document.getElementById('jcode').value.trim().toUpperCase())"><button class="btn btn-g btn-sm" onclick="joinRoom(document.getElementById('jcode').value.trim().toUpperCase())">Vào</button></div>
     <button class="btn btn-g" onclick="goHome()">← Quay lại</button>
   </div>`;
 };
@@ -267,6 +270,8 @@ function initData(game,h,ai){
   // CT AI: red=host, black=AI guest
   if(game==='tienlen'){const p={[h.id]:{name:h.name,av:h.av,hand:[],done:false}};if(ai)p[AI]={name:AI_N,av:AI_A,hand:[],done:false};Object.assign(d,{tlPhase:'waiting',tlPlayers:p,tlPile:[],tlTurn:h.id,tlPass:{},tlWinner:null})}
   if(game==='poker'){const p={[h.id]:{name:h.name,av:h.av,hand:[],chips:1000,bet:0,folded:false,allin:false}};if(ai)p[AI]={name:AI_N,av:AI_A,hand:[],chips:1000,bet:0,folded:false,allin:false};Object.assign(d,{pkPhase:'waiting',pkPlayers:p,pkDeck:[],pkCommunity:[],pkPot:0,pkTurn:h.id,pkRound:'preflop',pkBigBlind:20,pkBet:0})}
+  if(game==='xucxac')Object.assign(d,{xxPhase:'ready',xxDice:{},xxScore:{h:0,g:0},xxRound:1});
+  if(game==='phanxa')Object.assign(d,{pxPhase:'waiting',pxSignal:false,pxWinner:null,pxScore:{h:0,g:0},pxRound:1});
   if(game==='chanle'){Object.assign(d,{clPhase:'bet',clBets:{},clCoins:{},clWallets:{[h.id]:1000},clResult:null,clSecret:null})}
   if(game==='baucua'){const w={[h.id]:5e5};if(ai)w[AI]=5e5;Object.assign(d,{bcp:'bet',bcDice:[0,0,0],bcBets:{},bcCoins:{},bcW:w,bcResult:null})}
   if(game==='oantuti')Object.assign(d,{otp:'choose',otC:{},otScore:{h:0,g:0},otRound:1,otRes:null,otWinner:null});
@@ -283,10 +288,25 @@ window.createRoom=async function(game,ai){
 };
 window.joinRoom=async function(id){
   if(!id){showToast('⚠️ Nhập mã phòng!');return}
-  id=id.toUpperCase();
+  // id already numeric
   let snap;try{snap=await get(ref(db,`rooms/${id}`))}catch(e){showToast('❌ Lỗi kết nối!');return}
   if(!snap.exists()){showToast('❌ Không tìm thấy!');return}
-  const d=snap.val();if(d.gid&&d.status!=='waiting'){showToast('❌ Phòng đã đầy!');return}
+  const d=snap.val();
+  const hSelf=me();
+  // Allow rejoin if you were previously in this room
+  if(d.hid===hSelf.id){
+    // Rejoining as host
+    resetA();room=id;role='host';
+    history.replaceState(null,'',`${location.pathname}?room=${id}`);
+    startListen(id,d.game);sysMsg(`${hSelf.av} ${hSelf.name} quay lại`);return;
+  }
+  if(d.gid===hSelf.id){
+    // Rejoining as guest
+    resetA();room=id;role='guest';
+    history.replaceState(null,'',`${location.pathname}?room=${id}`);
+    startListen(id,d.game);sysMsg(`${hSelf.av} ${hSelf.name} quay lại`);return;
+  }
+  if(d.gid&&d.status!=='waiting'){showToast('❌ Phòng đã đầy!');return}
   resetA();room=id;role='guest';const h=me();
   const u={gid:h.id,gnm:h.name,gav:h.av,status:'playing',pub:false,...(d.game==='caro'?{caroStatus:'ready','caroReady/host':false,'caroReady/guest':false}:{})};
   if(d.game==='xidach')u[`players/${h.id}`]={name:h.name,av:h.av,coins:5e5,bet:0,hand:[],done:false};
@@ -304,7 +324,7 @@ function listen2(id,game){
   gU=onValue(ref(db,`rooms/${id}`),snap=>{
     if(!snap.exists()){leaveLocal();return}
     const d=snap.val();liveD=d;
-    const fn={caro:renderCaro,taixiu:renderTX,xidach:renderXD,cotuong:renderCT,baucua:renderBC,oantuti:renderOT,speedmath:renderSM,guessnumber:renderGN,tienlen:renderTL,poker:renderPK,chanle:renderCL};
+    const fn={caro:renderCaro,taixiu:renderTX,xidach:renderXD,cotuong:renderCT,baucua:renderBC,oantuti:renderOT,speedmath:renderSM,guessnumber:renderGN,tienlen:renderTL,poker:renderPK,chanle:renderCL,xucxac:renderXX,phanxa:renderPX};
     if(fn[game])fn[game](d,id);
     document.getElementById('ocnt').textContent=(d.gid?2:1)+' online';
     if(d.isAI&&role==='host')aiReact(d,id,game);
@@ -443,10 +463,15 @@ function renderCaro(d,id){
   // Result modal + vote next round
   const rk=(d.winner||'x')+(d.caroStatus==='finished'?'1':'0');
   if(d.caroStatus==='finished'){
-    // Show/update vote panel on every render (vote state may have changed)
+    // Show board result first, then vote panel after 2.5s
     const rk2=(d.winner||'x');
-    if(lastRes!==rk2){lastRes=rk2;setTimeout(()=>renderCaroVote(d,hn,gn),400)}
-    else renderCaroVote(d,hn,gn);
+    if(lastRes!==rk2){
+      lastRes=rk2;
+      // Keep board visible to see win line, then show vote
+      setTimeout(()=>renderCaroVote(d,hn,gn),2500);
+    }else if(document.getElementById('caro-vote')){
+      renderCaroVote(d,hn,gn); // update vote state if already showing
+    }
   }
 
 }
@@ -630,12 +655,12 @@ window.caroVote=async function(choice){
 };
 
 // ── TÀI XỈU ──
-const DF=['','⚀','⚁','⚂','⚃','⚄','⚅'],TX_C=[5000,10000,20000,50000];
+const DF=['','⚀','⚁','⚂','⚃','⚄','⚅'],TX_C=[5000,10000,20000,50000,100000];
 function renderTX(d,id){
   const h=me();
   if(!document.getElementById('txw')){
     document.getElementById('garea').innerHTML=`<div class="gtop"><div class="gtitle">🎲 Tài Xỉu <span class="cbadge" onclick="copyL('${location.href.split('?')[0]}?room=${id}')">#${id} 📋</span></div><button class="btn btn-d btn-sm" onclick="leaveRoom()">Thoát</button></div>
-    <div id="txw" style="width:100%;max-width:460px;display:flex;flex-direction:column;gap:12px;padding-bottom:20px">
+    <div id="txw" style="width:100%;max-width:460px;display:flex;flex-direction:column;gap:12px;padding-bottom:32px">
       <div style="background:var(--s1);border:1px solid var(--b1);border-radius:16px;padding:20px;display:flex;flex-direction:column;align-items:center;gap:10px">
         <div class="drow"><div class="die" id="d0">⚀</div><div class="die" id="d1">⚁</div><div class="die" id="d2">⚂</div></div>
         <div id="txr" style="font-size:28px;font-weight:900;opacity:0">—</div><div id="txs" style="font-size:13px;color:var(--muted2)"></div>
@@ -696,51 +721,104 @@ window.txRoll=async function(){
 window.txNext=async()=>update(ref(db,`rooms/${room}`),{dice:[1,1,1],phase:'bet',bets:{},coins:{}});
 
 // ── BẦU CUA ──
-const BC_A=['🦐','🦀','🐟','🦌','🐦','🏺'],BC_N=['Tôm','Cua','Cá','Nai','Gà','Bầu'],BC_C=[5000,10000,20000,50000];
+const BC_A=['🦐','🦀','🐟','🦌','🐦','🏺'],BC_N=['Tôm','Cua','Cá','Nai','Gà','Bầu'],BC_C=[5000,10000,20000,50000,100000];
 function renderBC(d,id){
   const h=me();
   if(!document.getElementById('bcw')){
-    document.getElementById('garea').innerHTML=`<div class="gtop"><div class="gtitle">🦀 Bầu Cua <span class="cbadge" onclick="copyL('${location.href.split('?')[0]}?room=${id}')">#${id} 📋</span></div><button class="btn btn-d btn-sm" onclick="leaveRoom()">Thoát</button></div>
-    <div id="bcw" style="width:100%;max-width:480px;display:flex;flex-direction:column;gap:12px;padding-bottom:20px"></div>`;
+    document.getElementById('garea').innerHTML='<div class="gtop"><div class="gtitle">🦀 Bầu Cua <span class="cbadge" onclick="copyL(window.location.href)">#'+id+'</span></div><button class="btn btn-d btn-sm" onclick="leaveRoom()">Thoát</button></div><div id="bcw" style="width:100%;max-width:480px;display:flex;flex-direction:column;gap:12px;padding-bottom:20px"></div>';
   }
   if(d.status==='waiting'){if(!document.getElementById('wbox'))mkW(id);return}rmW();
   const wrap=document.getElementById('bcw');if(!wrap)return;
-  const dice=d.bcDice||[0,0,0],bets=d.bcBets||{},coins=d.bcCoins||{},wallets=d.bcW||{};
+  const phase=d.bcp||'bet',dice=d.bcDice||[0,0,0];
+  const bets=d.bcBets||{},coins=d.bcCoins||{},wallets=d.bcW||{};
   const myBets=bets[h.id]||{},myCoin=coins[h.id]||BC_C[0],myW=wallets[h.id]||5e5;
-  const players=[{id:d.hid,name:(d.hav||'')+(d.hn||'')}];if(d.gid)players.push({id:d.gid,name:(d.gav||'')+(d.gnm||'')});
-  let html=`<div style="background:var(--s1);border:1px solid var(--b1);border-radius:14px;padding:16px;display:flex;flex-direction:column;align-items:center;gap:10px">
-    <div style="display:flex;gap:12px">${dice.map(v=>`<div class="die" style="width:70px;height:70px;font-size:32px">${v?BC_A[v-1]:'❓'}</div>`).join('')}</div>
-    ${d.bcp==='result'?`<div style="font-size:13px;color:var(--muted2)">Kết quả: ${dice.map(v=>v?BC_N[v-1]:'?').join(' · ')}</div>`:''}
-  </div>
-  <div style="background:var(--s1);border:1px solid var(--b1);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px">
-    <div style="font-size:11px;font-weight:700;color:var(--muted2);text-transform:uppercase">🎯 Đặt cược (${myCoin.toLocaleString()} xu)</div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">${BC_A.map((a,i)=>{const myB=myBets[i]||0,cnt=dice.filter(v=>v===i+1).length;
-      return`<div onclick="${d.bcp==='bet'?'bcBet('+i+')':''}" style="background:${myB>0?'rgba(139,92,246,.15)':'var(--s3)'};border:2px solid ${myB>0?'var(--purple)':d.bcp==='result'&&cnt>0?'var(--green)':'var(--b1)'};border-radius:12px;padding:10px 6px;text-align:center;cursor:${d.bcp==='bet'?'pointer':'default'};position:relative">
-        <div style="font-size:24px">${a}</div><div style="font-size:10px;font-weight:700;color:var(--muted2)">${BC_N[i]}</div>
-        ${myB>0?`<div style="font-size:9px;color:var(--purple);font-weight:800">${myB.toLocaleString()}</div>`:''}
-        ${d.bcp==='result'&&cnt>0?`<div style="position:absolute;top:-6px;right:-6px;background:var(--green);color:#000;font-size:10px;font-weight:900;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center">x${cnt}</div>`:''}
-      </div>`}).join('')}</div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap">${BC_C.map(v=>`<div class="chip${myCoin===v?' on':''}" onclick="${d.bcp==='bet'?'bcSC('+v+')':''}" style="${d.bcp!=='bet'?'cursor:default':''};">${v>=1000?v/1000+'K':v}</div>`).join('')}
-      <div class="chip" onclick="${d.bcp==='bet'?'bcSC('+myW+')':''}">All In</div></div>
-    <div style="font-size:12px;color:var(--muted2);text-align:center">Ví: <b style="color:var(--gold)">${myW.toLocaleString()}</b> xu</div>
-  </div>
-  <div style="background:var(--s1);border:1px solid var(--b1);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px">
+  const players=[{id:d.hid,name:(d.hav||'')+(d.hn||'')}];
+  if(d.gid)players.push({id:d.gid,name:(d.gav||'')+(d.gnm||'')});
+
+  let html='';
+
+  // ── Dice display ──
+  html+=`<div style="background:linear-gradient(135deg,#1a1208,#0f0c06);border:2px solid #8b6914;border-radius:16px;padding:20px;display:flex;flex-direction:column;align-items:center;gap:14px">
+    <div style="display:flex;gap:16px;justify-content:center">
+      ${dice.map((v,i)=>`<div style="width:80px;height:80px;background:linear-gradient(135deg,#2a1f08,#1a1208);border:2px solid ${phase==='result'&&v?'#c9a227':'#5a4010'};border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:42px;transition:all .3s;box-shadow:${phase==='result'&&v?'0 0 20px rgba(201,162,39,.3)':'none'}">${v?BC_A[v-1]:'❓'}</div>`).join('')}
+    </div>
+    ${phase==='result'
+      ?`<div style="font-size:13px;font-weight:700;color:#c9a227">${dice.map(v=>v?BC_N[v-1]:'?').join(' · ')}</div>`
+      :`<div style="font-size:12px;color:#8b6914">🎲 Đang chờ lắc...</div>`}
+  </div>`;
+
+  // ── Betting grid ──
+  html+=`<div style="background:var(--s1);border:1px solid var(--b1);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div style="font-size:12px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:1px">🎯 Đặt cược</div>
+      <div style="font-size:12px;color:var(--gold);font-weight:700">Ví: ${myW.toLocaleString()} xu</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+      ${BC_A.map((a,i)=>{
+        const myB=myBets[i]||0;
+        const hits=dice.filter(v=>v===i+1).length;
+        const isWin=phase==='result'&&hits>0;
+        return`<div onclick="${phase==='bet'?'bcBet('+i+')':''}"
+          style="background:${myB>0?'rgba(139,92,246,.15)':isWin?'rgba(16,185,129,.1)':'var(--s3)'};
+                 border:2px solid ${myB>0?'var(--purple)':isWin?'var(--green)':'var(--b1)'};
+                 border-radius:14px;padding:14px 8px;text-align:center;
+                 cursor:${phase==='bet'?'pointer':'default'};
+                 transition:all .25s;position:relative;
+                 transform:${myB>0?'scale(1.02)':'scale(1)'};
+                 box-shadow:${myB>0?'0 4px 16px rgba(139,92,246,.25)':'none'}">
+          <div style="font-size:32px;margin-bottom:4px">${a}</div>
+          <div style="font-size:12px;font-weight:700;color:${isWin?'var(--green)':'var(--muted2)'}">${BC_N[i]}</div>
+          ${myB>0?`<div style="font-size:10px;font-weight:800;color:var(--purple);margin-top:3px">+${myB.toLocaleString()}</div>`:''}
+          ${isWin?`<div style="position:absolute;top:-8px;right:-8px;background:var(--green);color:#000;font-size:11px;font-weight:900;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center">×${hits}</div>`:''}
+        </div>`;
+      }).join('')}
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      ${BC_C.map(v=>`<div class="chip${myCoin===v?' on':''}" onclick="${phase==='bet'?'bcSC('+v+')':''}" style="${phase!=='bet'?'cursor:default':''};">${v>=1000?v/1000+'K':v}</div>`).join('')}
+      <div class="chip${myCoin===myW&&myW>0?' on':''}" onclick="${phase==='bet'?'bcSC('+myW+')':''}">All In</div>
+    </div>
+    <div style="font-size:12px;text-align:center;color:var(--muted2)">Chọn mức → bấm ô để đặt <span style="color:var(--gold);font-weight:700">${myCoin.toLocaleString()} xu</span>/ô</div>
+  </div>`;
+
+  // ── Players ──
+  html+=`<div style="background:var(--s1);border:1px solid var(--b1);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px">
     <div style="font-size:11px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:1px">Người chơi & Lựa chọn</div>
-    ${players.map(p=>{const pb=bets[p.id]||{},pw=wallets[p.id]||5e5;
+    ${players.map(p=>{
+      const pb=bets[p.id]||{},pw=wallets[p.id]||5e5;
       const betEntries=Object.entries(pb).filter(([,v])=>v>0);
-      const betHtml=betEntries.length>0?betEntries.map(([an,bet])=>'<div style="background:rgba(139,92,246,.15);border:1px solid var(--purple);border-radius:8px;padding:4px 10px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:4px"><span>'+BC_A[parseInt(an)]+'</span><span style=\"color:var(--purple)\">'+BC_N[parseInt(an)]+'</span><span style=\"color:var(--gold)\">+'+bet.toLocaleString()+'</span></div>').join(''):'<div style=\"font-size:12px;color:var(--muted)\">Chưa đặt cược</div>';
-      return('<div style="background:'+(p.id===h.id?'rgba(139,92,246,.08)':'var(--s3)')+';border:1.5px solid '+(p.id===h.id?'var(--purple)':'var(--b1)')+';border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:6px"><div style=\"display:flex;justify-content:space-between;align-items:center\"><span style=\"font-size:13px;font-weight:700\">'+p.name+'</span><span style=\"font-size:12px;color:var(--gold);font-weight:700\">'+pw.toLocaleString()+' xu</span></div><div style=\"display:flex;gap:6px;flex-wrap:wrap\">'+betHtml+'</div></div>');
+      const betHtml=betEntries.length>0
+        ?betEntries.map(([an,bet])=>`<span style="background:rgba(139,92,246,.15);border:1px solid var(--purple);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700">${BC_A[parseInt(an)]} ${BC_N[parseInt(an)]} +${bet.toLocaleString()}</span>`).join('')
+        :'<span style="font-size:12px;color:var(--muted)">Chưa đặt</span>';
+      return`<div style="background:${p.id===h.id?'rgba(139,92,246,.08)':'var(--s3)'};border:1.5px solid ${p.id===h.id?'var(--purple)':'var(--b1)'};border-radius:10px;padding:10px 12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span style="font-size:13px;font-weight:700">${p.name}</span>
+          <span style="font-size:12px;color:var(--gold);font-weight:700">${pw.toLocaleString()} xu</span>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">${betHtml}</div>
+      </div>`;
     }).join('')}
   </div>`;
-  if(d.bcp==='bet'&&role==='host'&&players.some(p=>Object.keys(bets[p.id]||{}).length>0))
-    html+=`<button class="btn btn-y" onclick="bcRoll()" style="border-radius:14px;padding:16px;font-size:16px">🎲 Lắc bầu cua!</button>`;
-  if(d.bcp==='result'&&d.bcResult)html+=`<div style="background:var(--s2);border:1px solid var(--b2);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px">
-    <div style="font-size:11px;font-weight:700;color:var(--muted2);text-transform:uppercase;text-align:center">Kết quả</div>
-    ${players.map(p=>{const dlt=d.bcResult[p.id]||0;return`<div style="display:flex;justify-content:space-between"><span style="font-weight:600">${p.name}</span><span style="font-weight:900;color:${dlt>=0?'var(--green)':'var(--red)'}">${dlt>=0?'+':''}${dlt.toLocaleString()} xu</span></div>`}).join('')}
-    ${role==='host'?`<button class="btn btn-p" style="margin-top:4px" onclick="bcNext()">Ván tiếp →</button>`:`<div style="font-size:12px;color:var(--muted);text-align:center">Chờ host...</div>`}
-  </div>`;
+
+  // ── Roll button ──
+  if(phase==='bet'&&role==='host'&&players.some(p=>Object.keys(bets[p.id]||{}).length>0)){
+    html+=`<button class="btn btn-y" onclick="bcRoll()" style="border-radius:14px;padding:18px;font-size:17px;font-weight:900">🎲 Lắc bầu cua!</button>`;
+  }
+
+  // ── Result ──
+  if(phase==='result'&&d.bcResult){
+    html+=`<div style="background:var(--s2);border:1.5px solid var(--b2);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px">
+      <div style="font-size:12px;font-weight:700;color:var(--muted2);text-transform:uppercase;text-align:center;letter-spacing:1px">Kết quả ván này</div>
+      ${players.map(p=>{const dlt=d.bcResult[p.id]||0;return`<div style="display:flex;justify-content:space-between;align-items:center;background:${dlt>0?'rgba(16,185,129,.08)':dlt<0?'rgba(239,68,68,.05)':'var(--s3)'};border:1px solid ${dlt>0?'var(--green)':dlt<0?'var(--red)':'var(--b1)'};border-radius:8px;padding:10px 14px">
+        <span style="font-size:13px;font-weight:700">${p.name}</span>
+        <span style="font-size:16px;font-weight:900;color:${dlt>0?'var(--green)':dlt<0?'var(--red)':'var(--muted2)'}">${dlt>0?'🏆 +':'💀 '}${dlt.toLocaleString()} xu</span>
+      </div>`}).join('')}
+      ${role==='host'?`<button class="btn btn-p" style="margin-top:4px" onclick="bcNext()">Ván tiếp →</button>`:`<div style="font-size:12px;color:var(--muted);text-align:center">Chờ host...</div>`}
+    </div>`;
+  }
+
   wrap.innerHTML=html;
 }
+
 window.bcSC=async function(v){if(!room)return;await update(ref(db,`rooms/${room}/bcCoins`),{[me().id]:v})};
 window.bcBet=async function(a){if(!room)return;const sn=await get(ref(db,`rooms/${room}`));const d=sn.val();if(d.bcp!=='bet')return;const h=me(),coin=d.bcCoins?.[h.id]||BC_C[0],ex=d.bcBets?.[h.id]||{};ex[a]=(ex[a]||0)+coin;await update(ref(db,`rooms/${room}/bcBets`),{[h.id]:ex});showToast(`${BC_A[a]} +${coin.toLocaleString()}`)};
 window.bcRoll=async function(){
@@ -818,7 +896,7 @@ const ndeck=()=>{const d=[];for(const s of SUITS)for(const r of RANKS)d.push(r+s
 const cVal=c=>{const r=c.slice(0,-1);if(['J','Q','K'].includes(r))return 10;if(r==='A')return 11;return parseInt(r)};
 const hVal=h=>{let v=h.reduce((a,c)=>a+cVal(c),0),a=h.filter(c=>c.startsWith('A')).length;while(v>21&&a-->0)v-=10;return v};
 const isRed=c=>['♥','♦'].some(s=>c.endsWith(s));
-const XD_C=[5000,10000,15000,20000];
+const XD_C=[5000,10000,20000,50000,100000];
 function xdSP(hand){const v=hVal(hand);if(hand.length===5&&v<=21)return'ngu_linh';if(hand.length===2&&hand.filter(c=>c.startsWith('A')).length===2)return'xi_ban';return null}
 function xdMult(sp){return sp==='ngu_linh'||sp==='xi_ban'?2:1}
 function xdLbl(sp){return sp==='ngu_linh'?'🌟 Ngũ Linh x2':sp==='xi_ban'?'🃏 Xì Bàn x2':''}
@@ -891,11 +969,34 @@ function renderXD(d,id){
 }
 window.xdStart=async()=>{if(role!=='host'||!room)return;await update(ref(db,`rooms/${room}`),{xp:'bet',status:'playing'})};
 window.xdChip=async function(v){if(!room)return;await update(ref(db,`rooms/${room}/players/${me().id}`),{bet:v})};
-window.xdDeal=async function(){if(role!=='host'||!room)return;const sn=await get(ref(db,`rooms/${room}`));const d=sn.val();const deck=ndeck(),players=d.players||{};const upd={xp:'play',xdShow:false,xdDone:{},xdResult:{},xdDelta:{},xdSpecials:{},xdTime:15};Object.keys(players).forEach(pid=>{upd[`players/${pid}/hand`]=[deck.pop(),deck.pop()];upd[`players/${pid}/done`]=false});upd.deck=deck;await update(ref(db,`rooms/${room}`),upd)};
+window.xdDeal=async function(){
+  if(role!=='host'||!room)return;
+  const sn=await get(ref(db,`rooms/${room}`));const d=sn.val();
+  const deck=ndeck(),players=d.players||{};
+  const upd={xp:'play',xdShow:false,xdDone:{},xdResult:{},xdDelta:{},xdSpecials:{},xdTime:15};
+  Object.keys(players).forEach(pid=>{upd[`players/${pid}/hand`]=[deck.pop(),deck.pop()];upd[`players/${pid}/done`]=false});
+  upd.deck=deck;
+  await update(ref(db,`rooms/${room}`),upd);
+  // Check for immediate specials (xi_ban or xi_dach) after deal
+  setTimeout(async()=>{
+    const sn2=await get(ref(db,`rooms/${room}`));const d2=sn2.val();const pl=d2.players||{};
+    const pids=Object.keys(pl);
+    const specials={};
+    pids.forEach(pid=>{specials[pid]=xdSP(pl[pid].hand||[])});
+    const hasImmediate=pids.some(pid=>specials[pid]==='xi_ban'||specials[pid]==='xi_dach');
+    if(hasImmediate){
+      // Mark all as done and reveal immediately
+      const doneUpd={};
+      pids.forEach(pid=>{doneUpd[`xdDone/${pid}`]=true});
+      await update(ref(db,`rooms/${room}`),doneUpd);
+      await xdReveal();
+    }
+  },500);
+};
 window.xdHit=async function(){if(!room)return;const sn=await get(ref(db,`rooms/${room}`));const d=sn.val();const h=me();if(d.xp!=='play'||d.xdDone?.[h.id])return;const deck=[...(d.deck||[])],hand=[...(d.players?.[h.id]?.hand||[]),deck.pop()];const v=hVal(hand),sp=xdSP(hand);const upd={[`players/${h.id}/hand`]:hand,deck};if(v>21||v===21||hand.length>=5){upd[`xdDone/${h.id}`]=true;if(sp)showToast(xdLbl(sp));else if(v>21)showToast('💀 Quắc!');else showToast('🎉 '+v+'!')}await update(ref(db,`rooms/${room}`),upd);const sn2=await get(ref(db,`rooms/${room}`));const d2=sn2.val();if(Object.keys(d2.players||{}).every(pid=>d2.xdDone?.[pid])&&role==='host')await xdReveal()};
 window.xdStand=async function(){if(!room)return;const h=me();const sn=await get(ref(db,`rooms/${room}`));const d=sn.val();if(d.xdDone?.[h.id])return;const myH=d.players?.[h.id]?.hand||[];if(hVal(myH)<16){showToast('❌ Cần ≥16 điểm!');return}await update(ref(db,`rooms/${room}`),{[`xdDone/${h.id}`]:true});const sn2=await get(ref(db,`rooms/${room}`));const d2=sn2.val();if(Object.keys(d2.players||{}).every(pid=>d2.xdDone?.[pid])&&role==='host')await xdReveal()};
 async function xdAuto(){if(!room||role!=='host')return;const sn=await get(ref(db,`rooms/${room}`));const d=sn.val();if(d.xp!=='play')return;const players=d.players||{},upd={};let deck=[...(d.deck||[])];Object.entries(players).forEach(([pid,p])=>{if(d.xdDone?.[pid])return;let hand=[...(p.hand||[])],v=hVal(hand);while(v<16&&deck.length>0&&hand.length<5){hand.push(deck.pop());v=hVal(hand)}upd[`players/${pid}/hand`]=hand;upd[`xdDone/${pid}`]=true});upd.deck=deck;await update(ref(db,`rooms/${room}`),upd);await xdReveal()}
-window.xdReveal=async function(){if(!room)return;if(xTmr){clearInterval(xTmr);xTmr=null}const sn=await get(ref(db,`rooms/${room}`));if(!sn.exists())return;const d=sn.val();if(d.xp==='result')return;const players=d.players||{},plist=Object.entries(players);const vals={},sps={},mults={};plist.forEach(([pid,p])=>{vals[pid]=hVal(p.hand||[]);sps[pid]=xdSP(p.hand||[]);mults[pid]=xdMult(sps[pid])});const notBust=plist.filter(([pid])=>vals[pid]<=21);const result={},delta={};if(!notBust.length){plist.forEach(([pid,p])=>{result[pid]='bust';delta[pid]=-(p.bet||0)})}else{const ranked=[...notBust].sort(([a],[b])=>{const sa=sps[a]?1:0,sb=sps[b]?1:0;if(sa!==sb)return sb-sa;return vals[b]-vals[a]});const topPid=ranked[0][0],topVal=vals[topPid],topSp=sps[topPid];const winners=ranked.filter(([pid])=>topSp?sps[pid]===topSp&&vals[pid]===topVal:!sps[pid]&&vals[pid]===topVal);plist.forEach(([pid,p])=>{const v=vals[pid],b=p.bet||0;if(v>21){result[pid]='bust';delta[pid]=-b}else if(winners.find(([wp])=>wp===pid)){result[pid]=sps[pid]||'win';delta[pid]=0}else{result[pid]='lose';delta[pid]=-(b*mults[topPid])}});if(winners.length===1){const wp=winners[0][0],m=mults[wp];let win=0;plist.forEach(([pid,p])=>{if(pid!==wp){const loss=Math.abs(delta[pid]);win+=loss}});delta[wp]=win}}const upd={xp:'result',xdShow:true,xdResult:result,xdDelta:delta,xdSpecials:sps,xdTime:0};plist.forEach(([pid,p])=>{upd[`players/${pid}/coins`]=Math.max(0,(p.coins||0)+(delta[pid]||0))});await update(ref(db,`rooms/${room}`),upd)};
+window.xdReveal=async function(){if(!room)return;if(xTmr){clearInterval(xTmr);xTmr=null}const sn=await get(ref(db,`rooms/${room}`));if(!sn.exists())return;const d=sn.val();if(d.xp==='result')return;const players=d.players||{},plist=Object.entries(players);const vals={},sps={},mults={};plist.forEach(([pid,p])=>{vals[pid]=hVal(p.hand||[]);sps[pid]=xdSP(p.hand||[]);mults[pid]=xdMult(sps[pid])});const notBust=plist.filter(([pid])=>vals[pid]<=21);const result={},delta={};if(!notBust.length){plist.forEach(([pid,p])=>{result[pid]='bust';delta[pid]=-(p.bet||0)})}else{const spRk=sp=>sp==='xi_ban'?3:sp==='xi_dach'?2:sp==='ngu_linh'?1:0;const ranked=[...notBust].sort(([a],[b])=>{const ra=spRk(sps[a]),rb=spRk(sps[b]);if(ra!==rb)return rb-ra;return vals[b]-vals[a]});const topPid=ranked[0][0],topSp=sps[topPid],topVal=vals[topPid],topRk=spRk(topSp);const winners=ranked.filter(([pid])=>spRk(sps[pid])===topRk&&(topRk>0||vals[pid]===topVal));plist.forEach(([pid,p])=>{const v=vals[pid],b=p.bet||0;if(v>21){result[pid]='bust';delta[pid]=-b}else if(winners.find(([wp])=>wp===pid)){result[pid]=sps[pid]||'win';delta[pid]=0}else{result[pid]='lose';delta[pid]=-(b*mults[topPid])}});if(winners.length===1){const wp=winners[0][0],m=mults[wp];let win=0;plist.forEach(([pid,p])=>{if(pid!==wp){const loss=Math.abs(delta[pid]);win+=loss}});delta[wp]=win}}const upd={xp:'result',xdShow:true,xdResult:result,xdDelta:delta,xdSpecials:sps,xdTime:0};plist.forEach(([pid,p])=>{upd[`players/${pid}/coins`]=Math.max(0,(p.coins||0)+(delta[pid]||0))});await update(ref(db,`rooms/${room}`),upd)};
 window.xdNextRound=async function(){if(role!=='host'||!room)return;const sn=await get(ref(db,`rooms/${room}`));const d=sn.val();const players=d.players||{};const upd={xp:'bet',xdShow:false,xdDone:{},xdResult:{},xdDelta:{},xdSpecials:{},xdTime:0,deck:[]};Object.keys(players).forEach(pid=>{upd[`players/${pid}/hand`]=[];upd[`players/${pid}/bet`]=0;upd[`players/${pid}/done`]=false});await update(ref(db,`rooms/${room}`),upd)};
 window.xdSummary=async()=>{if(room)await update(ref(db,`rooms/${room}`),{xp:'summary'})};
 window.xdReset=async function(){if(role!=='host'||!room)return;const sn=await get(ref(db,`rooms/${room}`));const d=sn.val();const players=d.players||{};const upd={xp:'lobby',xdShow:false,xdDone:{},deck:[]};Object.keys(players).forEach(pid=>{upd[`players/${pid}/coins`]=5e5;upd[`players/${pid}/hand`]=[];upd[`players/${pid}/bet`]=0;upd[`players/${pid}/done`]=false});await update(ref(db,`rooms/${room}`),upd)};
@@ -965,21 +1066,155 @@ window.ctRematch=async function(){lastRes=null;ctSel=null;ctMoves=[];document.ge
 
 // ── ĐẾM NHANH & SỐ MAY MẮN ──
 function smQ(){const ops=['+','-','×','÷'],op=ops[Math.floor(Math.random()*4)];let a,b,ans;if(op==='+'){a=Math.floor(Math.random()*50)+1;b=Math.floor(Math.random()*50)+1;ans=a+b}else if(op==='-'){a=Math.floor(Math.random()*50)+10;b=Math.floor(Math.random()*a)+1;ans=a-b}else if(op==='×'){a=Math.floor(Math.random()*12)+2;b=Math.floor(Math.random()*12)+2;ans=a*b}else{b=Math.floor(Math.random()*9)+2;ans=Math.floor(Math.random()*10)+1;a=b*ans}const w=new Set();while(w.size<3){const x=ans+Math.floor(Math.random()*20)-10;if(x!==ans&&x>0)w.add(x)}return{expr:`${a} ${op} ${b}`,answer:ans,choices:[ans,...w].sort(()=>Math.random()-.5)}}
-function renderSM(d,id){const h=me();if(!document.getElementById('smw')){document.getElementById('garea').innerHTML=`<div class="gtop"><div class="gtitle">🔢 Đếm Nhanh <span class="cbadge" onclick="copyL('${location.href.split('?')[0]}?room=${id}')">#${id} 📋</span></div><button class="btn btn-d btn-sm" onclick="leaveRoom()">Thoát</button></div><div id="smw" style="width:100%;max-width:440px;display:flex;flex-direction:column;gap:14px;align-items:center;padding-bottom:20px"></div>`}
+function renderSM(d,id){
+  const h=me();
+  if(!document.getElementById('smw')){
+    document.getElementById('garea').innerHTML='<div class="gtop"><div class="gtitle">🔢 Đếm Nhanh <span class="cbadge" onclick="copyL(window.location.href)">#'+id+'</span></div><button class="btn btn-d btn-sm" onclick="leaveRoom()">Thoát</button></div><div id="smw" style="width:100%;max-width:440px;display:flex;flex-direction:column;gap:14px;align-items:center;padding-bottom:20px"></div>';
+  }
   if(d.status==='waiting'){if(!document.getElementById('wbox'))mkW(id);return}rmW();
-  const wrap=document.getElementById('smw');if(!wrap)return;const smp=d.smp||'ready',sc=d.smScore||{h:0,g:0},round=d.smRound||1;
+  const wrap=document.getElementById('smw');if(!wrap)return;
+  const smp=d.smp||'ready',sc=d.smScore||{h:0,g:0},round=d.smRound||1;
   const hn=(d.hav||'')+(d.hn||'Host'),gn=d.gnm?(d.gav||'')+(d.gnm):'Chờ...';
-  let html=`<div style="width:100%;background:var(--s1);border:1px solid var(--b1);border-radius:14px;padding:16px;text-align:center"><div style="font-size:12px;color:var(--muted2);margin-bottom:8px">Câu ${round}/10</div><div style="display:flex;justify-content:space-around"><div><div style="font-size:13px;font-weight:700">${hn}</div><div style="font-size:34px;font-weight:900;color:var(--purple)">${sc.h||0}</div></div><div style="font-size:20px;color:var(--muted);align-self:center">VS</div><div><div style="font-size:13px;font-weight:700">${gn}</div><div style="font-size:34px;font-weight:900;color:var(--pink)">${sc.g||0}</div></div></div></div>`;
-  if(smp==='ready')html+=`${role==='host'?`<button class="btn btn-p" onclick="smStart()" style="max-width:200px">▶️ Bắt đầu!</button>`:`<div style="font-size:13px;color:var(--muted2)">Chờ host bắt đầu...</div>`}`;
-  if(smp==='question'){const q=d.smQ2||{expr:'?',answer:0,choices:[1,2,3,4]},ans=d.smA,myAns=ans?.[h.id];
-    html+=`<div style="width:100%;background:var(--s1);border:1px solid var(--b1);border-radius:16px;padding:24px;text-align:center"><div style="font-size:40px;font-weight:900;letter-spacing:-1px;margin-bottom:16px">${q.expr} = ?</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${(q.choices||[]).map(c=>`<button onclick="smAns(${c})" class="btn ${myAns===c?'btn-p':'btn-g'}" style="padding:14px;font-size:18px;font-weight:800;border-radius:12px" ${myAns!=null?'disabled':''}>${c}</button>`).join('')}</div>${ans&&Object.keys(ans).length>0?`<div style="font-size:12px;color:var(--muted2);margin-top:10px">${Object.keys(ans).length}/2 trả lời</div>`:''}</div>`}
-  if(smp==='answer'){const q=d.smQ2||{expr:'?',answer:0},w=d.smWinner,iw=w===role;html+=`<div style="width:100%;background:${iw?'rgba(16,185,129,.1)':'var(--s1)'};border:1.5px solid ${iw?'var(--green)':'var(--b1)'};border-radius:16px;padding:24px;text-align:center"><div style="font-size:34px;font-weight:900;margin-bottom:8px">${q.expr} = <span style="color:var(--gold)">${q.answer}</span></div><div style="font-size:18px;font-weight:800;color:${w==='draw'?'var(--muted2)':iw?'var(--green)':'var(--red)'}">${w==='draw'?'🤝 Không ai đúng!':iw?'🏆 Bạn đúng trước!':'😢 Đối thủ nhanh hơn!'}</div></div>${role==='host'?`<button class="btn btn-p" onclick="smNext()" style="max-width:200px">${round>=10?'📊 Kết quả':'Tiếp →'}</button>`:`<div style="font-size:12px;color:var(--muted)">Chờ host...</div>`}`}
-  if(smp==='gameover'){const w=sc.h>sc.g?'host':sc.g>sc.h?'guest':'draw',iw=w===role;html+=`<div style="text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px;padding:16px 0;width:100%"><div style="font-size:52px">${w==='draw'?'🤝':iw?'🏆':'😢'}</div><div style="font-size:22px;font-weight:900">${w==='draw'?'Hòa!':iw?'Bạn thắng!':'Thua rồi!'}</div><div style="font-size:13px;color:var(--muted2)">${hn} ${sc.h||0} - ${sc.g||0} ${gn}</div>${role==='host'?`<button class="btn btn-p" style="max-width:200px" onclick="smRestart()">🔄 Chơi lại</button>`:`<div style="font-size:12px;color:var(--muted)">Chờ host...</div>`}</div>`}
+  let html=`<div style="width:100%;background:var(--s1);border:1px solid var(--b1);border-radius:14px;padding:16px;text-align:center">
+    <div style="font-size:12px;color:var(--muted2);margin-bottom:8px">Câu ${round}/10 · Ai đúng trước được điểm</div>
+    <div style="display:flex;justify-content:space-around">
+      <div><div style="font-size:13px;font-weight:700">${hn}</div><div style="font-size:34px;font-weight:900;color:var(--purple)">${sc.h||0}</div></div>
+      <div style="font-size:20px;color:var(--muted);align-self:center">VS</div>
+      <div><div style="font-size:13px;font-weight:700">${gn}</div><div style="font-size:34px;font-weight:900;color:var(--pink)">${sc.g||0}</div></div>
+    </div>
+  </div>`;
+
+  if(smp==='ready'){
+    html+=role==='host'
+      ?`<button class="btn btn-p" onclick="smStart()" style="max-width:200px">▶️ Bắt đầu!</button>`
+      :`<div style="font-size:13px;color:var(--muted2)">Chờ host bắt đầu...</div>`;
+  }
+
+  if(smp==='question'){
+    const q=d.smQ2||{expr:'?',answer:0,choices:[1,2,3,4]};
+    const myAns=d.smA?.[h.id];
+    const timer=d.smTimer!=null?d.smTimer:5;
+    const timerCol=timer>3?'var(--green)':timer>1?'var(--yellow)':'var(--red)';
+    html+=`
+    <div style="width:100%;display:flex;align-items:center;gap:10px;background:var(--s1);border:1px solid var(--b1);border-radius:12px;padding:10px 14px">
+      <span style="font-size:18px">⏱</span>
+      <div style="flex:1"><div style="height:6px;background:var(--s3);border-radius:3px;overflow:hidden"><div style="height:100%;width:${timer/5*100}%;background:${timerCol};transition:width 1s linear;border-radius:3px"></div></div></div>
+      <span style="font-size:15px;font-weight:900;color:${timerCol}">${timer}s</span>
+    </div>
+    <div style="width:100%;background:var(--s1);border:1px solid var(--b1);border-radius:16px;padding:24px;text-align:center">
+      <div style="font-size:42px;font-weight:900;letter-spacing:-1px;margin-bottom:20px">${q.expr} = ?</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        ${(q.choices||[]).map(ch=>`<button onclick="smAns(${ch})" class="btn ${myAns===ch?'btn-p':'btn-g'}" style="padding:16px;font-size:20px;font-weight:800;border-radius:12px;min-height:60px" ${myAns!=null?'disabled':''}>${ch}</button>`).join('')}
+      </div>
+      ${myAns!=null?`<div style="font-size:13px;color:var(--muted2);margin-top:12px">✅ Đã chọn: <b>${myAns}</b> — Chờ đối thủ...</div>`:''}
+    </div>`;
+  }
+
+  if(smp==='answer'){
+    const q=d.smQ2||{expr:'?',answer:0},w=d.smWinner;
+    const iw=w===role;
+    const myAns=d.smA?.[h.id],oppAns=d.smA?.[role==='host'?d.gid:d.hid];
+    const qAns=Number(q.answer);
+    const myCorrect=Number(myAns)===qAns,oppCorrect=Number(oppAns)===qAns;
+    html+=`<div style="width:100%;background:${iw?'rgba(16,185,129,.1)':'var(--s1)'};border:1.5px solid ${iw?'var(--green)':'var(--b1)'};border-radius:16px;padding:24px;text-align:center;display:flex;flex-direction:column;gap:10px">
+      <div style="font-size:34px;font-weight:900">${q.expr} = <span style="color:var(--gold)">${q.answer}</span></div>
+      <div style="display:flex;gap:12px;justify-content:center">
+        <div style="text-align:center">
+          <div style="font-size:12px;color:var(--muted2)">Bạn</div>
+          <div style="font-size:20px;font-weight:900;color:${myCorrect?'var(--green)':myAns!=null?'var(--red)':'var(--muted)'}">${myAns!=null?myAns:'–'}</div>
+          <div style="font-size:11px;color:${myCorrect?'var(--green)':myAns!=null?'var(--red)':'var(--muted)'}">${myCorrect?'✅ Đúng':myAns!=null?'❌ Sai':'⏱ Hết giờ'}</div>
+        </div>
+        <div style="font-size:20px;color:var(--muted);align-self:center">VS</div>
+        <div style="text-align:center">
+          <div style="font-size:12px;color:var(--muted2)">Đối thủ</div>
+          <div style="font-size:20px;font-weight:900;color:${oppCorrect?'var(--green)':oppAns!=null?'var(--red)':'var(--muted)'}">${oppAns!=null?oppAns:'–'}</div>
+          <div style="font-size:11px;color:${oppCorrect?'var(--green)':oppAns!=null?'var(--red)':'var(--muted)'}">${oppCorrect?'✅ Đúng':oppAns!=null?'❌ Sai':'⏱ Hết giờ'}</div>
+        </div>
+      </div>
+      <div style="font-size:18px;font-weight:800;color:${w==='none'?'var(--muted2)':w==='draw'?'var(--muted2)':iw?'var(--green)':'var(--red)'}">
+        ${w==='none'?'⏱ Hết giờ — không ai trả lời đúng!':w==='draw'?'🤝 Cả hai đều đúng!':iw?'🏆 Bạn đúng trước!':'😢 Đối thủ nhanh hơn!'}
+      </div>
+    </div>
+    ${role==='host'?`<button class="btn btn-p" onclick="smNext()" style="max-width:200px">${round>=10?'📊 Kết quả':'Câu tiếp →'}</button>`:`<div style="font-size:12px;color:var(--muted)">Chờ host...</div>`}`;
+  }
+
+  if(smp==='gameover'){
+    const w=sc.h>sc.g?'host':sc.g>sc.h?'guest':'draw',iw=w===role;
+    html+=`<div style="text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px;padding:16px 0;width:100%">
+      <div style="font-size:52px">${w==='draw'?'🤝':iw?'🏆':'😢'}</div>
+      <div style="font-size:22px;font-weight:900">${w==='draw'?'Hòa!':iw?'Bạn thắng!':'Thua rồi!'}</div>
+      <div style="font-size:13px;color:var(--muted2)">${hn} ${sc.h||0} - ${sc.g||0} ${gn}</div>
+      ${role==='host'?`<button class="btn btn-p" style="max-width:200px" onclick="smRestart()">🔄 Chơi lại</button>`:`<div style="font-size:12px;color:var(--muted)">Chờ host...</div>`}
+    </div>`;
+  }
   wrap.innerHTML=html;
 }
-window.smStart=async function(){if(!room)return;const q=smQ();await update(ref(db,`rooms/${room}`),{smp:'question',smQ2:q,smA:{},smWinner:null})};
-window.smAns=async function(ans){if(!room)return;const h=me();const sn=await get(ref(db,`rooms/${room}`));const d=sn.val();if(d.smp!=='question'||d.smA?.[h.id]!=null)return;await update(ref(db,`rooms/${room}/smA`),{[h.id]:ans});if(role==='host'){setTimeout(async()=>{const sn2=await get(ref(db,`rooms/${room}`));const d2=sn2.val();const a=d2.smA||{},q=d2.smQ2||{answer:0};const hA=a[d2.hid],gA=a[d2.gid];const qAns=Number(q.answer);let w=Number(hA)===qAns&&Number(gA)===qAns?'draw':Number(hA)===qAns?'host':Number(gA)===qAns?'guest':'draw';const sc={...(d2.smScore||{h:0,g:0})};if(w==='host')sc.h=(sc.h||0)+1;else if(w==='guest')sc.g=(sc.g||0)+1;const rnd=d2.smRound||1,ph=rnd>=10?'gameover':'answer';await update(ref(db,`rooms/${room}`),{smp:ph,smWinner:w,smScore:sc})},1500)}};
-window.smNext=async function(){if(!room)return;const sn=await get(ref(db,`rooms/${room}`));const d=sn.val();const q=smQ();await update(ref(db,`rooms/${room}`),{smp:'question',smQ2:q,smA:{},smRound:(d.smRound||1)+1,smWinner:null})};
+
+function smRunTimer(){
+  if(smTimerInterval)clearInterval(smTimerInterval);
+  let t=10;
+  smTimerInterval=setInterval(async()=>{
+    if(!room){clearInterval(smTimerInterval);smTimerInterval=null;return}
+    t=Math.max(0,t-1);
+    try{await update(ref(db,'rooms/'+room),{smTimer:t})}catch(e){}
+    if(t<=0){
+      clearInterval(smTimerInterval);smTimerInterval=null;
+      const sn=await get(ref(db,'rooms/'+room));
+      if(!sn.exists())return;
+      const d2=sn.val();
+      if(d2.smp!=='question')return;
+      const a=d2.smA||{},q=d2.smQ2||{answer:0},qA=Number(q.answer);
+      const hC=Number(a[d2.hid])===qA,gC=Number(a[d2.gid])===qA;
+      let w=hC&&gC?'draw':hC?'host':gC?'guest':'none';
+      const sc={...(d2.smScore||{h:0,g:0})};
+      if(w==='host')sc.h=(sc.h||0)+1;
+      else if(w==='guest')sc.g=(sc.g||0)+1;
+      const rnd=d2.smRound||1,ph=rnd>=10?'gameover':'answer';
+      await update(ref(db,'rooms/'+room),{smp:ph,smWinner:w,smScore:sc,smTimer:0});
+    }
+  },1000);
+}
+
+window.smStart=async function(){
+  if(!room)return;
+  const q=smQ();
+  await update(ref(db,`rooms/${room}`),{smp:'question',smQ2:q,smA:{},smWinner:null,smTimer:10});
+  if(role==='host')smRunTimer();
+}
+window.smAns=async function(ans){
+  if(!room)return;
+  const h=me();
+  const sn=await get(ref(db,`rooms/${room}`));
+  const d=sn.val();
+  if(d.smp!=='question'||d.smA?.[h.id]!=null)return;
+  await update(ref(db,`rooms/${room}/smA`),{[h.id]:ans});
+  // Re-read and evaluate — BOTH players can trigger result (not just host)
+  const sn2=await get(ref(db,`rooms/${room}`));
+  const d2=sn2.val();
+  if(d2.smp!=='question')return; // already resolved
+  const a=d2.smA||{},q=d2.smQ2||{answer:0};
+  const qAns=Number(q.answer);
+  const hA=a[d2.hid],gA=a[d2.gid];
+  const hC=Number(hA)===qAns,gC=Number(gA)===qAns;
+  let w;
+  if(hC&&gC) w='draw';
+  else if(hC)  w='host';
+  else if(gC)  w='guest';
+  else if(hA!=null&&gA!=null) w='none'; // both wrong = nobody wins
+  else return; // one player hasn't answered yet
+  const sc={...(d2.smScore||{h:0,g:0})};
+  if(w==='host')sc.h=(sc.h||0)+1;
+  else if(w==='guest')sc.g=(sc.g||0)+1;
+  const rnd=d2.smRound||1,ph=rnd>=10?'gameover':'answer';
+  await update(ref(db,`rooms/${room}`),{smp:ph,smWinner:w,smScore:sc});
+}
+window.smNext=async function(){
+  if(!room)return;
+  const sn=await get(ref(db,`rooms/${room}`));const d=sn.val();
+  const q=smQ();
+  await update(ref(db,`rooms/${room}`),{smp:'question',smQ2:q,smA:{},smRound:(d.smRound||1)+1,smWinner:null,smTimer:10});
+  if(role==='host')smRunTimer();
+}
 window.smRestart=async function(){if(!room)return;const q=smQ();await update(ref(db,`rooms/${room}`),{smp:'question',smQ2:q,smA:{},smRound:1,smScore:{h:0,g:0},smWinner:null})};
 
 function renderGN(d,id){const h=me();if(!document.getElementById('gnw')){document.getElementById('garea').innerHTML=`<div class="gtop"><div class="gtitle">🎯 Số May Mắn <span class="cbadge" onclick="copyL('${location.href.split('?')[0]}?room=${id}')">#${id} 📋</span></div><button class="btn btn-d btn-sm" onclick="leaveRoom()">Thoát</button></div><div id="gnw" style="width:100%;max-width:420px;display:flex;flex-direction:column;gap:14px;align-items:center;padding-bottom:20px"></div>`}
@@ -991,7 +1226,25 @@ function renderGN(d,id){const h=me();if(!document.getElementById('gnw')){documen
   if(gnp==='reveal'){const hG=guesses[d.hid]||'?',gG=guesses[d.gid]||'?',secret=d.gnS||0,w=d.gnW,iw=w===role;html+=`<div style="width:100%;background:var(--s1);border:1px solid var(--b1);border-radius:14px;padding:20px;text-align:center;display:flex;flex-direction:column;gap:12px"><div style="font-size:18px;font-weight:700;color:var(--muted2)">Số bí mật là...</div><div style="font-size:52px;font-weight:900;color:var(--gold)">${secret}</div><div style="display:flex;justify-content:space-around"><div><div style="font-size:12px;color:var(--muted2)">${hn}</div><div style="font-size:28px;font-weight:900;color:${w==='host'?'var(--green)':'var(--muted2)'}">${hG}</div><div style="font-size:11px;color:var(--muted2)">Lệch ${Math.abs(Number(hG)-secret)||0}</div></div><div style="font-size:20px;color:var(--muted);align-self:center">VS</div><div><div style="font-size:12px;color:var(--muted2)">${gn}</div><div style="font-size:28px;font-weight:900;color:${w==='guest'?'var(--green)':'var(--muted2)'}">${gG}</div><div style="font-size:11px;color:var(--muted2)">Lệch ${Math.abs(Number(gG)-secret)||0}</div></div></div><div style="font-size:18px;font-weight:900;color:${iw?'var(--green)':w==='draw'?'var(--muted2)':'var(--red)'}">${w==='draw'?'🤝 Hòa!':iw?'🏆 Bạn gần hơn!':'😢 Đối thủ gần hơn!'}</div>${role==='host'?`<button class="btn btn-p" onclick="gnNext()">Ván tiếp →</button>`:`<div style="font-size:12px;color:var(--muted)">Chờ host...</div>`}</div>`}
   wrap.innerHTML=html;
 }
-window.gnGuess=async function(){if(!room)return;const inp=document.getElementById('gni');const v=parseInt(inp?.value||0);if(!v||v<1||v>100){showToast('❌ Nhập 1–100!');return}const h=me();await update(ref(db,`rooms/${room}/gnG`),{[h.id]:v});const sn=await get(ref(db,`rooms/${room}`));const d=sn.val();const g=d.gnG||{};if(g[d.hid]!=null&&g[d.gid]!=null&&role==='host'){const s=d.gnS||50,hD=Math.abs(g[d.hid]-s),gD=Math.abs(g[d.gid]-s);const w=hD<gD?'host':gD<hD?'guest':'draw';const sc={...(d.gnScore||{h:0,g:0})};if(w==='host')sc.h=(sc.h||0)+1;else if(w==='guest')sc.g=(sc.g||0)+1;await update(ref(db,`rooms/${room}`),{gnp:'reveal',gnW:w,gnScore:sc})}};
+window.gnGuess=async function(){
+  if(!room)return;
+  const inp=document.getElementById('gni');
+  const v=parseInt(inp?.value||0);
+  if(!v||v<1||v>100){showToast('❌ Nhập 1–100!');return}
+  const h=me();
+  await update(ref(db,`rooms/${room}/gnG`),{[h.id]:v});
+  // Both roles check — whoever completes the pair triggers reveal
+  const sn=await get(ref(db,`rooms/${room}`));
+  const d=sn.val();const g=d.gnG||{};
+  if(g[d.hid]!=null&&g[d.gid]!=null&&d.gnp==='guess'){
+    const s=d.gnS||50;
+    const hD=Math.abs(Number(g[d.hid])-s),gD=Math.abs(Number(g[d.gid])-s);
+    const w=hD<gD?'host':gD<hD?'guest':'draw';
+    const sc={...(d.gnScore||{h:0,g:0})};
+    if(w==='host')sc.h=(sc.h||0)+1;else if(w==='guest')sc.g=(sc.g||0)+1;
+    await update(ref(db,`rooms/${room}`),{gnp:'reveal',gnW:w,gnScore:sc});
+  }
+};
 window.gnNext=async function(){if(!room)return;const sn=await get(ref(db,`rooms/${room}`));const d=sn.val();await update(ref(db,`rooms/${room}`),{gnp:'guess',gnS:Math.ceil(Math.random()*100),gnG:{},gnW:null,gnRound:(d.gnRound||1)+1})};
 
 // ── AI ──
@@ -1261,7 +1514,7 @@ function tlValidPlay(play){
   return sorted.every((v,i)=>i===0||v===sorted[i-1]+1)&&!sorted.includes(TL_R.indexOf('2'));
 }
 
-let tlSelected=[];
+let tlSelected=[];let smTimerInterval=null;
 
 function renderTL(d,id){
   const h=me(),players=d.tlPlayers||{},pids=Object.keys(players);
@@ -1270,15 +1523,10 @@ function renderTL(d,id){
   const passed=d.tlPass||{};
 
   if(!document.getElementById('tlw')){
-    document.getElementById('garea').innerHTML=`
-      <div class="gtop">
-        <div class="gtitle">🏹 Tiến Lên <span class="cbadge" onclick="copyL('${location.href.split('?')[0]}?room=${id}')">#${id}</span></div>
-        <button class="btn btn-d btn-sm" onclick="leaveRoom()">Thoát</button>
-      </div>
-      <div id="tlw" style="width:100%;max-width:540px;display:flex;flex-direction:column;gap:10px;padding-bottom:24px"></div>`;
+    document.getElementById('garea').innerHTML='<div class="gtop"><div class="gtitle">🏹 Tiến Lên <span class="cbadge" onclick="copyL(window.location.href)" id="tl-badge">#'+id+'</span></div><button class="btn btn-d btn-sm" onclick="leaveRoom()">Thoát</button></div><div id="tlw" style="width:100%;max-width:540px;display:flex;flex-direction:column;gap:10px;padding-bottom:24px"></div>';
   }
   if(d.status==='waiting'){if(!document.getElementById('wbox'))mkW(id);return}rmW();
-  const wrap=document.getElementById('tlw');if(!wrap)return;
+  let wrap=document.getElementById('tlw');if(!wrap){document.getElementById('garea').innerHTML+='<div id="tlw" style="width:100%;max-width:540px;display:flex;flex-direction:column;gap:10px;padding-bottom:24px"></div>';wrap=document.getElementById('tlw');}if(!wrap)return;
 
   let html='';
 
@@ -1349,10 +1597,19 @@ function renderTL(d,id){
 
   // Start button
   if(phase==='waiting'){
+    html+=`<div style="background:var(--s1);border:1px solid var(--b1);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px">
+      <div style="font-size:12px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:1px">📖 Luật chơi</div>
+      <div style="font-size:12px;color:var(--muted2);line-height:1.7">
+        🃏 Mỗi người nhận <b>13 lá</b> (2 người) hoặc ít hơn<br>
+        🏆 Thoát hết bài trước thắng<br>
+        3♠ đi trước · Đánh đơn/đôi/bộ 3/sảnh<br>
+        ⏭ Bỏ nếu không đánh được · Ai bỏ hết = bàn sạch
+      </div>
+    </div>`;
     if(role==='host'&&pids.length>=2){
-      html+=`<button class="btn btn-p" onclick="tlStart2()" style="border-radius:12px;padding:14px">🏹 Phát bài bắt đầu!</button>`;
+      html+=`<button class="btn btn-p" onclick="tlStart2()" style="border-radius:12px;padding:14px;font-size:15px">🏹 Phát bài — Bắt đầu!</button>`;
     }else{
-      html+=`<div style="background:var(--s1);border:1px solid var(--b1);border-radius:12px;padding:16px;text-align:center;font-size:13px;color:var(--muted2)">${role==='host'?'Cần ít nhất 2 người — chờ bạn vào...':'Chờ host bắt đầu...'}</div>`;
+      html+=`<div style="background:var(--s1);border:1px solid var(--b1);border-radius:12px;padding:16px;text-align:center;font-size:13px;color:var(--muted2)">${role==='host'?'⏳ Cần ít nhất 2 người — chờ bạn vào...':'⏳ Chờ host bắt đầu...'}</div>`;
     }
   }
 
@@ -1548,15 +1805,10 @@ function renderPK(d,id){
   const rndNames={preflop:'Pre-Flop',flop:'Flop',turn:'Turn',river:'River',showdown:'Showdown'};
 
   if(!document.getElementById('pkw')){
-    document.getElementById('garea').innerHTML=`
-      <div class="gtop">
-        <div class="gtitle">♠️ Poker <span class="cbadge" onclick="copyL('${location.href.split('?')[0]}?room=${id}')">#${id}</span></div>
-        <button class="btn btn-d btn-sm" onclick="leaveRoom()">Thoát</button>
-      </div>
-      <div id="pkw" style="width:100%;max-width:540px;display:flex;flex-direction:column;gap:10px;padding-bottom:24px"></div>`;
+    document.getElementById('garea').innerHTML='<div class="gtop"><div class="gtitle">♠️ Poker <span class="cbadge" onclick="copyL(window.location.href)" id="pk-badge">#'+id+'</span></div><button class="btn btn-d btn-sm" onclick="leaveRoom()">Thoát</button></div><div id="pkw" style="width:100%;max-width:540px;display:flex;flex-direction:column;gap:10px;padding-bottom:24px"></div>';
   }
   if(d.status==='waiting'){if(!document.getElementById('wbox'))mkW(id);return}rmW();
-  const wrap=document.getElementById('pkw');if(!wrap)return;
+  let wrap=document.getElementById('pkw');if(!wrap){const d2=document.getElementById('garea');if(d2)d2.innerHTML+='<div id="pkw" style="width:100%;max-width:540px;display:flex;flex-direction:column;gap:10px;padding-bottom:24px"></div>';wrap=document.getElementById('pkw');}if(!wrap)return;
   let html='';
 
   // Pot & round header
@@ -1620,8 +1872,17 @@ function renderPK(d,id){
   }
 
   if(phase==='waiting'){
-    if(pids.length>=2&&role==='host')html+=`<button class="btn btn-p" onclick="pkDeal2()" style="border-radius:12px;padding:14px">♠️ Bắt đầu ván đầu!</button>`;
-    else html+=`<div style="background:var(--s1);border:1px solid var(--b1);border-radius:12px;padding:16px;text-align:center;font-size:13px;color:var(--muted2)">${role==='host'?'Cần ít nhất 2 người — chờ bạn vào...':'Chờ host bắt đầu...'}</div>`;
+    html+=`<div style="background:var(--s1);border:1px solid var(--b1);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px">
+      <div style="font-size:12px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:1px">📖 Luật chơi — Texas Hold'em</div>
+      <div style="font-size:12px;color:var(--muted2);line-height:1.7">
+        🃏 Mỗi người nhận <b>2 lá bài riêng</b><br>
+        🎰 5 lá chung: Flop(3) → Turn(1) → River(1)<br>
+        🏆 Tay 5 lá mạnh nhất thắng pot<br>
+        Fold/Call/Raise/All-in mỗi vòng
+      </div>
+    </div>`;
+    if(pids.length>=2&&role==='host')html+=`<button class="btn btn-p" onclick="pkDeal2()" style="border-radius:12px;padding:14px;font-size:15px">♠️ Bắt đầu ván đầu!</button>`;
+    else html+=`<div style="background:var(--s1);border:1px solid var(--b1);border-radius:12px;padding:16px;text-align:center;font-size:13px;color:var(--muted2)">${role==='host'?'⏳ Cần ít nhất 2 người — chờ bạn vào...':'⏳ Chờ host bắt đầu...'}</div>`;
   }
 
   wrap.innerHTML=html;
@@ -1815,6 +2076,153 @@ window.clReveal=async function(){
   await update(ref(db,`rooms/${room}`),{clPhase:'result',clResult:true,clWallets:wallets});
 };
 window.clNext=async function(){if(!room||role!=='host')return;await update(ref(db,`rooms/${room}`),{clPhase:'bet',clBets:{},clSecret:null,clResult:null})};
+
+
+// ── XÚC XẮC CHIẾN ──
+function renderXX(d,id){
+  const h=me();
+  if(!document.getElementById('xxw')){
+    document.getElementById('garea').innerHTML='<div class="gtop"><div class="gtitle">🎲 Xúc Xắc Chiến <span class="cbadge" onclick="copyL(window.location.href)">#'+id+'</span></div><button class="btn btn-d btn-sm" onclick="leaveRoom()">Thoát</button></div><div id="xxw" style="width:100%;max-width:420px;display:flex;flex-direction:column;gap:14px;align-items:center;padding-bottom:24px"></div>';
+  }
+  if(d.status==='waiting'){if(!document.getElementById('wbox'))mkW(id);return}rmW();
+  const wrap=document.getElementById('xxw');if(!wrap)return;
+  const hn=(d.hav||'')+(d.hn||'Host'),gn=d.gnm?(d.gav||'')+(d.gnm):'Chờ...';
+  const sc=d.xxScore||{h:0,g:0},dice=d.xxDice||{},phase=d.xxPhase||'ready',round=d.xxRound||1;
+  const DF=['','⚀','⚁','⚂','⚃','⚄','⚅'];
+  const myDie=dice[h.id],hDie=dice[d.hid],gDie=dice[d.gid];
+  let html=`<div style="width:100%;background:var(--s1);border:1px solid var(--b1);border-radius:14px;padding:16px;text-align:center">
+    <div style="font-size:12px;color:var(--muted2);margin-bottom:10px">Ván ${round} · Cao hơn thắng</div>
+    <div style="display:flex;justify-content:space-around;align-items:center">
+      <div><div style="font-size:13px;font-weight:700;color:var(--purple)">${hn}</div><div style="font-size:40px;font-weight:900">${sc.h||0}</div></div>
+      <div style="font-size:18px;color:var(--muted)">VS</div>
+      <div><div style="font-size:13px;font-weight:700;color:var(--pink)">${gn}</div><div style="font-size:40px;font-weight:900">${sc.g||0}</div></div>
+    </div>
+  </div>`;
+  if(phase==='ready'||phase==='rolled'){
+    const myDiceEl=myDie?`<div style="font-size:72px">${DF[myDie]}</div><div style="font-size:13px;color:var(--gold)">Bạn: ${myDie} điểm</div>`:`<button class="btn btn-y" onclick="xxRoll()" style="max-width:200px;border-radius:12px;padding:16px;font-size:16px">🎲 Lắc xúc xắc!</button>`;
+    html+=`<div style="width:100%;background:var(--s1);border:1px solid var(--b1);border-radius:14px;padding:24px;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center">
+      ${myDiceEl}
+      ${myDie&&!gDie?'<div style="font-size:13px;color:var(--muted2)">✅ Đã lắc — Chờ đối thủ...</div>':''}
+      ${!myDie&&gDie?'<div style="font-size:13px;color:var(--yellow);font-weight:600">⚡ Đối thủ đã lắc rồi!</div>':''}
+    </div>`;
+  }
+  if(phase==='result'){
+    const w=d.xxWinner,iw=w===role;
+    html+=`<div style="background:${iw?'rgba(16,185,129,.1)':'var(--s1)'};border:1.5px solid ${iw?'var(--green)':'var(--b1)'};border-radius:14px;padding:24px;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;width:100%">
+      <div style="display:flex;gap:24px;justify-content:center;align-items:center">
+        <div><div style="font-size:12px;color:var(--muted2)">${hn}</div><div style="font-size:56px">${DF[hDie]||'?'}</div><div style="font-size:14px;font-weight:700;color:${w==='host'?'var(--green)':'var(--muted2)'}">${hDie||'?'} điểm</div></div>
+        <div style="font-size:20px;color:var(--muted)">VS</div>
+        <div><div style="font-size:12px;color:var(--muted2)">${gn}</div><div style="font-size:56px">${DF[gDie]||'?'}</div><div style="font-size:14px;font-weight:700;color:${w==='guest'?'var(--green)':'var(--muted2)'}">${gDie||'?'} điểm</div></div>
+      </div>
+      <div style="font-size:20px;font-weight:900;color:${w==='draw'?'var(--muted2)':iw?'var(--green)':'var(--red)'}">${w==='draw'?'🤝 Hòa!':iw?'🏆 Bạn thắng!':'😢 Thua rồi!'}</div>
+      ${role==='host'?`<button class="btn btn-p" onclick="xxNext()" style="max-width:200px">Ván tiếp →</button>`:`<div style="font-size:12px;color:var(--muted)">Chờ host...</div>`}
+    </div>`;
+  }
+  wrap.innerHTML=html;
+}
+window.xxRoll=async function(){
+  if(!room)return;const h=me();
+  const sn=await get(ref(db,`rooms/${room}`));const d=sn.val();
+  if(d.xxDice?.[h.id]){showToast('⚠️ Đã lắc rồi!');return}
+  const val=Math.ceil(Math.random()*6);
+  await update(ref(db,`rooms/${room}`),{[`xxDice/${h.id}`]:val,xxPhase:'rolled'});
+  const sn2=await get(ref(db,`rooms/${room}`));const d2=sn2.val();
+  const dice=d2.xxDice||{};
+  if(dice[d2.hid]&&dice[d2.gid]){
+    const hV=dice[d2.hid],gV=dice[d2.gid];
+    const w=hV>gV?'host':gV>hV?'guest':'draw';
+    const sc={...(d2.xxScore||{h:0,g:0})};
+    if(w==='host')sc.h=(sc.h||0)+1;else if(w==='guest')sc.g=(sc.g||0)+1;
+    await update(ref(db,`rooms/${room}`),{xxPhase:'result',xxWinner:w,xxScore:sc});
+  }
+};
+window.xxNext=async function(){
+  if(!room||role!=='host')return;
+  const sn=await get(ref(db,`rooms/${room}`));const d=sn.val();
+  await update(ref(db,`rooms/${room}`),{xxPhase:'ready',xxDice:{},xxWinner:null,xxRound:(d.xxRound||1)+1});
+};
+
+// ── PHẢN XẠ ──
+let pxTimer=null;
+function renderPX(d,id){
+  const h=me();
+  if(!document.getElementById('pxw')){
+    document.getElementById('garea').innerHTML='<div class="gtop"><div class="gtitle">⚡ Phản Xạ <span class="cbadge" onclick="copyL(window.location.href)">#'+id+'</span></div><button class="btn btn-d btn-sm" onclick="leaveRoom()">Thoát</button></div><div id="pxw" style="width:100%;max-width:420px;display:flex;flex-direction:column;gap:14px;align-items:center;padding-bottom:24px"></div>';
+  }
+  if(d.status==='waiting'){if(!document.getElementById('wbox'))mkW(id);return}rmW();
+  const wrap=document.getElementById('pxw');if(!wrap)return;
+  const hn=(d.hav||'')+(d.hn||'Host'),gn=d.gnm?(d.gav||'')+(d.gnm):'Chờ...';
+  const sc=d.pxScore||{h:0,g:0},phase=d.pxPhase||'waiting',round=d.pxRound||1;
+  let html=`<div style="width:100%;background:var(--s1);border:1px solid var(--b1);border-radius:14px;padding:14px;text-align:center">
+    <div style="font-size:12px;color:var(--muted2);margin-bottom:8px">Ván ${round} · Bấm nhanh nhất khi đèn xanh!</div>
+    <div style="display:flex;justify-content:space-around">
+      <div><div style="font-size:13px;font-weight:700">${hn}</div><div style="font-size:36px;font-weight:900;color:var(--purple)">${sc.h||0}</div></div>
+      <div style="font-size:18px;color:var(--muted);align-self:center">VS</div>
+      <div><div style="font-size:13px;font-weight:700">${gn}</div><div style="font-size:36px;font-weight:900;color:var(--pink)">${sc.g||0}</div></div>
+    </div>
+  </div>`;
+  if(phase==='waiting'){
+    html+=role==='host'?`<button class="btn btn-p" onclick="pxStart()" style="max-width:200px;border-radius:12px">▶️ Bắt đầu!</button>`:`<div style="font-size:13px;color:var(--muted2)">⏳ Chờ host bắt đầu...</div>`;
+  }
+  if(phase==='ready'){
+    html+=`<div style="width:100%;background:var(--s2);border:2px solid var(--b2);border-radius:16px;padding:32px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:16px">
+      <div style="font-size:64px">🔴</div>
+      <div style="font-size:16px;font-weight:700;color:var(--muted2)">Chờ đèn xanh...</div>
+      <div style="font-size:12px;color:var(--muted)">Đừng bấm sớm!</div>
+    </div>`;
+  }
+  if(phase==='go'){
+    const myClicked=d.pxClicked?.[h.id];
+    html+=`<div onclick="${!myClicked?'pxClick()':''}" style="width:100%;background:${myClicked?'rgba(16,185,129,.2)':'var(--green)'};border:2px solid var(--green);border-radius:16px;padding:32px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:16px;cursor:${myClicked?'default':'pointer'};transition:all .1s;-webkit-tap-highlight-color:transparent;user-select:none">
+      <div style="font-size:64px">${myClicked?'✅':'🟢'}</div>
+      <div style="font-size:${myClicked?16:20}px;font-weight:${myClicked?700:900};color:${myClicked?'var(--green)':'#000'}">${myClicked?'Đã bấm!':'BẤM NGAY!'}</div>
+    </div>`;
+  }
+  if(phase==='result'){
+    const w=d.pxWinner,iw=w===role;
+    const t=d.pxTime;
+    html+=`<div style="background:${iw?'rgba(16,185,129,.1)':'var(--s1)'};border:1.5px solid ${iw?'var(--green)':'var(--b1)'};border-radius:14px;padding:24px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px;width:100%">
+      <div style="font-size:48px">${w==='draw'?'🤝':iw?'🏆':'😢'}</div>
+      <div style="font-size:20px;font-weight:900;color:${w==='draw'?'var(--muted2)':iw?'var(--green)':'var(--red)'}">${w==='draw'?'Hòa!':iw?'Bạn nhanh hơn!':'Đối thủ nhanh hơn!'}</div>
+      ${t?`<div style="font-size:13px;color:var(--muted2)">Chênh lệch: ${t}ms</div>`:''}
+      ${role==='host'?`<button class="btn btn-p" onclick="pxNext()" style="max-width:200px">Ván tiếp →</button>`:`<div style="font-size:12px;color:var(--muted)">Chờ host...</div>`}
+    </div>`;
+  }
+  wrap.innerHTML=html;
+}
+window.pxStart=async function(){
+  if(!room||role!=='host')return;
+  await update(ref(db,`rooms/${room}`),{pxPhase:'ready',pxClicked:{},pxWinner:null,pxStartTime:null});
+  // Random delay 1.5-4s then go signal
+  if(pxTimer)clearTimeout(pxTimer);
+  pxTimer=setTimeout(async()=>{
+    const t=Date.now();
+    await update(ref(db,`rooms/${room}`),{pxPhase:'go',pxStartTime:t});
+  },1500+Math.random()*2500);
+};
+window.pxClick=async function(){
+  if(!room)return;const h=me();
+  const sn=await get(ref(db,`rooms/${room}`));const d=sn.val();
+  if(d.pxPhase!=='go'){showToast('⚠️ Quá sớm!');return}
+  if(d.pxClicked?.[h.id]){return}
+  const clickTime=Date.now()-((d.pxStartTime)||Date.now());
+  await update(ref(db,`rooms/${room}`),{[`pxClicked/${h.id}`]:clickTime});
+  const sn2=await get(ref(db,`rooms/${room}`));const d2=sn2.val();
+  const cl=d2.pxClicked||{};
+  if(cl[d2.hid]!=null&&cl[d2.gid]!=null){
+    const hT=cl[d2.hid],gT=cl[d2.gid];
+    const w=hT<gT?'host':gT<hT?'guest':'draw';
+    const diff=Math.abs(hT-gT);
+    const sc={...(d2.pxScore||{h:0,g:0})};
+    if(w==='host')sc.h=(sc.h||0)+1;else if(w==='guest')sc.g=(sc.g||0)+1;
+    await update(ref(db,`rooms/${room}`),{pxPhase:'result',pxWinner:w,pxScore:sc,pxTime:diff});
+  }
+};
+window.pxNext=async function(){
+  if(!room||role!=='host')return;
+  const sn=await get(ref(db,`rooms/${room}`));const d=sn.val();
+  await update(ref(db,`rooms/${room}`),{pxPhase:'waiting',pxClicked:{},pxWinner:null,pxRound:(d.pxRound||1)+1,pxStartTime:null});
+};
 
 // ── CHAT & UTILS ──
 function listenChat(id){if(cU){try{off(ref(db,`chats/${id}`))}catch(e){}cU=null}cU=onValue(ref(db,`chats/${id}`),snap=>{const msgs=snap.val()||{};const box=document.getElementById('cmsgs');const h=me();box.innerHTML=Object.values(msgs).sort((a,b)=>a.ts-b.ts).map(m=>{if(m.sys)return`<div class="csys">${m.txt}</div>`;const im=m.uid===h.id;return`<div class="cmsg${im?' me':''}"><div class="cmh"><span style="font-size:13px">${m.av||'😊'}</span><span class="cmn${im?' me':''}">${m.name}</span></div><div class="cmb">${esc(m.txt)}</div></div>`}).join('');box.scrollTop=box.scrollHeight})}
