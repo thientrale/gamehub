@@ -305,10 +305,11 @@
   <div id="room">
     <div class="garea" id="garea"></div>
     <div class="csidebar">
-      <div class="cheader"><span><span class="odot"></span>Chat</span><span id="ocnt" style="font-size:11px;color:var(--muted)">1</span></div>
+      <div class="cheader"><span><span class="odot"></span>Chat</span><span id="ocnt" style="font-size:11px;color:var(--muted)">1</span><button class="cclose" id="cclose">✕</button></div>
       <div class="cmsgs" id="cmsgs"></div>
-      <div class="cinrow"><input type="text" id="cinput" placeholder="Nhắn gì đó..." maxlength="120" onkeydown="if(event.key==='Enter')sendChat()"><button class="sbtn" onclick="sendChat()">➤</button></div>
+      <div class="cinrow"><button type="button" class="ebtn" id="cemo" title="Chọn emoji">😊</button><input type="text" id="cinput" placeholder="Nhắn gì đó..." maxlength="120" onkeydown="if(event.key==='Enter')sendChat()"><button class="sbtn" onclick="sendChat()">➤</button></div>
     </div>
+    <button class="chatfab" id="chatfab" title="Chat">💬<span class="chatbadge" id="chatbadge"></span></button>
   </div>
   <div class="ovl" id="ovl"><div class="modal"><div class="mem" id="mem">🏆</div><div class="mtitle" id="mtitle">Thắng!</div><div class="msub" id="msub"></div><button class="btn btn-p" onclick="closeModal()">Tiếp tục</button><button class="btn btn-g" style="margin-top:4px" onclick="leaveRoom()">🏠 Trang chủ</button></div></div>
 </div>
