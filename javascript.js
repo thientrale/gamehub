@@ -506,14 +506,15 @@ ARC = (() => {
     else h += `<div class="wait">⏳ Đang chờ chủ phòng bắt đầu…</div>`;
     h += `<button id="rm-leave">🚪 Rời phòng</button></div>`;
     // chat
-    h += `<div class="rcard"><div class="rh">💬 Chat</div><div class="chat" id="chat"></div><form class="cin" id="cform"><input id="cmsg" maxlength="120" placeholder="Nhắn gì đó…" autocomplete="off"><button class="blue">➤</button></form></div>`;
+    h += `<div class="rcard"><div class="rh">💬 Chat</div><div class="chat" id="chat"></div><form class="cin" id="cform"><button type="button" class="ebtn" id="cemo2" title="Chọn emoji">😊</button><input id="cmsg" maxlength="120" placeholder="Nhắn gì đó…" autocomplete="off"><button class="blue">➤</button></form></div>`;
     el.innerHTML = h;
     $('rm-copy').onclick = () => { try{ navigator.clipboard.writeText(link).then(()=>toast('✅ Đã copy link'), ()=>toast(link, 5000)); }catch(e){ toast(link,5000); } };
     $('rm-leave').onclick = () => leaveRoom();
     if($('rm-start')) $('rm-start').onclick = startGame;
     if($('rm-rejoin')) $('rm-rejoin').onclick = () => { const me=d.players[ME.id]; if(me.r!==d.round) return toast('Ván này đã bắt đầu trước khi bạn vào — chờ ván sau nhé'); if(REG[d.game].mp==='race'){ if(race) go(d.game); else beginRace(d); } else { if(!turn) beginTurn(d); else go(d.game); GAMES[d.game].mpApply(d.state||{}); } };
     el.querySelectorAll('.seg button[data-k]').forEach(b => b.onclick = () => setSetting(b.dataset.k, isNaN(+b.dataset.v)?b.dataset.v:+b.dataset.v));
-    $('cform').onsubmit = e => { e.preventDefault(); const m=$('cmsg').value.trim(); if(!m) return; $('cmsg').value=''; Net.push(P('rooms/'+code+'/chat'), { n:ME.n, a:ME.a, t:m, ts:Net.TS }); };
+    EmojiPicker.attach($('cmsg'), $('cemo2'));
+    $('cform').onsubmit = e => { e.preventDefault(); EmojiPicker.close(); const m=$('cmsg').value.trim(); if(!m) return; $('cmsg').value=''; Net.push(P('rooms/'+code+'/chat'), { n:ME.n, a:ME.a, t:m, ts:Net.TS }); };
     renderChat(lastChat);
   }
   let lastChat=null;
@@ -671,6 +672,88 @@ ARC = (() => {
     if(q) joinRoom(q); else if(saved) joinRoom(saved).catch(()=>{});
   };
   return api;
+})();
+
+/* ================= BỘ CHỌN EMOJI CHO CHAT ================= */
+const EmojiPicker = (() => {
+  const CATS = [
+    ['🕘','Gần đây',null],
+    ['😀','Mặt cười','😀 😃 😄 😁 😆 😅 🤣 😂 🙂 😉 😊 😇 🥰 😍 🤩 😘 😋 😛 😜 🤪 😝 🤑 🤗 🤭 🤫 🤔 😐 😑 😶 😏 😒 🙄 😬 😌 😔 😪 😴 😷 🤒 🥵 🥶 😵 🤯 🤠 🥳 😎 🤓 🧐 😕 😟 🙁 😮 😯 😲 😳 🥺 😦 😨 😰 😥 😢 😭 😱 😖 😣 😞 😓 😩 😫 🥱 😤 😡 😠 🤬 😈 👿 💀 🤡 👻 👽 🤖 💩'],
+    ['👍','Cử chỉ','👍 👎 👌 🤌 ✌️ 🤞 🤟 🤘 🤙 👈 👉 👆 👇 ☝️ ✋ 🤚 🖐️ 🖖 👋 👏 🙌 👐 🤲 🤝 🙏 ✍️ 💪 🦵 👀 🧠 🫡 🤷 🤦 🙇 💁 🙋 🙅 🙆'],
+    ['❤️','Tim','❤️ 🧡 💛 💚 💙 💜 🖤 🤍 🤎 💔 ❣️ 💕 💞 💓 💗 💖 💘 💝 💯 💢 💥 💫 💦 💨 🔥 ✨ ⭐ 🌟 ⚡'],
+    ['🎉','Chơi game','🎉 🎊 🏆 🥇 🥈 🥉 🏅 🎮 🎲 🃏 🀄 ♠️ ♥️ ♦️ ♣️ 🎯 🎰 🧩 ♟️ 💰 💸 💵 🪙 💎 👑 🚀 💣 🔔 📢 ⏰ ✅ ❌ ❓ ❗ 🆗 🆒 🆕 🔝'],
+    ['🍜','Ăn uống','🍜 🍲 🍛 🍣 🍱 🍙 🍚 🥟 🍤 🍗 🍖 🍕 🍔 🍟 🌭 🥪 🌮 🥗 🍿 🍩 🍪 🎂 🍰 🧁 🍦 🍫 🍬 🍉 🍓 🍒 🍑 🥭 🍍 🥥 🍌 ☕ 🧋 🍵 🥤 🍺 🍻 🥂'],
+    ['🐶','Con vật','🐶 🐱 🐭 🐹 🐰 🦊 🐻 🐼 🐨 🐯 🦁 🐮 🐷 🐸 🐵 🙈 🙉 🙊 🐔 🐧 🐦 🦆 🦉 🐺 🐗 🐴 🦄 🐝 🦋 🐌 🐞 🐢 🐍 🦖 🐙 🦀 🐠 🐬 🐳 🦈']
+  ];
+  let pop=null, target=null, cat=1;
+  const recent = () => store.get('emo_recent', []);
+  function build(){
+    pop=document.createElement('div'); pop.className='emo-pop'; document.body.appendChild(pop);
+    pop.addEventListener('pointerdown', e=>e.preventDefault());   // giữ con trỏ trong ô chat
+    pop.addEventListener('click', e=>{
+      const t=e.target.closest('button'); if(!t) return;
+      if(t.dataset.cat!=null){ cat=+t.dataset.cat; render(); return; }
+      if(t.dataset.e) insert(t.dataset.e);
+    });
+    document.addEventListener('pointerdown', e=>{ if(pop.classList.contains('on') && !pop.contains(e.target) && !e.target.closest('.ebtn')) close(); });
+    window.addEventListener('resize', close);
+  }
+  function render(){
+    const list = cat===0 ? recent() : CATS[cat][2].split(' ');
+    pop.innerHTML = '<div class="emo-tabs">'+CATS.map((c,i)=>`<button data-cat="${i}" class="${i===cat?'on':''}" title="${c[1]}">${c[0]}</button>`).join('')+'</div>'
+      + '<div class="emo-title">'+CATS[cat][1]+'</div>'
+      + '<div class="emo-grid">'+(list.length ? list.map(e=>`<button data-e="${e}">${e}</button>`).join('') : '<div class="emo-empty">Chưa dùng emoji nào</div>')+'</div>';
+  }
+  function place(btn){
+    const r=btn.getBoundingClientRect(), W=Math.min(310, window.innerWidth-16);
+    pop.style.width=W+'px';
+    pop.style.left=Math.max(8, Math.min(r.left, window.innerWidth-W-8))+'px';
+    if(r.top>290){ pop.style.top=''; pop.style.bottom=(window.innerHeight-r.top+8)+'px'; }
+    else { pop.style.bottom=''; pop.style.top=(r.bottom+8)+'px'; }
+  }
+  function open(input, btn){
+    if(!pop) build();
+    if(pop.classList.contains('on') && target===input){ close(); return; }
+    target=input; cat = recent().length ? 0 : 1; render(); place(btn); pop.classList.add('on');
+  }
+  function close(){ if(pop) pop.classList.remove('on'); }
+  function insert(e){
+    const i=target; if(!i) return;
+    const s = i.selectionStart==null ? i.value.length : i.selectionStart, en = i.selectionEnd==null ? s : i.selectionEnd;
+    if(i.maxLength>0 && (i.value.length - (en-s) + e.length) > i.maxLength) return toast('Tin nhắn dài quá rồi');
+    i.value = i.value.slice(0,s) + e + i.value.slice(en);
+    const pos = s + e.length;
+    try{ i.setSelectionRange(pos,pos); }catch(_){}
+    if(!matchMedia('(pointer:coarse)').matches) i.focus({ preventScroll:true });   // điện thoại: không bật bàn phím
+    store.set('emo_recent', [e, ...recent().filter(x=>x!==e)].slice(0,32));
+  }
+  function attach(input, btn){ if(!input || !btn) return; btn.onclick = ev => { ev.preventDefault(); open(input, btn); }; }
+  return { attach, close };
+})();
+
+/* chat của 13 game GameHub cũ: nút emoji + mở chat trên điện thoại */
+(function legacyChat(){
+  const gh=document.getElementById('ghx'), input=document.getElementById('cinput'), msgs=document.getElementById('cmsgs');
+  if(!gh || !input) return;
+  EmojiPicker.attach(input, document.getElementById('cemo'));
+  input.addEventListener('keydown', e=>{ if(e.key==='Enter') EmojiPicker.close(); });
+  const send=gh.querySelector('.sbtn'); if(send) send.addEventListener('click', ()=>EmojiPicker.close());
+  const fab=document.getElementById('chatfab'), badge=document.getElementById('chatbadge');
+  // khung chat cũ vẽ lại toàn bộ mỗi lần có tin → đếm số tin của người khác so với lần xem gần nhất
+  let seen=0, unread=0, settleUntil=0;
+  const others = () => msgs.querySelectorAll('.cmsg:not(.me)').length;
+  const setBadge = () => { badge.textContent = unread>9 ? '9+' : unread; badge.style.display = unread ? '' : 'none'; };
+  const toggle = on => { gh.classList.toggle('chat-open', on); if(on){ seen=others(); unread=0; setBadge(); msgs.scrollTop=msgs.scrollHeight; } else EmojiPicker.close(); };
+  fab.onclick = () => toggle(!gh.classList.contains('chat-open'));
+  document.getElementById('cclose').onclick = () => toggle(false);
+  new MutationObserver(() => {
+    const n=others();
+    if(gh.classList.contains('chat-open') || Date.now()<settleUntil || n<seen){ seen=n; unread=0; }   // đang mở / vừa vào phòng (tải lịch sử) / đổi phòng
+    else unread=n-seen;
+    setBadge();
+  }).observe(msgs, { childList:true });
+  window.addEventListener('hashchange', () => { if(location.hash==='#gh') settleUntil=Date.now()+1500; else { toggle(false); seen=0; unread=0; setBadge(); } });
+  setBadge();
 })();
 
 /* ================= ROUTER ================= */
