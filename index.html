@@ -110,6 +110,18 @@ input[type=text]:focus{border-color:var(--purple)}input[type=text]::placeholder{
   .gname{font-size:13px}.gdesc{font-size:10px}
 }
 </style>
+<script>
+// Global error handler for iOS Safari debugging
+window.addEventListener('error',function(e){
+  var ga=document.getElementById('garea');
+  if(ga&&ga.children.length===0){
+    ga.innerHTML='<div style="padding:16px;color:#ef4444;font-size:12px;background:rgba(239,68,68,.1);border-radius:12px;margin:12px;word-break:break-all"><b>⚠️ JS Error:</b><br>'+(e.message||'unknown')+'<br><small>'+(e.filename||'')+'<br>L'+(e.lineno||0)+'</small></div>';
+  }
+});
+window.addEventListener('unhandledrejection',function(e){
+  console.error('unhandled rejection',e.reason);
+});
+</script>
 </head>
 <body>
 <div id="setup">
@@ -333,7 +345,7 @@ function listen2(id,game){
     if(!snap.exists()){leaveLocal();return}
     const d=snap.val();liveD=d;
     const fn={caro:renderCaro,taixiu:renderTX,xidach:renderXD,cotuong:renderCT,baucua:renderBC,oantuti:renderOT,speedmath:renderSM,guessnumber:renderGN,tienlen:renderTL,poker:renderPK,chanle:renderCL,xucxac:renderXX,phanxa:renderPX};
-    if(fn[game])fn[game](d,id);
+    try{if(fn[game])fn[game](d,id);}catch(e){document.getElementById('garea').innerHTML='<div style="padding:20px;color:#ef4444;font-size:13px;background:rgba(239,68,68,.1);border-radius:12px;margin:16px;word-break:break-all"><b>⚠️ Lỗi render:</b><br>'+String(e)+'<br><br><small>'+((e&&e.stack)||'').slice(0,300)+'</small></div>';console.error('renderErr',e);}
     document.getElementById('ocnt').textContent=(d.gid?2:1)+' online';
     if(d.isAI&&role==='host')aiReact(d,id,game);
     // Poker: host advances game when pkNeedAdvance is set (by guest's action)
@@ -1873,6 +1885,35 @@ const pkHandName=[
 
 // mkCard defined globally above
 
+function pkActionHTML(isMe,isTurn,p,d,bb,toCall){
+  if(!isMe||!isTurn||p.folded||p.allin)return'';
+  const minRaise=Math.max((d.pkBet||bb)*2,bb*2);
+  const maxRaise=(p.bet||0)+(p.chips||0);
+  if(pkRaiseMode){
+    const amt=pkRaiseAmt||minRaise;
+    return'<div style="background:rgba(245,158,11,.1);border:1.5px solid rgba(245,158,11,.5);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px">'
+      +'<div style="font-size:12px;color:#fbbf24;font-weight:700;text-align:center">⬆️ Chọn mức Raise</div>'
+      +'<div style="display:flex;align-items:center;gap:8px">'
+      +'<span style="font-size:12px;color:var(--muted2)">'+minRaise+'</span>'
+      +'<input type="range" id="pkRangeIn" min="'+minRaise+'" max="'+maxRaise+'" step="'+bb+'" value="'+amt+'" oninput="pkSetRaise(this.value)" style="flex:1;accent-color:#f59e0b">'
+      +'<span style="font-size:12px;color:var(--muted2)">'+maxRaise+'</span>'
+      +'</div>'
+      +'<div style="font-size:18px;font-weight:900;color:#fbbf24;text-align:center">'+amt+' 🪙</div>'
+      +'<div style="display:flex;gap:8px">'
+      +'<button onclick="pkCancelRaise()" style="flex:1;padding:10px;border-radius:10px;background:rgba(100,100,100,.5);color:#fff;font-size:13px;font-weight:800;border:none;cursor:pointer;font-family:inherit">✕ Huỷ</button>'
+      +'<button onclick="pkConfirmRaise()" style="flex:2;padding:10px;border-radius:10px;background:rgba(245,158,11,.9);color:#000;font-size:13px;font-weight:800;border:none;cursor:pointer;font-family:inherit">✅ Xác nhận '+amt+' 🪙</button>'
+      +'</div>'
+      +'</div>';
+  }
+  let html='<div style="display:flex;gap:6px;flex-wrap:wrap">'
+    +'<button onclick="pkFold2()" style="flex:1;min-width:56px;padding:10px 4px;border-radius:10px;background:rgba(239,68,68,.8);color:#fff;font-size:12px;font-weight:800;border:none;cursor:pointer;font-family:inherit">🚫 Fold</button>';
+  if(toCall===0)html+='<button onclick="pkCheck2()" style="flex:1;min-width:56px;padding:10px 4px;border-radius:10px;background:rgba(16,185,129,.8);color:#fff;font-size:12px;font-weight:800;border:none;cursor:pointer;font-family:inherit">✋ Check</button>';
+  if(toCall>0)html+='<button onclick="pkCall2()" style="flex:1;min-width:64px;padding:10px 4px;border-radius:10px;background:rgba(139,92,246,.9);color:#fff;font-size:12px;font-weight:800;border:none;cursor:pointer;font-family:inherit">📞 Call<br><small style="font-weight:400">'+Math.min(toCall,p.chips||0)+'</small></button>';
+  if((p.chips||0)>toCall)html+='<button onclick="pkOpenRaise('+minRaise+')" style="flex:1;min-width:56px;padding:10px 4px;border-radius:10px;background:rgba(245,158,11,.9);color:#000;font-size:12px;font-weight:800;border:none;cursor:pointer;font-family:inherit">⬆️ Raise</button>';
+  html+='<button onclick="pkAllIn2()" style="flex:1;min-width:56px;padding:10px 4px;border-radius:10px;background:rgba(220,38,38,.95);color:#fff;font-size:12px;font-weight:800;border:none;cursor:pointer;font-family:inherit">💥 All-in<br><small style="font-weight:400">'+(p.chips||0)+'</small></button>';
+  html+='</div>';
+  return html;
+}
 function renderPK(d,id){
   const h=me();
   const players=d.pkPlayers||{},pids=Object.keys(players),myP=players[h.id];
@@ -1955,31 +1996,7 @@ function renderPK(d,id){
         ${cards.map(card=>showH?mkCard(card):`<div class="card-el card-back" style="display:flex;align-items:center;justify-content:center;font-size:22px;color:rgba(255,255,255,.2)">🂠</div>`).join('')}
         ${cards.length===0&&!p.folded?'<span style="font-size:12px;color:var(--muted)">Chờ phát bài...</span>':''}
       </div>
-      ${isMe&&isTurn&&!p.folded&&!p.allin?`
-        ${pkRaiseMode?`
-          <div style="background:rgba(245,158,11,.1);border:1.5px solid rgba(245,158,11,.5);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px">
-            <div style="font-size:12px;color:#fbbf24;font-weight:700;text-align:center">⬆️ Chọn mức Raise</div>
-            <div style="display:flex;align-items:center;gap:8px">
-              <span style="font-size:12px;color:var(--muted2)">${Math.max((d.pkBet||bb)*2,bb*2)}</span>
-              <input type="range" id="pkRangeIn" min="${Math.max((d.pkBet||bb)*2,bb*2)}" max="${(p.bet||0)+(p.chips||0)}" step="${bb}" value="${pkRaiseAmt||Math.max((d.pkBet||bb)*2,bb*2)}" oninput="pkSetRaise(this.value)" style="flex:1;accent-color:#f59e0b">
-              <span style="font-size:12px;color:var(--muted2)">${(p.bet||0)+(p.chips||0)}</span>
-            </div>
-            <div style="font-size:18px;font-weight:900;color:#fbbf24;text-align:center">${pkRaiseAmt||Math.max((d.pkBet||bb)*2,bb*2)} 🪙</div>
-            <div style="display:flex;gap:8px">
-              <button onclick="pkCancelRaise()" style="flex:1;padding:10px;border-radius:10px;background:rgba(100,100,100,.5);color:#fff;font-size:13px;font-weight:800;border:none;cursor:pointer;font-family:inherit">✕ Huỷ</button>
-              <button onclick="pkConfirmRaise()" style="flex:2;padding:10px;border-radius:10px;background:rgba(245,158,11,.9);color:#000;font-size:13px;font-weight:800;border:none;cursor:pointer;font-family:inherit">✅ Xác nhận Raise ${pkRaiseAmt||Math.max((d.pkBet||bb)*2,bb*2)} 🪙</button>
-            </div>
-          </div>
-        `:`
-          <div style="display:flex;gap:6px;flex-wrap:wrap">
-            <button onclick="pkFold2()" style="flex:1;min-width:56px;padding:10px 4px;border-radius:10px;background:rgba(239,68,68,.8);color:#fff;font-size:12px;font-weight:800;border:none;cursor:pointer;font-family:inherit">🚫 Fold</button>
-            ${toCall===0?`<button onclick="pkCheck2()" style="flex:1;min-width:56px;padding:10px 4px;border-radius:10px;background:rgba(16,185,129,.8);color:#fff;font-size:12px;font-weight:800;border:none;cursor:pointer;font-family:inherit">✋ Check</button>`:''}
-            ${toCall>0?`<button onclick="pkCall2()" style="flex:1;min-width:64px;padding:10px 4px;border-radius:10px;background:rgba(139,92,246,.9);color:#fff;font-size:12px;font-weight:800;border:none;cursor:pointer;font-family:inherit">📞 Call<br><small style="font-weight:400">${Math.min(toCall,p.chips)}</small></button>`:''}
-            ${(p.chips||0)>toCall?`<button onclick="pkOpenRaise(${Math.max((d.pkBet||bb)*2,bb*2)})" style="flex:1;min-width:56px;padding:10px 4px;border-radius:10px;background:rgba(245,158,11,.9);color:#000;font-size:12px;font-weight:800;border:none;cursor:pointer;font-family:inherit">⬆️ Raise</button>`:''}
-            <button onclick="pkAllIn2()" style="flex:1;min-width:56px;padding:10px 4px;border-radius:10px;background:rgba(220,38,38,.95);color:#fff;font-size:12px;font-weight:800;border:none;cursor:pointer;font-family:inherit">💥 All-in<br><small style="font-weight:400">${p.chips}</small></button>
-          </div>
-        `}
-      `:''}
+      ${pkActionHTML(isMe,isTurn,p,d,bb,toCall)}
     </div>`;
   });
 
