@@ -292,3 +292,17 @@ body.mp #arc .view .vhead .ghost, body.mp #arc .view:not(#view-room) .seg, body.
 #arc .avc.on{border-color:#fff}
 #arc .setup .row2 input{min-width:0;font-size:16px}
 #arc .pa{display:inline-flex;width:30px;height:30px;border-radius:50%;align-items:center;justify-content:center;font-size:18px}
+
+/* ---------- bộ chọn emoji cho chat (gắn vào body, dùng chung) ---------- */
+#arc .ebtn{flex-shrink:0;width:40px;padding:0;font-size:20px;background:#0f172a;border:2px solid #475569;box-shadow:none;border-radius:12px}
+.emo-pop{position:fixed;z-index:800;background:#1e1b2e;border:1.5px solid #8b5cf6;border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.6);display:none;flex-direction:column;overflow:hidden;font-family:'Inter','Baloo 2',sans-serif;color:#fff}
+.emo-pop.on{display:flex;animation:emoUp .15s ease-out}
+.emo-tabs{display:flex;border-bottom:1px solid rgba(255,255,255,.1)}
+.emo-tabs button{flex:1;background:none;border:none;font-size:18px;padding:8px 0;cursor:pointer;border-bottom:2px solid transparent;opacity:.6}
+.emo-tabs button.on{opacity:1;border-bottom-color:#ec4899;background:rgba(236,72,153,.08)}
+.emo-title{font-size:11px;font-weight:700;color:#94a3b8;padding:6px 10px 0;text-transform:uppercase;letter-spacing:.5px}
+.emo-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:2px;padding:6px 8px 10px;max-height:210px;overflow-y:auto}
+.emo-grid button{font-size:22px;background:none;border:none;border-radius:8px;padding:4px 0;cursor:pointer;line-height:1.25}
+.emo-grid button:hover,.emo-grid button:active{background:rgba(139,92,246,.3)}
+.emo-empty{grid-column:1/-1;color:#94a3b8;font-size:13px;text-align:center;padding:18px}
+@keyframes emoUp{from{transform:translateY(8px);opacity:0}}
