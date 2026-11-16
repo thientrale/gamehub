@@ -3605,7 +3605,7 @@ TG.cangua = {
   }
 };
 
-/* ---------- 🪨 Ô ĂN QUAN ---------- */
+/* ---------- 🔘 Ô ĂN QUAN ---------- */
 // 12 ô theo vòng: 0 = quan trái, 1..5 = dân của người 1, 6 = quan phải, 7..11 = dân của người 2
 const OQ = {
   mine: (i,k) => i===0 ? k>=1&&k<=5 : k>=7&&k<=11,
@@ -3748,7 +3748,7 @@ const REG = {
   'othello':    { n:'Cờ Lật',       i:'⚫', mp:'table', min:2, max:2, bots:1, set:[{k:'level',n:'Máy',opts:[[1,'Dễ'],[2,'Vừa'],[3,'Khó']],def:2},{k:'target',n:'Thắng khi đủ',opts:[[1,'1 ván'],[2,'2 ván'],[3,'3 ván']],def:2},TMR] },
   'bantau':     { n:'Bắn Tàu',      i:'🚢', mp:'table', min:2, max:2, bots:1, set:[{k:'size',n:'Bàn',opts:[[8,'8×8 (nhanh)'],[10,'10×10']],def:10},{k:'again',n:'Trúng được bắn tiếp',opts:[[1,'Có'],[0,'Không']],def:1},{k:'target',n:'Thắng khi đủ',opts:[[1,'1 ván'],[2,'2 ván'],[3,'3 ván']],def:1},TMR] },
   'cangua':     { n:'Cá Ngựa',      i:'🐴', mp:'table', min:2, max:4, bots:3, set:[{k:'tmr',n:'Mỗi lượt',opts:[[15,'15 giây'],[20,'20 giây'],[0,'Không giới hạn']],def:20}] },
-  'oanquan':    { n:'Ô Ăn Quan',    i:'🪨', mp:'table', min:2, max:2, bots:1, set:[{k:'level',n:'Máy',opts:[[1,'Dễ'],[2,'Vừa'],[3,'Khó']],def:2},TMR] },
+  'oanquan':    { n:'Ô Ăn Quan',    i:'🔘', mp:'table', min:2, max:2, bots:1, set:[{k:'level',n:'Máy',opts:[[1,'Dễ'],[2,'Vừa'],[3,'Khó']],def:2},TMR] },
   'tienlen':    { n:'Tiến Lên',     i:'🏹', mp:'table', min:2, max:4, bots:3, set:[{k:'rounds',n:'Số ván',opts:[[3,'3'],[5,'5'],[10,'10']],def:5},{k:'tmr',n:'Mỗi lượt',opts:[[15,'15 giây'],[25,'25 giây'],[40,'40 giây']],def:25}] },
 };
 /* Bảng xếp hạng: [mã bảng, tên, chiều (max/min), định dạng (n điểm, t thời gian, lv màn, mv lượt)] */
@@ -4298,6 +4298,7 @@ ARC = (() => {
 
   /* ---------- bảng chọn chế độ cho từng game ---------- */
   function openGame(key){
+    if(!REG[key]){ toast('⚠️ Trang đang dùng bản cũ — bấm Ctrl+F5 (hoặc kéo xuống để tải lại) rồi thử lại', 4500); return; }
     const R=REG[key], sh=$('gsheet');
     const mpTxt = R.mp==='race' ? `Đua 1–${R.max} người, cùng một đề` : R.mp==='table' ? `${R.min===R.max?R.max:'Tối đa '+R.max} người, mời bạn bằng mã phòng` : `Đối kháng ${R.min===R.max?R.min:R.min+'–'+R.max} người`;
     sh.innerHTML = `<div class="sheet"><div class="sh-h"><span class="sh-i">${R.i}</span><b>${escH(R.n)}</b><button class="ghost" id="gs-x">✕</button></div>
