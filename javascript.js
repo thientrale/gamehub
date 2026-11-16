@@ -2103,6 +2103,121 @@ const SIMON = (() => {
 })();
 
 
+
+/* ================= BẮN MÁY BAY ================= */
+const SHOOTER = (() => {
+  const $=id=>document.getElementById(id), cv=$('sh-c'), ctx=cv.getContext('2d'), ov=mkOverlay('sh-ov');
+  const W=360, H=540;
+  let sc=1, dpr=1, P, bul, ebul, foes, parts, pups, stars, score, lives, power, t, spawnT, bossT, boss, best=store.get('sh_best',0), state='ready', active=false, running=false, last=0, keys={}, fireT=0, drag=null, flash=0;
+  function reset(){
+    P={x:W/2,y:H-80,inv:0}; bul=[]; ebul=[]; foes=[]; parts=[]; pups=[]; score=0; lives=3; power=1; t=0; spawnT=1; bossT=55; boss=null; flash=0;
+    stars=[...Array(50)].map(()=>({x:Math.random()*W,y:Math.random()*H,v:30+Math.random()*90,s:Math.random()*1.6+.4}));
+    state='ready'; ov.hide(); hud();
+  }
+  function hud(){ $('sh-score').textContent=score; $('sh-lives').textContent='❤'.repeat(Math.max(0,lives))||'—'; $('sh-best').textContent=best; $('sh-lv').textContent=1+Math.floor(t/30); }
+  function boom(x,y,c,n){ for(let k=0;k<n;k++){ const a=Math.random()*7, v=40+Math.random()*180; parts.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,l:.4+Math.random()*.5,c}); } }
+  function addScore(v){ score+=v; if(ARC) ARC.prog('shooter', score); hud(); }
+  function spawn(){
+    const lv=1+Math.floor(t/30), r=Math.random();
+    if(r<.12+lv*.02 && t>20) foes.push({k:'c',x:40+Math.random()*(W-80),y:-40,vx:0,vy:45,hp:8+lv*2,mx:8+lv*2,r:26,ft:1.2,pts:500});
+    else if(r<.45) { const x=30+Math.random()*(W-60); foes.push({k:'b',x,y:-20,ox:x,vy:85+lv*6,hp:2,mx:2,r:15,ft:.8+Math.random(),ph:Math.random()*6,pts:150}); }
+    else { const x=20+Math.random()*(W-40), n=Math.random()<.4?3:1; for(let k=0;k<n;k++) foes.push({k:'a',x:Math.max(18,Math.min(W-18,x+(k-1)*34)),y:-20-k*26,vy:120+lv*10,hp:1,mx:1,r:13,pts:100}); }
+  }
+  function hitPlayer(){
+    if(P.inv>0 || state!=='play') return; lives--; power=Math.max(1,power-1); P.inv=2.2; flash=.25; boom(P.x,P.y,'#f97316',26); beep(160,.3,'sawtooth',.12); hud();
+    if(lives<=0) over();
+  }
+  function over(){
+    state='dead'; boom(P.x,P.y,'#facc15',60);
+    if(ARC) ARC.done('shooter', {vk:'shooter', v:score});
+    const nb=score>best; if(nb){ best=score; store.set('sh_best',best); } hud();
+    setTimeout(()=>ov.show(score>=20000?'🏆':score>=8000?'🥇':score>=3000?'🥈':'✈️','Điểm: '+score.toLocaleString('vi-VN'), nb?'Kỷ lục mới!':'Kỷ lục: '+best.toLocaleString('vi-VN'),[{label:'↻ Bay lại',cls:'primary',fn:reset}]), 700);
+  }
+  function update(dt){
+    for(const s of stars){ s.y+=s.v*dt*(state==='play'?1:.4); if(s.y>H){ s.y=0; s.x=Math.random()*W; } }
+    parts.forEach(p=>{ p.x+=p.vx*dt; p.y+=p.vy*dt; p.l-=dt; }); parts=parts.filter(p=>p.l>0);
+    flash=Math.max(0,flash-dt);
+    if(state!=='play') return;
+    t+=dt; P.inv=Math.max(0,P.inv-dt);
+    // điều khiển bàn phím
+    const sp=280; let dx=(keys.ArrowRight||keys.d?1:0)-(keys.ArrowLeft||keys.a?1:0), dy=(keys.ArrowDown||keys.s?1:0)-(keys.ArrowUp||keys.w?1:0);
+    P.x+=dx*sp*dt; P.y+=dy*sp*dt; P.x=Math.max(18,Math.min(W-18,P.x)); P.y=Math.max(H*.35,Math.min(H-28,P.y));
+    // bắn tự động
+    fireT-=dt; if(fireT<=0){ fireT=.16;
+      const sh=[[0,-520]]; if(power>=2){ sh.length=0; sh.push([-6,-520],[6,-520]); } if(power>=3) sh.push([-150,-490],[150,-490]); if(power>=4) sh.push([-70,-510],[70,-510]);
+      sh.forEach(([vx,vy],k)=>bul.push({x:P.x+(power>=2&&k<2?(k?7:-7):0),y:P.y-20,vx,vy})); }
+    bul.forEach(b=>{ b.x+=b.vx*dt; b.y+=b.vy*dt; }); bul=bul.filter(b=>b.y>-10&&b.x>-10&&b.x<W+10);
+    ebul.forEach(b=>{ b.x+=b.vx*dt; b.y+=b.vy*dt; }); ebul=ebul.filter(b=>b.y<H+10&&b.y>-10&&b.x>-10&&b.x<W+10);
+    // sinh địch
+    if(!boss){ spawnT-=dt; if(spawnT<=0){ spawnT=Math.max(.35, 1.1-t/120); spawn(); }
+      bossT-=dt; if(bossT<=0){ const lv=1+Math.floor(t/30); boss={k:'boss',x:W/2,y:-70,vx:70,vy:40,hp:70+lv*30,mx:70+lv*30,r:46,ft:1,pts:3000+lv*500}; foes.push(boss); beep(110,.6,'square',.08); } }
+    const aim=(f,spd,spread)=>{ const a=Math.atan2(P.y-f.y,P.x-f.x); (spread||[0]).forEach(o=>ebul.push({x:f.x,y:f.y+f.r*.6,vx:Math.cos(a+o)*spd,vy:Math.sin(a+o)*spd})); };
+    for(const f of foes){
+      if(f.k==='b'){ f.ph+=dt*3; f.x=f.ox+Math.sin(f.ph)*50; }
+      if(f.k==='boss'){ if(f.y<90) f.y+=f.vy*dt; f.x+=f.vx*dt; if(f.x<60||f.x>W-60) f.vx*=-1; }
+      else f.y+=f.vy*dt*(f.k==='c'&&f.y>120?.25:1);
+      if(f.ft!=null){ f.ft-=dt; if(f.ft<=0){
+        if(f.k==='b'){ f.ft=1.6+Math.random(); aim(f,190); }
+        else if(f.k==='c'){ f.ft=1.4; aim(f,170,[-.25,0,.25]); }
+        else { f.ft=f.hp<f.mx/2?.55:.9; if(Math.random()<.5) aim(f,200,[-.35,-.12,.12,.35]); else for(let k=0;k<10;k++){ const a=k/10*Math.PI*2+t; ebul.push({x:f.x,y:f.y,vx:Math.cos(a)*140,vy:Math.sin(a)*140+40}); } } } }
+      for(const b of bul){ if(b.hit) continue; if(Math.hypot(b.x-f.x,b.y-f.y)<f.r+4){ b.hit=1; f.hp--; boom(b.x,b.y,'#fde68a',3);
+        if(f.hp<=0 && !f.dead){ f.dead=1; addScore(f.pts); boom(f.x,f.y,f.k==='boss'?'#f43f5e':'#fb923c',f.k==='boss'?90:f.k==='c'?40:18); beep(f.k==='boss'?90:300,.2,'square',.07);
+          if(f.k==='boss'){ boss=null; bossT=60; ebul=[]; pups.push({x:f.x,y:f.y,k:'L'},{x:f.x+30,y:f.y,k:'P'}); }
+          else if(Math.random()<(f.k==='c'?.7:.06)) pups.push({x:f.x,y:f.y,k:Math.random()<.2?'L':Math.random()<.5?'S':'P'}); } } }
+      if(!f.dead && Math.hypot(f.x-P.x,f.y-P.y)<f.r+12){ if(f.k!=='boss'){ f.dead=1; boom(f.x,f.y,'#fb923c',18); } hitPlayer(); }
+    }
+    bul=bul.filter(b=>!b.hit);
+    foes=foes.filter(f=>!f.dead && f.y<H+60);
+    if(boss && !foes.includes(boss)) boss=null;
+    for(const b of ebul){ if(Math.hypot(b.x-P.x,b.y-P.y)<9){ b.y=H+99; hitPlayer(); } }
+    pups.forEach(p=>{ p.y+=90*dt; if(Math.hypot(p.x-P.x,p.y-P.y)<24){ p.y=H+99; beep(880,.1,'triangle',.1);
+      if(p.k==='P'){ if(power<4) power++; else addScore(500); } else if(p.k==='L'){ if(lives<5) lives++; else addScore(1000); hud(); } else { P.inv=Math.max(P.inv,5); } } });
+    pups=pups.filter(p=>p.y<H+20);
+    if(Math.floor(t)!==Math.floor(t-dt)) hud();
+  }
+  function plane(x,y,s,col,dir){ ctx.save(); ctx.translate(x,y); ctx.scale(s,s*dir); ctx.fillStyle=col;
+    ctx.beginPath(); ctx.moveTo(0,-20); ctx.lineTo(5,-6); ctx.lineTo(20,4); ctx.lineTo(20,9); ctx.lineTo(5,5); ctx.lineTo(4,14); ctx.lineTo(10,19); ctx.lineTo(-10,19); ctx.lineTo(-4,14); ctx.lineTo(-5,5); ctx.lineTo(-20,9); ctx.lineTo(-20,4); ctx.lineTo(-5,-6); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,.75)'; ctx.beginPath(); ctx.ellipse(0,-6,2.6,6,0,0,7); ctx.fill(); ctx.restore(); }
+  function draw(){
+    ctx.setTransform(sc*dpr,0,0,sc*dpr,0,0);
+    const g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,'#020617'); g.addColorStop(1,'#1e1b4b'); ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#fff'; for(const s of stars){ ctx.globalAlpha=.3+s.s/3; ctx.fillRect(s.x,s.y,s.s,s.s*2); } ctx.globalAlpha=1;
+    for(const p of pups){ ctx.fillStyle=p.k==='P'?'#22c55e':p.k==='L'?'#ef4444':'#38bdf8'; ctx.beginPath(); ctx.arc(p.x,p.y,11,0,7); ctx.fill(); ctx.fillStyle='#fff'; ctx.font='800 13px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(p.k==='P'?'P':p.k==='L'?'♥':'S',p.x,p.y+1); }
+    for(const f of foes){
+      if(f.k==='a') plane(f.x,f.y,.75,'#f87171',-1);
+      else if(f.k==='b') plane(f.x,f.y,.85,'#fb923c',-1);
+      else if(f.k==='c') plane(f.x,f.y,1.45,'#a855f7',-1);
+      else { plane(f.x,f.y,2.6,'#e11d48',-1); ctx.fillStyle='#fde047'; ctx.beginPath(); ctx.arc(f.x,f.y+4,9,0,7); ctx.fill(); }
+      if(f.mx>2){ ctx.fillStyle='rgba(0,0,0,.5)'; ctx.fillRect(f.x-f.r,f.y-f.r-10,f.r*2,4); ctx.fillStyle='#4ade80'; ctx.fillRect(f.x-f.r,f.y-f.r-10,f.r*2*f.hp/f.mx,4); }
+    }
+    ctx.fillStyle='#fde047'; for(const b of bul) ctx.fillRect(b.x-1.5,b.y-7,3,12);
+    ctx.fillStyle='#f472b6'; for(const b of ebul){ ctx.beginPath(); ctx.arc(b.x,b.y,4,0,7); ctx.fill(); }
+    for(const p of parts){ ctx.globalAlpha=Math.max(0,p.l*2); ctx.fillStyle=p.c; ctx.fillRect(p.x-2,p.y-2,4,4); } ctx.globalAlpha=1;
+    if(state!=='dead' && !(P.inv>0 && Math.floor(P.inv*10)%2)){
+      ctx.fillStyle='rgba(56,189,248,.5)'; ctx.beginPath(); ctx.ellipse(P.x,P.y+22,4,6+Math.random()*5,0,0,7); ctx.fill();
+      plane(P.x,P.y,1.15,'#38bdf8',1);
+      if(P.inv>2.3){ ctx.strokeStyle='rgba(56,189,248,.7)'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(P.x,P.y,28,0,7); ctx.stroke(); } }
+    if(boss){ ctx.fillStyle='#fff'; ctx.font='800 13px "Baloo 2",sans-serif'; ctx.textAlign='center'; ctx.fillText('⚠ TRÙM ⚠',W/2,22); }
+    if(flash){ ctx.fillStyle=`rgba(239,68,68,${flash})`; ctx.fillRect(0,0,W,H); }
+    if(state==='ready'){ ctx.textAlign='center'; ctx.fillStyle='#fff'; ctx.font='800 26px "Baloo 2",sans-serif'; ctx.fillText('Chạm để cất cánh!',W/2,H/2-30); ctx.font='600 14px "Baloo 2",sans-serif'; ctx.fillStyle='#cbd5e1'; ctx.fillText('Kéo ngón tay để lái — máy bay tự bắn',W/2,H/2); }
+  }
+  function frame(now){ if(!active){ running=false; return; } const dt=Math.min(.033,(now-last)/1000); last=now; update(dt); draw(); requestAnimationFrame(frame); }
+  const pt=e=>{ const r=cv.getBoundingClientRect(); return { x:(e.clientX-r.left)/r.width*W, y:(e.clientY-r.top)/r.height*H }; };
+  cv.addEventListener('pointerdown', e=>{ e.preventDefault(); if(ov.on) return; if(state==='ready') state='play'; const p=pt(e); drag={x:p.x,y:p.y,px:P.x,py:P.y}; cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener('pointermove', e=>{ if(!drag || state!=='play') return; const p=pt(e); P.x=Math.max(18,Math.min(W-18,drag.px+(p.x-drag.x)*1.3)); P.y=Math.max(H*.35,Math.min(H-28,drag.py+(p.y-drag.y)*1.3)); });
+  cv.addEventListener('pointerup', ()=>drag=null); cv.addEventListener('pointercancel', ()=>drag=null);
+  document.addEventListener('keydown', e=>{ if(current!=='shooter') return; if(e.key.startsWith('Arrow')||'wasd '.includes(e.key)) e.preventDefault(); keys[e.key]=true; if(state==='ready') state='play'; if(e.key===' ' && state==='dead' && ov.on) reset(); });
+  document.addEventListener('keyup', e=>{ keys[e.key]=false; });
+  window.addEventListener('resize', ()=>{ if(active) ({sc,dpr}=fitCanvas(cv,W,H,250)); });
+  reset();
+  return {
+    race(){ reset(); },
+    activate(){ active=true; ({sc,dpr}=fitCanvas(cv,W,H,250)); last=performance.now(); if(!running){ running=true; requestAnimationFrame(frame); } },
+    deactivate(){ active=false; keys={}; if(state==='play'){ state='ready'; } },
+    summary(){ return best ? 'Kỷ lục '+best.toLocaleString('vi-VN') : 'Chưa chơi'; }
+  };
+})();
+
 /* =====================================================================
    13 GAME BÀN CHƠI NHIỀU NGƯỜI — mỗi game là một module TG[key]
      init(P, set, rng, now)        → trạng thái ban đầu (P = danh sách ghế)
@@ -3213,6 +3328,361 @@ TG.cotuong = {
 };
 
 
+/* ---------- ⚫ CỜ LẬT (Othello / Reversi) ---------- */
+const OT = {
+  D: [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]],
+  // trọng số ô: góc rất quý, ô sát góc nguy hiểm
+  W: [100,-20,10,5,5,10,-20,100, -20,-50,-2,-2,-2,-2,-50,-20, 10,-2,1,1,1,1,-2,10, 5,-2,1,0,0,1,-2,5,
+      5,-2,1,0,0,1,-2,5, 10,-2,1,1,1,1,-2,10, -20,-50,-2,-2,-2,-2,-50,-20, 100,-20,10,5,5,10,-20,100],
+  START: '.'.repeat(27)+'ox......xo'+'.'.repeat(27),
+  flips(b, k, p){ if(b[k]!=='.') return []; const o=p==='x'?'o':'x', r=Math.floor(k/8), c=k%8, out=[];
+    for(const [dr,dc] of OT.D){ const line=[]; let rr=r+dr, cc=c+dc;
+      while(rr>=0&&rr<8&&cc>=0&&cc<8 && b[rr*8+cc]===o){ line.push(rr*8+cc); rr+=dr; cc+=dc; }
+      if(line.length && rr>=0&&rr<8&&cc>=0&&cc<8 && b[rr*8+cc]===p) out.push(...line); }
+    return out; },
+  moves(b, p){ const m=[]; for(let k=0;k<64;k++) if(b[k]==='.' && OT.flips(b,k,p).length) m.push(k); return m; },
+  play(b, k, p){ const a=b.split(''); a[k]=p; OT.flips(b,k,p).forEach(x=>a[x]=p); return a.join(''); },
+  count: (b, p) => b.split('').filter(x=>x===p).length,
+  eval(b, p){ const o=p==='x'?'o':'x'; let v=0; for(let k=0;k<64;k++){ if(b[k]===p) v+=OT.W[k]; else if(b[k]===o) v-=OT.W[k]; }
+    return v + 5*(OT.moves(b,p).length-OT.moves(b,o).length); },
+  search(b, p, d, al, be){
+    const o=p==='x'?'o':'x', ms=OT.moves(b,p);
+    if(!ms.length){ if(!OT.moves(b,o).length){ const diff=OT.count(b,p)-OT.count(b,o); return diff*1000; } return d? -OT.search(b,o,d-1,-be,-al) : OT.eval(b,p); }
+    if(!d) return OT.eval(b,p);
+    let best=-1e9; for(const k of ms){ const v=-OT.search(OT.play(b,k,p), o, d-1, -be, -al); if(v>best) best=v; if(v>al) al=v; if(al>=be) break; } return best; },
+  best(b, p, level, rng){ const ms=OT.moves(b,p); if(!ms.length) return -1; const o=p==='x'?'o':'x';
+    const d=[1,1,2,4][level]||2; let best=-1e9, bk=ms[0];
+    TGU.shuffle(ms, rng).forEach(k=>{ const v=-OT.search(OT.play(b,k,p), o, d-1, -1e9, 1e9) + (level<2?rng()*60:rng()*2); if(v>best){ best=v; bk=k; } });
+    return bk; },
+};
+TG.othello = {
+  per:{ sc:0 },
+  about:'Bàn 8×8, quân Đen đi trước. Đặt quân sao cho kẹp được quân đối thủ giữa 2 quân mình (ngang, dọc, chéo) — các quân bị kẹp lật sang màu mình. Không có nước hợp lệ thì mất lượt. Hết bàn ai nhiều quân hơn thắng ván.',
+  init(P, set, rng, now){ const s={ P, sc:P.map(()=>0), target:set.target||2, level:set.level||2, tmr:set.tmr==null?30:set.tmr, gn:0, first:Math.floor(rng()*2) }; this.ng(s, now); return s; },
+  ng(s, now){ s.gn++; s.b=OT.START; s.last=-1; s.fl=''; s.wnr=-1; s.first=1-s.first; TGU.phase(s,'play',0,now); this.setTurn(s, s.first, now);
+    TGU.log(s, '⚫ Ván '+s.gn+' — '+s.P[s.first].n+' cầm Đen đi trước', '', now); },
+  // người đi trước ván này cầm Đen (x)
+  sym: (s,i) => i===s.first ? 'x' : 'o',
+  setTurn(s,i,now){ s.turn=i; s.dl=s.tmr?now+s.tmr*1000:0; s.dlLen=s.tmr*1000; s.bt={}; },
+  endGame(s, now){
+    const cx=OT.count(s.b,'x'), co=OT.count(s.b,'o'), bi=s.first, wi=1-s.first;
+    s.wnr = cx>co ? bi : co>cx ? wi : -1; if(s.wnr>=0) s.sc[s.wnr]++;
+    TGU.log(s, s.wnr>=0 ? '🎉 '+s.P[s.wnr].n+' thắng ván '+s.gn+' ('+Math.max(cx,co)+'–'+Math.min(cx,co)+')' : '🤝 Hòa '+cx+'–'+co, s.wnr>=0?'win':'', now);
+    s.turn=-1; TGU.phase(s,'res',4500,now); return true; },
+  act(s,i,a,now){
+    if(s.ph!=='play' || s.turn!==i || a.t!=='mv') return false;
+    const k=+a.k, p=this.sym(s,i), f=OT.flips(s.b,k,p); if(!(k>=0&&k<64) || !f.length) return false;
+    s.b=OT.play(s.b,k,p); s.last=k; s.fl=f.join(',');
+    const j=1-i, q=this.sym(s,j);
+    if(OT.moves(s.b,q).length){ this.setTurn(s,j,now); return true; }
+    if(OT.moves(s.b,p).length){ TGU.log(s,'⏭ '+s.P[j].n+' không có nước đi — mất lượt','',now); this.setTurn(s,i,now); return true; }
+    return this.endGame(s, now);
+  },
+  tick(s, now, rng){
+    if(s.ph==='play'){ const i=s.turn, p=s.P[i];
+      if(p.bot && TGU.bot(s,i,now,rng,600,1400)) return this.act(s,i,{t:'mv',k:OT.best(s.b,this.sym(s,i),s.level,rng)},now);
+      if(s.dl && now>=s.dl){ TGU.log(s,'⏰ '+p.n+' hết giờ — máy đi hộ','',now); return this.act(s,i,{t:'mv',k:OT.best(s.b,this.sym(s,i),1,rng)},now); }
+      return false; }
+    if(s.ph==='res' && now>=s.dl){
+      if(Math.max(...s.sc)>=s.target){ s.over=1; s.dl=0; const w=s.sc.indexOf(Math.max(...s.sc)); TGU.log(s,'🏆 '+s.P[w].n+' vô địch Cờ Lật!','big',now); return true; }
+      this.ng(s, now); return true; }
+    return false;
+  },
+  turn: s => s.ph==='play' ? s.turn : -1,
+  label: s => 'Ván '+s.gn+' · thắng '+s.target+' ván là vô địch',
+  score(s,i){ const p=this.sym(s,i); return (p==='x'?'⚫ ':'⚪ ')+OT.count(s.b,p); },
+  badge: (s,i) => s.ph==='play' && s.turn===i ? '✍️ Đang đi' : (s.sc[i]?'🏅 '+s.sc[i]+' ván':''),
+  result: s => TGU.rank(s.sc, true, v=>v+' ván thắng'),
+  view(s, me){
+    const my = s.ph==='play' && s.turn===me, mv = new Set(my ? OT.moves(s.b, this.sym(s,me)) : []), fl=new Set((s.fl||'').split(',').filter(x=>x).map(Number));
+    const cx=OT.count(s.b,'x'), co=OT.count(s.b,'o');
+    let h=`<div class="oth"><div class="oth-sc"><span class="${s.turn===s.first?'on':''}">⚫ ${cx}</span><span class="${s.turn===1-s.first?'on':''}">⚪ ${co}</span></div>`;
+    h += `<div class="bg-msg">${s.ph==='play' ? (my ? '👉 Tới lượt bạn ('+(this.sym(s,me)==='x'?'⚫ Đen':'⚪ Trắng')+') — chọn ô có chấm' : '⏳ '+escH(s.P[s.turn].n)+' đang nghĩ…') : s.wnr>=0 ? '🎉 '+escH(s.P[s.wnr].n)+' thắng ván!' : '🤝 Hòa'}</div>`;
+    h += '<div class="oth-b">';
+    for(let k=0;k<64;k++){ const v=s.b[k];
+      h += v==='.' ? (mv.has(k) ? `<i class="hint" data-act='{"t":"mv","k":${k}}'></i>` : '<i></i>')
+                   : `<i><b class="${v}${k===s.last?' last':''}${fl.has(k)?' flip':''}"></b></i>`; }
+    return h+'</div></div>';
+  }
+};
+
+/* ---------- 🚢 BẮN TÀU (Battleship) ---------- */
+const BT = {
+  FLEET: { 8:[4,3,3,2,2], 10:[5,4,3,3,2] },
+  NAMES: { 5:'Hàng không mẫu hạm', 4:'Tuần dương hạm', 3:'Khu trục hạm', 2:'Tàu tuần tra' },
+  place(n, rng){ // xếp ngẫu nhiên, các tàu không chạm nhau
+    for(let tries=0;tries<500;tries++){
+      const occ=new Set(), ships=[]; let ok=true;
+      for(const L of BT.FLEET[n]){ let placed=false;
+        for(let g=0; g<200 && !placed; g++){ const hz=rng()<.5, r=Math.floor(rng()*(hz?n:n-L+1)), c=Math.floor(rng()*(hz?n-L+1:n)); const cells=[];
+          for(let k=0;k<L;k++) cells.push(hz ? r*n+c+k : (r+k)*n+c);
+          const bad=cells.some(x=>{ const rr=Math.floor(x/n), cc=x%n; for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){ const y=(rr+dr)*n+cc+dc; if(rr+dr>=0&&rr+dr<n&&cc+dc>=0&&cc+dc<n&&occ.has(y)) return true; } return false; });
+          if(!bad){ cells.forEach(x=>occ.add(x)); ships.push(cells.join(',')); placed=true; } }
+        if(!placed){ ok=false; break; } }
+      if(ok) return ships;
+    }
+    return null; },
+  cells: sh => sh.split(',').map(Number),
+  sunk: (ship, shots) => BT.cells(ship).every(x=>shots[x]==='x'),
+  // máy bắn: săn quanh ô trúng chưa chìm, không có thì bắn ô ca-rô ngẫu nhiên
+  aim(shots, ships, n, rng){
+    const hits=[]; for(let k=0;k<n*n;k++) if(shots[k]==='x' && !ships.some(s=>BT.cells(s).includes(k) && BT.sunk(s,shots))) hits.push(k);
+    const free=k=>k>=0 && k<n*n && shots[k]==='.';
+    if(hits.length){
+      const cand=[];
+      if(hits.length>=2){ const hz=Math.floor(hits[0]/n)===Math.floor(hits[1]/n);
+        const line=hits.filter(h=>hz ? Math.floor(h/n)===Math.floor(hits[0]/n) : h%n===hits[0]%n).sort((a,b)=>a-b);
+        const a=line[0], b=line[line.length-1];
+        if(hz){ if(a%n>0 && free(a-1)) cand.push(a-1); if(b%n<n-1 && free(b+1)) cand.push(b+1); } else { if(free(a-n)) cand.push(a-n); if(free(b+n)) cand.push(b+n); } }
+      if(!cand.length) hits.forEach(h=>{ const r=Math.floor(h/n), c=h%n; [[0,1],[0,-1],[1,0],[-1,0]].forEach(([dr,dc])=>{ if(r+dr>=0&&r+dr<n&&c+dc>=0&&c+dc<n&&free((r+dr)*n+c+dc)) cand.push((r+dr)*n+c+dc); }); });
+      if(cand.length) return cand[Math.floor(rng()*cand.length)];
+    }
+    const all=[]; for(let k=0;k<n*n;k++) if(free(k)) all.push(k);
+    const par=all.filter(k=>(Math.floor(k/n)+k%n)%2===0);
+    const pool=par.length?par:all; return pool[Math.floor(rng()*pool.length)];
+  },
+};
+TG.bantau = {
+  per:{ sc:0, ships:()=>[], shots:'', rdy:0 },
+  about:'Mỗi người có một hạm đội giấu trên bàn của mình (bấm "Xếp lại" để đổi vị trí). Lần lượt chọn ô trên bàn đối thủ để bắn: 💥 trúng, 🌊 trượt. Bắn trúng được bắn tiếp. Đánh chìm hết tàu đối thủ trước là thắng ván.',
+  init(P, set, rng, now){ const s={ P, sc:P.map(()=>0), n:set.size||10, target:set.target||1, again:set.again==null?1:set.again, tmr:set.tmr==null?30:set.tmr, gn:0, first:Math.floor(rng()*2) }; this.ng(s, now, rng); return s; },
+  ng(s, now, rng){ s.gn++; s.first=1-s.first; s.wnr=-1; s.last=-1; s.lastBy=-1;
+    s.ships=s.P.map(()=>BT.place(s.n, rng)); s.shots=s.P.map(()=>'.'.repeat(s.n*s.n)); s.rdy=s.P.map(p=>p.bot?1:0);
+    TGU.phase(s,'place',45000,now); s.turn=-1; },
+  setTurn(s,i,now){ s.turn=i; s.dl=s.tmr?now+s.tmr*1000:0; s.dlLen=s.tmr*1000; s.bt={}; },
+  left: (s,i) => s.ships[i].filter(sh=>!BT.sunk(sh, s.shots[i])).length,
+  act(s,i,a,now,rng){
+    if(s.ph==='place'){
+      if(a.t==='shuffle' && !s.rdy[i]){ s.ships[i]=BT.place(s.n, rng||Math.random); return true; }
+      if(a.t==='ready' && !s.rdy[i]){ s.rdy[i]=1; return true; }
+      return false; }
+    if(s.ph!=='fire' || s.turn!==i || a.t!=='fire') return false;
+    const j=1-i, k=+a.k; if(!(k>=0 && k<s.n*s.n) || s.shots[j][k]!=='.') return false;
+    const hitShip=s.ships[j].find(sh=>BT.cells(sh).includes(k));
+    s.shots[j]=s.shots[j].slice(0,k)+(hitShip?'x':'o')+s.shots[j].slice(k+1); s.last=k; s.lastBy=i;
+    if(hitShip){
+      if(BT.sunk(hitShip, s.shots[j])){
+        // tàu chìm: đánh dấu các ô xung quanh là nước (không thể có tàu)
+        BT.cells(hitShip).forEach(x=>{ const r=Math.floor(x/s.n), c=x%s.n; for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){ const rr=r+dr, cc=c+dc, y=rr*s.n+cc; if(rr>=0&&rr<s.n&&cc>=0&&cc<s.n&&s.shots[j][y]==='.') s.shots[j]=s.shots[j].slice(0,y)+'o'+s.shots[j].slice(y+1); } });
+        const L=BT.cells(hitShip).length;
+        TGU.log(s,'💥 '+s.P[i].n+' đánh chìm '+BT.NAMES[L]+' ('+L+' ô)!','big',now);
+        if(!this.left(s,j)){ s.wnr=i; s.sc[i]++; s.turn=-1; TGU.log(s,'🏆 '+s.P[i].n+' đánh chìm cả hạm đội!','win',now); TGU.phase(s,'res',6000,now); return true; }
+      } else TGU.log(s,'💥 Trúng!','',now);
+      this.setTurn(s, s.again ? i : j, now); return true;
+    }
+    this.setTurn(s, j, now); return true;
+  },
+  tick(s, now, rng){
+    if(s.ph==='place'){
+      if(now>=s.dl || s.rdy.every(x=>x)){ TGU.phase(s,'fire',0,now); this.setTurn(s, s.first, now); TGU.log(s,'🚀 Khai hỏa! '+s.P[s.first].n+' bắn trước','',now); return true; }
+      return false; }
+    if(s.ph==='fire'){ const i=s.turn, p=s.P[i];
+      if(p.bot && TGU.bot(s,i,now,rng,700,1500)) return this.act(s,i,{t:'fire',k:BT.aim(s.shots[1-i], s.ships[1-i], s.n, rng)},now,rng);
+      if(s.dl && now>=s.dl){ TGU.log(s,'⏰ '+p.n+' hết giờ — bắn đại','',now); return this.act(s,i,{t:'fire',k:BT.aim(s.shots[1-i], s.ships[1-i], s.n, rng)},now,rng); }
+      return false; }
+    if(s.ph==='res' && now>=s.dl){
+      if(Math.max(...s.sc)>=s.target){ s.over=1; s.dl=0; const w=s.sc.indexOf(Math.max(...s.sc)); TGU.log(s,'🏆 '+s.P[w].n+' là Đô đốc!','big',now); return true; }
+      this.ng(s, now, rng); return true; }
+    return false;
+  },
+  turn: s => s.ph==='fire' ? s.turn : -1,
+  label: s => 'Ván '+s.gn+(s.target>1?' · thắng '+s.target+' ván':'')+' · bàn '+s.n+'×'+s.n,
+  score(s,i){ return '🚢 '+this.left(s,i)+'/'+s.ships[i].length; },
+  badge: (s,i) => s.ph==='place' ? (s.rdy[i]?'✅ Sẵn sàng':'⚓ Đang xếp') : s.ph==='fire' && s.turn===i ? '🎯 Đang bắn' : s.wnr===i ? '🏆' : (s.sc[i]?'🏅 '+s.sc[i]:''),
+  result: s => TGU.rank(s.sc, true, v=>v+' ván thắng'),
+  grid(s, owner, show, act){ const n=s.n, sh=s.shots[owner], cells=new Set(); if(show) s.ships[owner].forEach(x=>BT.cells(x).forEach(c=>cells.add(c)));
+    const sunkSet=new Set(); s.ships[owner].forEach(x=>{ if(BT.sunk(x,sh)) BT.cells(x).forEach(c=>sunkSet.add(c)); });
+    let h=`<div class="bt-g${act?' act':''}" style="--n:${n}">`;
+    for(let k=0;k<n*n;k++){ const v=sh[k], cls=[]; if(cells.has(k)) cls.push('ship'); if(v==='x') cls.push(sunkSet.has(k)?'sunk':'hit'); if(v==='o') cls.push('miss'); if(k===s.last && s.lastBy!==owner) cls.push('last');
+      h += `<i class="${cls.join(' ')}"${act&&v==='.'?` data-act='{"t":"fire","k":${k}}'`:''}></i>`; }
+    return h+'</div>'; },
+  view(s, me){
+    const op = me>=0 ? 1-me : 1, my = s.ph==='fire' && s.turn===me;
+    if(s.ph==='place'){
+      if(me<0) return '<div class="bg-msg">⚓ Hai bên đang xếp tàu…</div>';
+      return `<div class="bt"><div class="bg-msg">⚓ Hạm đội của bạn${s.rdy[me]?' — chờ đối thủ…':''}</div>${this.grid(s, me, true, false)}
+        <div class="bt-fleet">${BT.FLEET[s.n].map(L=>'<span>'+'■'.repeat(L)+'</span>').join('')}</div>
+        ${s.rdy[me]?'':`<div class="bg-ctl c">${TGU.btn({t:'shuffle'},'🔀 Xếp lại','gray')}${TGU.btn({t:'ready'},'✅ Sẵn sàng','green big')}</div>`}</div>`; }
+    const showOp = s.ph==='res';
+    let h=`<div class="bt"><div class="bg-msg">${s.ph==='fire' ? (my?'🎯 Tới lượt bạn — chọn ô để bắn':'⏳ '+escH(s.P[s.turn].n)+' đang ngắm…') : s.wnr>=0 ? '🏆 '+escH(s.P[s.wnr].n)+' thắng ván!' : ''}</div>`;
+    h += `<div class="bt-lbl">🎯 Bàn của ${escH(s.P[op].n)} · còn ${this.left(s,op)} tàu</div>${this.grid(s, op, showOp, my)}`;
+    if(me>=0) h += `<div class="bt-lbl">⚓ Hạm đội của bạn · còn ${this.left(s,me)} tàu</div><div class="bt-mine">${this.grid(s, me, true, false)}</div>`;
+    return h+'</div>';
+  }
+};
+
+/* ---------- 🐴 CÁ NGỰA (Ludo) ---------- */
+const CN = {
+  // 52 ô đường chính trên lưới 15×15 (theo chiều kim đồng hồ, bắt đầu từ ô xuất phát của màu 0)
+  PATH: (()=>{ const p=[]; const seg=(r,c,dr,dc,n)=>{ for(let k=0;k<n;k++) p.push([r+dr*k,c+dc*k]); };
+    seg(6,1,0,1,5); seg(5,6,-1,0,6); p.push([0,7]); p.push([0,8]); seg(1,8,1,0,5); seg(6,9,0,1,6); p.push([7,14]); p.push([8,14]);
+    seg(8,13,0,-1,5); seg(9,8,1,0,6); p.push([14,7]); p.push([14,6]); seg(13,6,-1,0,5); seg(8,5,0,-1,6); p.push([7,0]); p.push([6,0]); return p; })(),
+  HOME: [ k=>[7,1+k], k=>[1+k,7], k=>[7,13-k], k=>[13-k,7] ],     // 5 ô về đích của từng màu
+  YARD: [ [[1.5,1.5],[1.5,3.5],[3.5,1.5],[3.5,3.5]], [[1.5,10.5],[1.5,12.5],[3.5,10.5],[3.5,12.5]], [[10.5,10.5],[10.5,12.5],[12.5,10.5],[12.5,12.5]], [[10.5,1.5],[10.5,3.5],[12.5,1.5],[12.5,3.5]] ],
+  COL: ['r','g','y','b'], CNAME: ['Đỏ','Xanh lá','Vàng','Xanh dương'], HORSE:['🔴','🟢','🟡','🔵'],
+  SAFE: new Set([0,8,13,21,26,34,39,47]),
+  // vị trí: -1 chuồng, 0..50 đường chính (tính từ ô xuất phát), 51..55 đường về, 56 đã về đích
+  cell(col, pos){ if(pos<0 || pos>=56) return null; if(pos<=50) return CN.PATH[(col*13+pos)%52]; return CN.HOME[col](pos-51); },
+  abs: (col,pos) => pos>=0 && pos<=50 ? (col*13+pos)%52 : -1,
+};
+TG.cangua = {
+  per:{ hs:()=>[-1,-1,-1,-1], col:0, done:0 },
+  lists:['ranks'],
+  about:'2–4 người, mỗi người 4 ngựa trong chuồng. Đổ được 6 mới xuất chuồng; đổ 6 hoặc đá được ngựa đối thủ thì được đổ tiếp. Ngựa đi đủ một vòng rồi vào đường về đích (phải đổ vừa đúng). Đứng trên ô có ★ thì không bị đá. Ai đưa đủ 4 ngựa về đích trước thắng.',
+  init(P, set, rng, now){ const n=P.length, cols= n===2?[0,2]: n===3?[0,1,2]:[0,1,2,3];
+    const s={ P, hs:P.map(()=>[-1,-1,-1,-1]), col:cols.slice(0,n), done:P.map(()=>0), ranks:[], tmr:set.tmr==null?20:set.tmr, die:0, six:0 };
+    TGU.phase(s,'roll',0,now); this.setTurn(s, Math.floor(rng()*n), now); return s; },
+  setTurn(s,i,now){ s.turn=i; s.ph='roll'; s.die=0; s.dl=s.tmr?now+s.tmr*1000:0; s.dlLen=s.tmr*1000; s.bt={}; },
+  legal(s,i){ const d=s.die, out=[]; s.hs[i].forEach((p,h)=>{ if(p===56) return; if(p<0){ if(d===6) out.push(h); return; } if(p+d<=56) out.push(h); }); return out; },
+  nextTurn(s, i, now){ const n=s.P.length; for(let k=1;k<=n;k++){ const j=(i+k)%n; if(!s.done[j]) return this.setTurn(s, j, now); } },
+  act(s,i,a,now,rng){
+    if(s.turn!==i || s.over) return false;
+    if(a.t==='roll' && s.ph==='roll'){ s.die=1+Math.floor((rng||Math.random)()*6); s.rolls=(s.rolls||0)+1;
+      const L=this.legal(s,i);
+      if(!L.length){ s.ph='skip'; s.dl=now+1300; s.dlLen=1300; s.bt={}; }
+      else { s.ph='move'; s.dl=s.tmr?now+s.tmr*1000:0; s.dlLen=s.tmr*1000; s.bt={}; }
+      return true; }
+    if(a.t==='mv' && s.ph==='move'){ const h=+a.h; if(!this.legal(s,i).includes(h)) return false;
+      const c=s.col[i]; let p=s.hs[i][h]; p = p<0 ? 0 : p+s.die; s.hs[i][h]=p; let bonus = s.die===6, kick=false;
+      const ab=CN.abs(c,p);
+      if(ab>=0 && !CN.SAFE.has(ab)) s.hs.forEach((hs,j)=>{ if(j===i) return; hs.forEach((q,k)=>{ if(CN.abs(s.col[j],q)===ab){ hs[k]=-1; kick=true; TGU.log(s,'🦶 '+s.P[i].n+' đá ngựa '+s.P[j].n+' về chuồng!','big',now); } }); });
+      if(kick) bonus=true;
+      if(p===56){ TGU.log(s,'🏁 Ngựa của '+s.P[i].n+' về đích!','win',now); bonus=true;
+        if(s.hs[i].every(x=>x===56)){ s.done[i]=1; s.ranks.push(i); TGU.log(s,'🏆 '+s.P[i].n+' về đích đủ 4 ngựa!','big',now);
+          this.finish(s, now); return true; } }
+      if(bonus){ s.six=(s.six||0)+1; if(s.six>=3){ s.six=0; this.nextTurn(s,i,now); } else this.setTurn(s,i,now); }
+      else { s.six=0; this.nextTurn(s,i,now); }
+      return true; }
+    return false;
+  },
+  prog: (s,i) => s.hs[i].reduce((a,p)=>a+(p<0?0:p+1),0),
+  finish(s, now){ const rest=s.P.map((p,i)=>i).filter(i=>!s.ranks.includes(i)).sort((a,b)=>this.prog(s,b)-this.prog(s,a)); s.ranks=s.ranks.concat(rest); s.over=1; s.dl=0; s.turn=-1; s.ph='res'; },
+  botPick(s,i){ const L=this.legal(s,i), c=s.col[i]; let best=-1e9, bh=L[0];
+    L.forEach(h=>{ const p0=s.hs[i][h], p=p0<0?0:p0+s.die, ab=CN.abs(c,p); let v=0;
+      if(p0<0) v+=60; if(p===56) v+=80; if(p>50 && p0<=50) v+=40;
+      if(ab>=0) s.hs.forEach((hs,j)=>{ if(j!==i) hs.forEach(q=>{ if(CN.abs(s.col[j],q)===ab && !CN.SAFE.has(ab)) v+=100; }); });
+      if(ab>=0 && CN.SAFE.has(ab)) v+=15;
+      // nguy hiểm: ngựa địch đứng sau 1..6 ô
+      const danger=a=>a>=0 && !CN.SAFE.has(a) && s.hs.some((hs,j)=>j!==i && hs.some(q=>{ const b=CN.abs(s.col[j],q); return b>=0 && ((a-b+52)%52)>=1 && ((a-b+52)%52)<=6; }));
+      if(danger(ab)) v-=35; if(danger(CN.abs(c,p0))) v+=25; v+=p*.5;
+      if(v>best){ best=v; bh=h; } });
+    return bh; },
+  tick(s, now, rng){
+    if(s.over) return false; const i=s.turn, p=s.P[i];
+    if(s.ph==='skip' && now>=s.dl){ if(s.die===6) this.setTurn(s,i,now); else this.nextTurn(s,i,now); return true; }
+    if(s.ph==='roll' && (p.bot ? TGU.bot(s,i,now,rng,500,1100) : s.dl && now>=s.dl)) return this.act(s,i,{t:'roll'},now,rng);
+    if(s.ph==='move' && (p.bot ? TGU.bot(s,i,now,rng,500,1000) : s.dl && now>=s.dl)) return this.act(s,i,{t:'mv',h:this.botPick(s,i)},now,rng);
+    return false;
+  },
+  turn: s => s.over ? -1 : s.turn,
+  label: s => s.P.length+' người · ai về đủ 4 ngựa trước thắng',
+  score(s,i){ return CN.HORSE[s.col[i]]+' '+s.hs[i].filter(x=>x===56).length+'/4'; },
+  badge(s,i){ if(s.done[i]) return '🏆 Về đích'; if(s.turn!==i) return ''; return s.ph==='roll'?'🎲 Đổ…':s.die?'🎲 '+s.die:''; },
+  result(s){ return s.ranks.map((i,k)=>({ i, rank:k+1, txt:s.hs[i].filter(x=>x===56).length+'/4 ngựa về đích' })); },
+  view(s, me){
+    const my = !s.over && s.turn===me, L = my && s.ph==='move' ? this.legal(s,me) : [];
+    const occ={};    // "r,c" → [{seat,h}]
+    s.P.forEach((p,i)=>s.hs[i].forEach((pos,h)=>{ const c=CN.cell(s.col[i],pos); if(c){ const k=c.join(','); (occ[k]=occ[k]||[]).push({i,h}); } }));
+    let h='<div class="cn"><div class="cn-b">';
+    // nền: chuồng 4 góc + đích giữa
+    [[0,0,'r'],[0,9,'g'],[9,9,'y'],[9,0,'b']].forEach(([r,c,k])=>h+=`<div class="cn-yard ${k}" style="--r:${r};--c:${c}"></div>`);
+    h += '<div class="cn-mid"></div>';
+    CN.PATH.forEach(([r,c],ix)=>{ const st=ix%13===0, cls=st?' st '+CN.COL[ix/13]:''; h+=`<div class="cn-c${cls}${CN.SAFE.has(ix)?' safe':''}" style="--r:${r};--c:${c}"></div>`; });
+    [0,1,2,3].forEach(col=>{ for(let k=0;k<5;k++){ const [r,c]=CN.HOME[col](k); h+=`<div class="cn-c home ${CN.COL[col]}" style="--r:${r};--c:${c}"></div>`; } });
+    // ngựa
+    Object.entries(occ).forEach(([k,list])=>{ const [r,c]=k.split(',').map(Number);
+      list.forEach((o,z)=>{ const can=o.i===me && L.includes(o.h);
+        h+=`<div class="cn-h ${CN.COL[s.col[o.i]]}${can?' can':''}${list.length>1?' stk':''}" style="--r:${r};--c:${c};--z:${z}"${can?` data-act='{"t":"mv","h":${o.h}}'`:''}>🐴</div>`; }); });
+    s.P.forEach((p,i)=>s.hs[i].forEach((pos,hh)=>{ if(pos>=0) return; const [r,c]=CN.YARD[s.col[i]][hh]; const can=i===me && L.includes(hh);
+      h+=`<div class="cn-h ${CN.COL[s.col[i]]} yd${can?' can':''}" style="--r:${r-.5};--c:${c-.5}"${can?` data-act='{"t":"mv","h":${hh}}'`:''}>🐴</div>`; }));
+    const fin=s.P.map((p,i)=>s.hs[i].filter(x=>x===56).length?`<span class="${CN.COL[s.col[i]]}">${'🐴'.repeat(s.hs[i].filter(x=>x===56).length)}</span>`:'').join('');
+    h += `<div class="cn-fin">${fin}</div></div>`;
+    const who = s.over ? '' : `${CN.HORSE[s.col[s.turn]]} ${escH(s.P[s.turn].n)}`;
+    h += `<div class="cn-ctl">${s.die?`<div class="cn-die">${TGU.die(s.die)}</div>`:''}<div class="bg-msg">${s.over?'🏁 Kết thúc!': my ? (s.ph==='roll'?'👉 Tới lượt bạn — đổ xúc xắc!': s.ph==='move'?'👉 Chọn ngựa đang nhấp nháy để đi '+s.die+' bước':'😕 Không đi được ngựa nào') : '⏳ '+who+(s.ph==='roll'?' đang đổ…':' đang đi…')}</div>`;
+    if(my && s.ph==='roll') h += TGU.btn({t:'roll'},'🎲 Đổ xúc xắc','big green');
+    if(me>=0) h += `<div class="cn-me">Bạn là ngựa <b class="${CN.COL[s.col[me]]}">${CN.HORSE[s.col[me]]} ${CN.CNAME[s.col[me]]}</b></div>`;
+    return h+'</div></div>';
+  }
+};
+
+/* ---------- 🪨 Ô ĂN QUAN ---------- */
+// 12 ô theo vòng: 0 = quan trái, 1..5 = dân của người 1, 6 = quan phải, 7..11 = dân của người 2
+const OQ = {
+  mine: (i,k) => i===0 ? k>=1&&k<=5 : k>=7&&k<=11,
+  // gieo từ ô k theo hướng d; trả về {b, q, gain, gq, path}
+  sim(b0, q0, k, d){
+    const b=b0.slice(), q=q0.slice(), path=[]; let gain=0, gq=0, hand=b[k], pos=k; b[k]=0;
+    const isQ=x=>x===0||x===6, empty=x=>b[x]===0 && !(isQ(x) && q[x/6]), nxt=x=>(x+d+12)%12;
+    for(let guard=0; guard<400; guard++){
+      while(hand>0){ pos=nxt(pos); b[pos]++; hand--; path.push(pos); }
+      const nx=nxt(pos);
+      if(isQ(nx) && !empty(nx)) break;                               // gặp ô quan → mất lượt
+      if(!isQ(nx) && b[nx]>0){ hand=b[nx]; b[nx]=0; pos=nx; continue; } // bốc ô kế rải tiếp
+      let e=nx;                                                       // ô kế trống → ăn ô sau (ăn liên tiếp)
+      while(empty(e)){ const t=nxt(e); if(empty(t)) break; gain+=b[t]; b[t]=0; if(isQ(t) && q[t/6]){ q[t/6]=0; gq++; } path.push(-1-t); e=nxt(t); }
+      break;
+    }
+    return { b, q, gain, gq, path };
+  },
+  pts: (g, gq) => g + gq*10,
+};
+TG.oanquan = {
+  per:{ cap:0, capq:0 },
+  about:'Trò chơi dân gian 2 người: 10 ô dân (mỗi ô 5 sỏi) và 2 ô quan. Tới lượt, chọn một ô dân bên mình và hướng rải — rải mỗi ô một viên. Hết sỏi: ô kế còn sỏi thì bốc rải tiếp; ô kế trống mà ô sau có sỏi thì ăn (ăn liên tiếp được); gặp quan hoặc 2 ô trống thì mất lượt. Hết dân bên mình phải rải 5 viên đã ăn. Ăn hết 2 quan là hết ván — quan tính 10 điểm.',
+  init(P, set, rng, now){ const s={ P, b:[0,5,5,5,5,5,0,5,5,5,5,5], q:[1,1], cap:[0,0], capq:[0,0], level:set.level||2, tmr:set.tmr==null?30:set.tmr, last:'', borrow:[0,0] };
+    TGU.phase(s,'play',0,now); this.setTurn(s, Math.floor(rng()*2), now); return s; },
+  score(s,i){ return OQ.pts(s.cap[i], s.capq[i])+' đ'; },
+  setTurn(s,i,now){ s.turn=i; s.dl=s.tmr?now+s.tmr*1000:0; s.dlLen=s.tmr*1000; s.bt={};
+    // hết dân bên mình → rải 5 viên đã ăn (thiếu thì vay đối thủ)
+    const own=[1,2,3,4,5].map(k=>i===0?k:k+6);
+    if(!s.over && own.every(k=>s.b[k]===0)){ let take=Math.min(5, s.cap[i]); s.cap[i]-=take; if(take<5){ const need=5-take; s.cap[1-i]-=need; s.borrow[i]+=need; take=5; }
+      own.forEach(k=>s.b[k]=1); TGU.log(s,'🫳 '+s.P[i].n+' hết dân — rải 5 viên ra bàn','',now); } },
+  moves(s,i){ const m=[]; for(let k=0;k<12;k++) if(OQ.mine(i,k) && s.b[k]>0){ m.push([k,1]); m.push([k,-1]); } return m; },
+  act(s,i,a,now){
+    if(s.ph!=='play' || s.turn!==i || a.t!=='mv') return false;
+    const k=+a.k, d=+a.d===1?1:-1; if(!OQ.mine(i,k) || !s.b[k]) return false;
+    const r=OQ.sim(s.b, s.q, k, d); s.b=r.b; s.q=r.q; s.cap[i]+=r.gain; s.capq[i]+=r.gq; s.last=r.path.join(',');
+    if(r.gain||r.gq) TGU.log(s, '😋 '+s.P[i].n+' ăn '+(r.gq?r.gq+' quan + ':'')+r.gain+' dân', r.gq?'big':'', now);
+    if(!s.q[0] && !s.q[1]){ this.end(s, now); return true; }
+    this.setTurn(s, 1-i, now); return true;
+  },
+  end(s, now){
+    // hết quan: dân còn bên ai về người đó
+    [0,1].forEach(i=>{ for(let k=0;k<12;k++) if(OQ.mine(i,k)){ s.cap[i]+=s.b[k]; s.b[k]=0; } });
+    const p=[0,1].map(i=>OQ.pts(s.cap[i],s.capq[i]));
+    s.wnr = p[0]>p[1]?0:p[1]>p[0]?1:-1; s.over=1; s.dl=0; s.turn=-1; s.ph='res';
+    TGU.log(s, s.wnr>=0 ? '🏆 '+s.P[s.wnr].n+' thắng '+p[s.wnr]+'–'+p[1-s.wnr]+'!' : '🤝 Hòa '+p[0]+'–'+p[1], 'big', now); },
+  best(s,i,level,rng){ const ms=this.moves(s,i); let best=-1e9, bm=ms[0];
+    TGU.shuffle(ms, rng).forEach(([k,d])=>{ const r=OQ.sim(s.b,s.q,k,d); let v=OQ.pts(r.gain,r.gq)+rng()*(level<2?6:.5);
+      if(level>=2){ let opp=0; const j=1-i; for(let x=0;x<12;x++) if(OQ.mine(j,x) && r.b[x]) for(const dd of [1,-1]){ const r2=OQ.sim(r.b,r.q,x,dd); opp=Math.max(opp,OQ.pts(r2.gain,r2.gq)); } v-=opp*(level>=3?1:.6); }
+      if(v>best){ best=v; bm=[k,d]; } });
+    return bm; },
+  tick(s, now, rng){
+    if(s.ph!=='play' || s.over) return false; const i=s.turn, p=s.P[i];
+    if((p.bot && TGU.bot(s,i,now,rng,700,1500)) || (s.dl && now>=s.dl)){ const m=this.best(s,i,p.bot?s.level:1,rng); if(!m){ this.end(s,now); return true; } return this.act(s,i,{t:'mv',k:m[0],d:m[1]},now); }
+    return false;
+  },
+  turn: s => s.over ? -1 : s.turn,
+  label: s => 'Quan còn: '+(s.q[0]?'⬅':'')+(s.q[1]?' ➡':'')+(!s.q[0]&&!s.q[1]?'hết':''),
+  badge: (s,i) => s.capq[i] ? '👑×'+s.capq[i] : s.turn===i ? '✍️ Đang đi' : '',
+  result: s => { const p=[0,1].map(i=>OQ.pts(s.cap[i],s.capq[i])); return TGU.rank(p, true, v=>v+' điểm'); },
+  ui(v, ui, s, me, send){ if(v.k!=null){ ui.sel = ui.sel===v.k ? null : v.k; } if(v.d!=null && ui.sel!=null){ send({t:'mv',k:ui.sel,d:v.d}); ui.sel=null; } },
+  view(s, me, ui){
+    const flip = me===1, my = s.ph==='play' && s.turn===me, path=new Set((s.last||'').split(',').filter(x=>x!=='').map(Number));
+    const stones = n => n>8 ? `<em>${n}</em>` : '<span class="oq-st">'+'●'.repeat(n)+'</span>';
+    const cell=(k)=>{ const can = my && OQ.mine(me,k) && s.b[k]>0; return `<div class="oq-c${path.has(k)?' p':''}${path.has(-1-k)?' eat':''}${ui.sel===k?' sel':''}${can?' can':''}"${can?` data-ui='{"k":${k}}'`:''}>${stones(s.b[k])}<small>${s.b[k]}</small></div>`; };
+    const quan=(k)=>`<div class="oq-q${k===0?' l':' r'}${path.has(-1-k)?' eat':''}">${s.q[k/6]?'<b class="oq-big">◉</b>':''}${s.b[k]?stones(s.b[k]):''}<small>${s.q[k/6]?'Quan':''}${s.b[k]?' +'+s.b[k]:''}</small></div>`;
+    // người 0 ở dưới (1..5 trái→phải), người 1 ở trên (11..7 trái→phải); lật bàn cho người 1
+    const top = flip ? [5,4,3,2,1] : [11,10,9,8,7], bot = flip ? [7,8,9,10,11] : [1,2,3,4,5], L = flip ? 6 : 0, R = flip ? 0 : 6;
+    let h=`<div class="oq"><div class="bg-msg">${s.over?'🏁 Hết quan — kết thúc ván!':my?(ui.sel!=null?'👉 Chọn hướng rải':'👉 Tới lượt bạn — chọn một ô dân bên dưới'):'⏳ '+escH(s.P[s.turn].n)+' đang rải…'}</div>`;
+    h += `<div class="oq-b">${quan(L)}<div class="oq-rows"><div class="oq-row">${top.map(cell).join('')}</div><div class="oq-row">${bot.map(cell).join('')}</div></div>${quan(R)}</div>`;
+    if(my && ui.sel!=null) h += `<div class="bg-ctl c"><button class="tbtn big" data-ui='{"d":-1}'>⬅ Rải sang trái</button><button class="tbtn big" data-ui='{"d":1}'>Rải sang phải ➡</button></div>`;
+    h += `<div class="oq-cap">${s.P.map((p,i)=>`<span>${escH(p.a)} ${escH(p.n)}: <b>${s.capq[i]?'👑×'+s.capq[i]+' + ':''}${s.cap[i]} dân</b></span>`).join('')}</div>`;
+    return h+'</div>';
+  }
+};
+
+
 /* #####################  JAVASCRIPT.JS  ##################### */
 /* =====================================================================
    javascript.js — nền tảng GameHub
@@ -3253,9 +3723,9 @@ const REG = {
   'snake':    { n:'Rắn săn mồi',i:'🐍', mp:'race', metric:'score', max:8, set:[LIM] },
   'tetris':   { n:'Xếp hình',   i:'🧱', mp:'race', metric:'score', max:8, set:[LIM] },
   'memory':   { n:'Lật hình',   i:'🃏', mp:'turn', min:2, max:4,  set:[{k:'level',n:'Số thẻ',opts:[[0,'12'],[1,'16'],[2,'20'],[3,'30']],def:1}] },
-  'caro':     { n:'Cờ caro',    i:'⭕', mp:'turn', min:2, max:2,  set:[] },
   'line98':   { n:'Line 98',    i:'🔴', mp:'race', metric:'score', max:8, set:[LIM] },
   'flappy':   { n:'Chim bay',   i:'🐤', mp:'race', metric:'score', max:8, set:[LIM] },
+  'shooter':  { n:'Bắn Máy Bay', i:'✈️', mp:'race', metric:'score', max:8, set:[LIM] },
   'breakout': { n:'Phá gạch',   i:'🏓', mp:'race', metric:'score', max:8, set:[LIM] },
   'slide':    { n:'Xếp số',     i:'🔟', mp:'race', metric:'time',  max:8, set:[{k:'level',n:'Cỡ',opts:[[0,'3×3'],[1,'4×4'],[2,'5×5']],def:1},TLIM] },
   'connect4': { n:'Thả cờ 4',   i:'🟡', mp:'turn', min:2, max:2,  set:[] },
@@ -3275,6 +3745,10 @@ const REG = {
   'poker':      { n:'Poker',        i:'♠️', mp:'table', min:2, max:6, bots:3, set:[{k:'rounds',n:'Kết thúc',opts:[[0,'Khi còn 1 người'],[10,'Sau 10 ván'],[20,'Sau 20 ván']],def:10}] },
   'gomoku':     { n:'Caro 20×20',   i:'⚔️', mp:'table', min:2, max:2, bots:1, set:[{k:'size',n:'Bàn cờ',opts:[[15,'15×15'],[20,'20×20']],def:20},{k:'block',n:'Luật chặn 2 đầu',opts:[[0,'Không'],[1,'Có']],def:0},{k:'target',n:'Thắng khi đủ',opts:[[1,'1 ván'],[2,'2 ván'],[3,'3 ván']],def:2},TMR] },
   'cotuong':    { n:'Cờ Tướng',     i:'🀄', mp:'table', min:2, max:2, bots:1, set:[{k:'level',n:'Máy',opts:[[1,'Dễ'],[2,'Vừa'],[3,'Khó']],def:2},{k:'tmr',n:'Mỗi nước',opts:[[30,'30 giây'],[60,'60 giây'],[0,'Không giới hạn']],def:60}] },
+  'othello':    { n:'Cờ Lật',       i:'⚫', mp:'table', min:2, max:2, bots:1, set:[{k:'level',n:'Máy',opts:[[1,'Dễ'],[2,'Vừa'],[3,'Khó']],def:2},{k:'target',n:'Thắng khi đủ',opts:[[1,'1 ván'],[2,'2 ván'],[3,'3 ván']],def:2},TMR] },
+  'bantau':     { n:'Bắn Tàu',      i:'🚢', mp:'table', min:2, max:2, bots:1, set:[{k:'size',n:'Bàn',opts:[[8,'8×8 (nhanh)'],[10,'10×10']],def:10},{k:'again',n:'Trúng được bắn tiếp',opts:[[1,'Có'],[0,'Không']],def:1},{k:'target',n:'Thắng khi đủ',opts:[[1,'1 ván'],[2,'2 ván'],[3,'3 ván']],def:1},TMR] },
+  'cangua':     { n:'Cá Ngựa',      i:'🐴', mp:'table', min:2, max:4, bots:3, set:[{k:'tmr',n:'Mỗi lượt',opts:[[15,'15 giây'],[20,'20 giây'],[0,'Không giới hạn']],def:20}] },
+  'oanquan':    { n:'Ô Ăn Quan',    i:'🪨', mp:'table', min:2, max:2, bots:1, set:[{k:'level',n:'Máy',opts:[[1,'Dễ'],[2,'Vừa'],[3,'Khó']],def:2},TMR] },
   'tienlen':    { n:'Tiến Lên',     i:'🏹', mp:'table', min:2, max:4, bots:3, set:[{k:'rounds',n:'Số ván',opts:[[3,'3'],[5,'5'],[10,'10']],def:5},{k:'tmr',n:'Mỗi lượt',opts:[[15,'15 giây'],[25,'25 giây'],[40,'40 giây']],def:25}] },
 };
 /* Bảng xếp hạng: [mã bảng, tên, chiều (max/min), định dạng (n điểm, t thời gian, lv màn, mv lượt)] */
@@ -3285,14 +3759,14 @@ const BOARDS = {
   'mines':[['mines-easy','Dễ','min','t'],['mines-med','Vừa','min','t'],['mines-hard','Khó','min','t']],
   'snake':[['snake','Điểm','max','n']], 'tetris':[['tetris','Điểm','max','n']],
   'memory':[['memory-l1','12 thẻ','min','mv'],['memory-l2','16 thẻ','min','mv'],['memory-l3','20 thẻ','min','mv'],['memory-l4','30 thẻ','min','mv'],['_wins','Thắng online','max','w']],
-  'caro':[['_wins','Thắng online','max','w']], 'connect4':[['_wins','Thắng online','max','w']],
-  'line98':[['line98','Điểm','max','n']], 'flappy':[['flappy','Điểm','max','n']], 'breakout':[['breakout','Điểm','max','n']],
+  'connect4':[['_wins','Thắng online','max','w']],
+  'line98':[['line98','Điểm','max','n']], 'flappy':[['flappy','Điểm','max','n']], 'shooter':[['shooter','Điểm','max','n']], 'breakout':[['breakout','Điểm','max','n']],
   'slide':[['slide-3','3×3','min','t'],['slide-4','4×4','min','t'],['slide-5','5×5','min','t']],
   'whack':[['whack','Điểm','max','n']],
   'math':[['math-easy','Dễ','max','n'],['math-med','Vừa','max','n'],['math-hard','Khó','max','n']],
   'simon':[['simon','Số màu nhớ được','max','n']],
 };
-['taixiu','baucua','chanle','xucxac','oantuti','speedmath','guessnumber','phanxa','xidach','poker','gomoku','cotuong','tienlen'].forEach(k=>{ BOARDS[k]=[['_wins','Số trận thắng','max','w']]; });
+['taixiu','baucua','chanle','xucxac','oantuti','speedmath','guessnumber','phanxa','xidach','poker','gomoku','cotuong','tienlen','othello','bantau','cangua','oanquan'].forEach(k=>{ BOARDS[k]=[['_wins','Số trận thắng','max','w']]; });
 const fmtVal = (v,f) => f==='t' ? fmtT(v) : f==='lv' ? 'Màn '+v : f==='mv' ? v+' lượt' : f==='w' ? v+' thắng' : String(v);
 const AVATARS = ['😎','🦊','🐼','🦁','🐸','🦄','🤖','👻','🐯','🐧','🦋','🎃','🐔','🦆','🐙','🐳','🦀','🐉','🐮','🐷','🐹','🍄','🤡','🥸','🔥','🌈','🎯','⚡'];
 const escH = s => String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -4220,7 +4694,7 @@ const EmojiPicker = (() => {
 })();
 
 /* ================= ROUTER ================= */
-const GAMES = { 'thao-dinh': TD, 'sudoku': SD, '2048': G2048, 'mines': MINES, 'snake': SNAKE, 'tetris': TETRIS, 'memory': MEMO, 'caro': CARO, 'line98': LINE98, 'flappy': FLAPPY, 'breakout': BREAKOUT, 'slide': SLIDE, 'connect4': CONNECT4, 'whack': WHACK, 'math': MATHG, 'simon': SIMON };
+const GAMES = { 'thao-dinh': TD, 'sudoku': SD, '2048': G2048, 'mines': MINES, 'snake': SNAKE, 'tetris': TETRIS, 'memory': MEMO, 'line98': LINE98, 'flappy': FLAPPY, 'shooter': SHOOTER, 'breakout': BREAKOUT, 'slide': SLIDE, 'connect4': CONNECT4, 'whack': WHACK, 'math': MATHG, 'simon': SIMON };
 const PAGES = ['menu','room','rank','setup','admin','table'];
 let current = null;
 function go(name){ location.hash = name || 'menu'; }
