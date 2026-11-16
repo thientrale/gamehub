@@ -6,7 +6,6 @@
 <title>GameHub 🎮</title>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="design.css">
-<link rel="stylesheet" href="design-gamehub.css">
 </head>
 <body>
 <div id="arc">
@@ -17,14 +16,14 @@
   <div class="mbtns"><button class="primary" onclick="go('rank')">🏆 Xếp hạng</button><div class="joinrow"><input id="m-code" maxlength="3" inputmode="numeric" placeholder="Mã phòng" onkeydown="if(event.key==='Enter')ARC.joinAny(this.value)"><button class="green" onclick="ARC.joinAny(document.getElementById('m-code').value)">Vào</button></div></div>
   <div class="rh">🟢 Phòng đang mở</div><div id="m-rooms" class="rooms"><div class="empty">Đang tải…</div></div>
   <div class="rh">🃏 Bài & đối kháng online</div>
-  <div class="games"><button class="gcard" style="--a:#8b5cf6;--b:#312e81;--s:#1e1b4b" onclick="openLobby('caro')"><div class="gi">⚔️</div><div><h3>Caro 20×20</h3><div class="gd">5 quân, 15 giây mỗi lượt</div><span class="gs">👥 Online · 🤖 AI</span></div></button><button class="gcard" style="--a:#6d28d9;--b:#312e81;--s:#1e1b4b" onclick="openLobby('taixiu')"><div class="gi">🎲</div><div><h3>Tài Xỉu</h3><div class="gd">3 xúc xắc</div><span class="gs">👥 Online · 🤖 AI</span></div></button><button class="gcard" style="--a:#ec4899;--b:#312e81;--s:#1e1b4b" onclick="openLobby('xidach')"><div class="gi">🃏</div><div><h3>Xì Dách</h3><div class="gd">Người vs người</div><span class="gs">👥 Online · 🤖 AI</span></div></button><button class="gcard" style="--a:#be185d;--b:#312e81;--s:#1e1b4b" onclick="openLobby('cotuong')"><div class="gi">🀄</div><div><h3>Cờ Tướng</h3><div class="gd">Cờ cổ điển</div><span class="gs">👥 Online · 🤖 AI</span></div></button><button class="gcard" style="--a:#7c3aed;--b:#312e81;--s:#1e1b4b" onclick="openLobby('baucua')"><div class="gi">🦀</div><div><h3>Bầu Cua</h3><div class="gd">6 con vật</div><span class="gs">👥 Online · 🤖 AI</span></div></button><button class="gcard" style="--a:#c026d3;--b:#312e81;--s:#1e1b4b" onclick="openLobby('oantuti')"><div class="gi">✊</div><div><h3>Oẳn Tù Tì</h3><div class="gd">Đấu 5 ván</div><span class="gs">👥 Online · 🤖 AI</span></div></button><button class="gcard" style="--a:#a855f7;--b:#312e81;--s:#1e1b4b" onclick="openLobby('speedmath')"><div class="gi">🔢</div><div><h3>Đếm Nhanh</h3><div class="gd">Ai đúng trước thắng</div><span class="gs">👥 Online · 🤖 AI</span></div></button><button class="gcard" style="--a:#9333ea;--b:#312e81;--s:#1e1b4b" onclick="openLobby('guessnumber')"><div class="gi">🎯</div><div><h3>Số May Mắn</h3><div class="gd">Đoán số 1–100</div><span class="gs">👥 Online · 🤖 AI</span></div></button><button class="gcard" style="--a:#db2777;--b:#312e81;--s:#1e1b4b" onclick="openLobby('poker')"><div class="gi">♠️</div><div><h3>Poker</h3><div class="gd">Texas Hold'em</div><span class="gs">👥 Online · 🤖 AI</span></div></button><button class="gcard" style="--a:#7c3aed;--b:#312e81;--s:#1e1b4b" onclick="openLobby('tienlen')"><div class="gi">🏹</div><div><h3>Tiến Lên</h3><div class="gd">2–4 người</div><span class="gs">👥 Online · 🤖 AI</span></div></button><button class="gcard" style="--a:#be123c;--b:#312e81;--s:#1e1b4b" onclick="openLobby('chanle')"><div class="gi">🎰</div><div><h3>Chẵn Lẻ</h3><div class="gd">Đoán chẵn hay lẻ</div><span class="gs">👥 Online · 🤖 AI</span></div></button><button class="gcard" style="--a:#6d28d9;--b:#312e81;--s:#1e1b4b" onclick="openLobby('xucxac')"><div class="gi">🎲</div><div><h3>Xúc Xắc Chiến</h3><div class="gd">Cao hơn thắng</div><span class="gs">👥 Online · 🤖 AI</span></div></button><button class="gcard" style="--a:#c026d3;--b:#312e81;--s:#1e1b4b" onclick="openLobby('phanxa')"><div class="gi">⚡</div><div><h3>Phản Xạ</h3><div class="gd">Bấm nhanh nhất</div><span class="gs">👥 Online · 🤖 AI</span></div></button></div>
+  <div class="games"><button class="gcard" style="--a:#8b5cf6;--b:#312e81;--s:#1e1b4b" onclick="ARC.openGame('gomoku')"><div class="gi">⚔️</div><div><h3>Caro 20×20</h3><div class="gd">2 người · luật chặn 2 đầu</div><span class="gs">👥 Online · 🤖 AI</span></div></button><button class="gcard" style="--a:#6d28d9;--b:#312e81;--s:#1e1b4b" onclick="ARC.openGame('taixiu')"><div class="gi">🎲</div><div><h3>Tài Xỉu</h3><div class="gd">1–8 người · cược xu</div><span class="gs">👥 Online · 🤖 AI</span></div></button><button class="gcard" style="--a:#ec4899;--b:#312e81;--s:#1e1b4b" onclick="ARC.openGame('xidach')"><div class="gi">🃏</div><div><h3>Xì Dách</h3><div class="gd">1–6 người đấu nhà cái</div><span class="gs">👥 Online · 🤖 AI</span></div></button><button class="gcard" style="--a:#be185d;--b:#312e81;--s:#1e1b4b" onclick="ARC.openGame('cotuong')"><div class="gi">🀄</div><div><h3>Cờ Tướng</h3><div class="gd">Đủ luật · máy 3 cấp</div><span class="gs">👥 Online · 🤖 AI</span></div></button><button class="gcard" style="--a:#7c3aed;--b:#312e81;--s:#1e1b4b" onclick="ARC.openGame('baucua')"><div class="gi">🦀</div><div><h3>Bầu Cua</h3><div class="gd">1–8 người · 6 con vật</div><span class="gs">👥 Online · 🤖 AI</span></div></button><button class="gcard" style="--a:#c026d3;--b:#312e81;--s:#1e1b4b" onclick="ARC.openGame('oantuti')"><div class="gi">✊</div><div><h3>Oẳn Tù Tì</h3><div class="gd">2–8 người cùng ra tay</div><span class="gs">👥 Online · 🤖 AI</span></div></button><button class="gcard" style="--a:#a855f7;--b:#312e81;--s:#1e1b4b" onclick="ARC.openGame('speedmath')"><div class="gi">🔢</div><div><h3>Đếm Nhanh</h3><div class="gd">2–8 người · ai nhanh hơn</div><span class="gs">👥 Online · 🤖 AI</span></div></button><button class="gcard" style="--a:#9333ea;--b:#312e81;--s:#1e1b4b" onclick="ARC.openGame('guessnumber')"><div class="gi">🎯</div><div><h3>Số May Mắn</h3><div class="gd">2–8 người · đoán 1–100</div><span class="gs">👥 Online · 🤖 AI</span></div></button><button class="gcard" style="--a:#db2777;--b:#312e81;--s:#1e1b4b" onclick="ARC.openGame('poker')"><div class="gi">♠️</div><div><h3>Poker</h3><div class="gd">Texas Hold'em · 2–6 người</div><span class="gs">👥 Online · 🤖 AI</span></div></button><button class="gcard" style="--a:#7c3aed;--b:#312e81;--s:#1e1b4b" onclick="ARC.openGame('tienlen')"><div class="gi">🏹</div><div><h3>Tiến Lên</h3><div class="gd">2–4 người · chặt heo</div><span class="gs">👥 Online · 🤖 AI</span></div></button><button class="gcard" style="--a:#be123c;--b:#312e81;--s:#1e1b4b" onclick="ARC.openGame('chanle')"><div class="gi">🎰</div><div><h3>Xóc Đĩa</h3><div class="gd">1–8 người · chẵn lẻ</div><span class="gs">👥 Online · 🤖 AI</span></div></button><button class="gcard" style="--a:#6d28d9;--b:#312e81;--s:#1e1b4b" onclick="ARC.openGame('xucxac')"><div class="gi">🎲</div><div><h3>Xúc Xắc Chiến</h3><div class="gd">2–8 người · lắc 3 viên</div><span class="gs">👥 Online · 🤖 AI</span></div></button><button class="gcard" style="--a:#c026d3;--b:#312e81;--s:#1e1b4b" onclick="ARC.openGame('phanxa')"><div class="gi">⚡</div><div><h3>Phản Xạ</h3><div class="gd">2–8 người · bấm nhanh</div><span class="gs">👥 Online · 🤖 AI</span></div></button></div>
   <div class="rh">🧩 Giải đố</div>
   <div class="games"><button class="gcard" style="--a:#f59e0b;--b:#ea580c;--s:#9a3412" onclick="ARC.openGame('thao-dinh')"><div class="gi">🔩</div><div><h3>Tháo Đinh</h3><div class="gd">Tháo vít, gom vào hộp cùng màu</div><span class="gs" id="m-thao-dinh">Chưa chơi</span></div></button><button class="gcard" style="--a:#3b82f6;--b:#6d28d9;--s:#3b0764" onclick="ARC.openGame('sudoku')"><div class="gi">🔢</div><div><h3>Sudoku</h3><div class="gd">Điền số 1–9, 5 cấp độ</div><span class="gs" id="m-sudoku">Chưa chơi</span></div></button><button class="gcard" style="--a:#f97316;--b:#e11d48;--s:#881337" onclick="ARC.openGame('2048')"><div class="gi">🟧</div><div><h3>2048</h3><div class="gd">Vuốt để ghép số</div><span class="gs" id="m-2048">Chưa chơi</span></div></button><button class="gcard" style="--a:#64748b;--b:#334155;--s:#0f172a" onclick="ARC.openGame('mines')"><div class="gi">💣</div><div><h3>Dò mìn</h3><div class="gd">Mở ô, cắm cờ, né bom</div><span class="gs" id="m-mines">Chưa chơi</span></div></button><button class="gcard" style="--a:#ef4444;--b:#7c3aed;--s:#4c1d95" onclick="ARC.openGame('line98')"><div class="gi">🔴</div><div><h3>Line 98</h3><div class="gd">5 bóng cùng màu thẳng hàng</div><span class="gs" id="m-line98">Chưa chơi</span></div></button><button class="gcard" style="--a:#14b8a6;--b:#0f766e;--s:#134e4a" onclick="ARC.openGame('slide')"><div class="gi">🔟</div><div><h3>Xếp số</h3><div class="gd">Trượt ô theo thứ tự</div><span class="gs" id="m-slide">Chưa chơi</span></div></button><button class="gcard" style="--a:#a855f7;--b:#db2777;--s:#831843" onclick="ARC.openGame('memory')"><div class="gi">🃏</div><div><h3>Lật hình</h3><div class="gd">Tìm các cặp giống nhau</div><span class="gs" id="m-memory">Chưa chơi</span></div></button></div>
   <div class="rh">🕹️ Hành động & phản xạ</div>
   <div class="games"><button class="gcard" style="--a:#22c55e;--b:#0d9488;--s:#134e4a" onclick="ARC.openGame('snake')"><div class="gi">🐍</div><div><h3>Rắn săn mồi</h3><div class="gd">Ăn mồi, đừng tự cắn</div><span class="gs" id="m-snake">Chưa chơi</span></div></button><button class="gcard" style="--a:#06b6d4;--b:#2563eb;--s:#1e3a8a" onclick="ARC.openGame('tetris')"><div class="gi">🧱</div><div><h3>Xếp hình</h3><div class="gd">Xếp khối, xóa hàng</div><span class="gs" id="m-tetris">Chưa chơi</span></div></button><button class="gcard" style="--a:#38bdf8;--b:#0284c7;--s:#0c4a6e" onclick="ARC.openGame('flappy')"><div class="gi">🐤</div><div><h3>Chim bay</h3><div class="gd">Vỗ cánh qua các ống</div><span class="gs" id="m-flappy">Chưa chơi</span></div></button><button class="gcard" style="--a:#6366f1;--b:#1e1b4b;--s:#020617" onclick="ARC.openGame('breakout')"><div class="gi">🏓</div><div><h3>Phá gạch</h3><div class="gd">Đỡ bóng, phá gạch</div><span class="gs" id="m-breakout">Chưa chơi</span></div></button><button class="gcard" style="--a:#84cc16;--b:#4d7c0f;--s:#365314" onclick="ARC.openGame('whack')"><div class="gi">🔨</div><div><h3>Đập chuột</h3><div class="gd">30 giây, né bom</div><span class="gs" id="m-whack">Chưa chơi</span></div></button><button class="gcard" style="--a:#10b981;--b:#3b82f6;--s:#1e3a8a" onclick="ARC.openGame('simon')"><div class="gi">🎵</div><div><h3>Simon</h3><div class="gd">Nhớ chuỗi màu</div><span class="gs" id="m-simon">Chưa chơi</span></div></button><button class="gcard" style="--a:#f43f5e;--b:#be123c;--s:#881337" onclick="ARC.openGame('math')"><div class="gi">➗</div><div><h3>Tính nhẩm</h3><div class="gd">60 giây tính nhanh</div><span class="gs" id="m-math">Chưa chơi</span></div></button></div>
   <div class="rh">♟️ Cờ</div>
   <div class="games"><button class="gcard" style="--a:#eab308;--b:#ca8a04;--s:#713f12" onclick="ARC.openGame('caro')"><div class="gi">⭕</div><div><h3>Caro 15×15</h3><div class="gd">Đấu máy, 2 người, online</div><span class="gs" id="m-caro">Chưa chơi</span></div></button><button class="gcard" style="--a:#2563eb;--b:#eab308;--s:#1e3a8a" onclick="ARC.openGame('connect4')"><div class="gi">🟡</div><div><h3>Thả cờ 4</h3><div class="gd">4 quân liên tiếp</div><span class="gs" id="m-connect4">Chưa chơi</span></div></button></div>
-  <div class="foot">Kết quả trận online và bảng xếp hạng được lưu trên máy chủ GameHub.</div>
+  <div class="foot">Kết quả trận online và bảng xếp hạng được lưu trên máy chủ GameHub. · <a class="admlink" onclick="go('admin')">🛠 Quản trị</a></div>
 </section>
 
 <!-- ================= THÁO ĐINH ================= -->
@@ -279,6 +278,17 @@
     <button class="primary big">🚀 Vào GameHub</button>
   </form>
 </section>
+<section class="view" id="view-admin">
+  <div class="vhead"><button class="ghost" onclick="go('menu')">← Sảnh</button><div class="vtitle">🛠 Quản trị</div><span class="vsp"></span></div>
+  <div id="ad-body" style="width:100%"></div>
+</section>
+<section class="view" id="view-table">
+  <div class="tb-head"><button class="ghost" id="tb-room">← Phòng</button><div class="tb-t"><b id="tb-title"></b><small id="tb-round"></small></div><button class="ghost" id="tb-host" title="Chủ phòng: dừng ván">⏹</button><button class="ghost tb-chat" id="tb-chat">💬<span id="tb-chatn" class="tb-chatn" style="display:none"></span></button></div>
+  <div class="tb-timer" id="tb-timer" style="display:none"><i></i><span></span></div>
+  <div class="tb-players" id="tb-players"></div>
+  <div class="tb-body" id="tb-body"></div>
+  <div class="tb-emo" id="tb-emo"></div>
+</section>
 
 <section class="view" id="view-room">
   <div class="vhead"><button class="ghost" onclick="go('')">← Sảnh</button><div class="vtitle" id="room-title">Phòng</div><span class="vsp"></span></div>
@@ -294,34 +304,11 @@
 </section>
 </div>
 
-<!-- ================= 13 GAME GAMEHUB CŨ (giao diện riêng trong #ghx) ================= -->
-<div id="ghx">
-  <div class="topbar">
-    <button class="back" onclick="goHome()">← Sảnh</button>
-    <div class="logo" onclick="goHome()">🎮 GameHub</div>
-    <div class="uchip" onclick="go('setup')"><span id="cav">😎</span><span id="cname">Bạn</span></div>
-  </div>
-  <div id="home" class="hide"><div class="rlist" id="rlist"></div></div>
-  <div id="room">
-    <div class="garea" id="garea"></div>
-    <div class="csidebar">
-      <div class="cheader"><span><span class="odot"></span>Chat</span><span id="ocnt" style="font-size:11px;color:var(--muted)">1</span><button class="cclose" id="cclose">✕</button></div>
-      <div class="cmsgs" id="cmsgs"></div>
-      <div class="cinrow"><button type="button" class="ebtn" id="cemo" title="Chọn emoji">😊</button><input type="text" id="cinput" placeholder="Nhắn gì đó..." maxlength="120" onkeydown="if(event.key==='Enter')sendChat()"><button class="sbtn" onclick="sendChat()">➤</button></div>
-    </div>
-    <button class="chatfab" id="chatfab" title="Chat">💬<span class="chatbadge" id="chatbadge"></span></button>
-  </div>
-  <div class="ovl" id="ovl"><div class="modal"><div class="mem" id="mem">🏆</div><div class="mtitle" id="mtitle">Thắng!</div><div class="msub" id="msub"></div><button class="btn btn-p" onclick="closeModal()">Tiếp tục</button><button class="btn btn-g" style="margin-top:4px" onclick="leaveRoom()">🏠 Trang chủ</button></div></div>
-</div>
 
 <!-- Firebase (bản compat: chạy được cả khi mở file trực tiếp) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<!-- Không tải được Firebase (mất mạng, trang artifact) hoặc ?local=1 → dùng bộ lưu trên máy -->
-<script src="offline-firebase.js"></script>
-<!-- 16 game arcade → nền tảng chung (tên, phòng, xếp hạng, router) → 13 game GameHub cũ -->
-<script src="games-arcade.js"></script>
+<!-- Toàn bộ code: 16 game arcade + 13 game bài & đối kháng + nền tảng online -->
 <script src="javascript.js"></script>
-<script src="games-gamehub.js"></script>
 </body>
 </html>
