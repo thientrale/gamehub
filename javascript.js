@@ -2655,7 +2655,7 @@ TG.phanxa = {
   },
   after(s, me, ui, body){
     const pad=body.querySelector('#px-pad'); if(!pad) return;
-    const loop=()=>{ const p=document.getElementById('px-pad'); if(!p || current!=='table') { ui.raf=0; return; } const st=TGU._cur ? TGU._cur() : s; this.paint(st, me, ui, p, Net.now()); ui.raf=requestAnimationFrame(loop); };
+    const loop=()=>{ const p=document.getElementById('px-pad'); if(!p || current!=='table') { ui.raf=0; return; } const st=TGU._cur ? TGU._cur() : s; if(!st){ ui.raf=0; return; } this.paint(st, me, ui, p, Net.now()); ui.raf=requestAnimationFrame(loop); };
     if(!ui.raf) ui.raf=requestAnimationFrame(loop); else this.paint(s, me, ui, pad, Net.now());
   },
   view(s, me){
@@ -3024,6 +3024,15 @@ function tlCombos(hand){
 }
 
 const TL_SEQ = ['🥇','🥈','🥉','4️⃣'];
+const TL_SAY = {
+  chop: ['Bay màu nhé con 💀','Toang rồi ní ơi 💥','Khét lẹt chưa 🔥','Ăn hành ngập mặt 🧅','Chốt đơn con heo 📦','U là trời, chặt! ⚡','Đi mà khóc đi 😭','Hết nước chấm 🫗','Gãy cánh nha 🪽','Ez lắm mấy bây 😎','Cạn lời với mày 🤐','Dzô đây ba 🔪','Xử gọn 💅','Chốt kèo cái rụp 🎯','Mày hết cứu rồi 🏳️','Nằm xuống em ơi ⚰️','Ăn ngay và luôn 🍜','Flex phát chặt nè 💪'],
+  ngang: ['Chặt ngang bất ngờ chưa 😮','Ra tay không báo trước ⚡','Bẻ lái cực gắt 🏎️💨','Không ai cản nổi anh 💢','Đỉnh của chóp 🏔️','Nhập cuộc, né đi 🥷','Ngang hông luôn á 😤','Xuất hiện đúng lúc 🦸','Góp vui tí 🎪'],
+  heo: ['Heo nè cưng 🐷','Thả thính con heo 🐽','Đỡ con heo zìa 🐖','Heo bay phấp phới 🐷✨','Nhẹ nhàng con heo 🍖','Heo tới, né đi 🐷💨','Ụt ụt 🐽','Lùa heo về chuồng nè 🚜','Con heo mập đây 🐷🍗'],
+  white: ['Tới trắng, khỏi bàn 🎉','Bài thần thánh, ez 🃏✨','Khỏi đánh thắng luôn 😤','Đỉnh nóc kịch trần 🚀','Số hưởng vô đối 🍀','Ông trời thương tui 🙏','Trúng số rồi nha 🎰'],
+  win: ['Dọn sạch, bai mấy đứa 😎','Về nhất ez game 🥇','Xin phép cạn bài trước 👋','GG no re nha 🎮','Flex nhẹ cái nhất 💅','Trùm cuối là đây 👑','Tạm biệt và hẹn gặp lại 🫡','Hết bài, dìa nhà 🏠','Nhất bàn không đối thủ 🏆']
+};
+const tlSay = a => a[Math.floor(Math.random()*a.length)];
+const TL_COL = ['#38bdf8','#f472b6','#fbbf24','#4ade80','#a78bfa','#fb923c','#2dd4bf','#f87171'];
 const tlCardH = (c, cls, sel) => `<span class="pc ${tlRed(c)?'red':''} ${cls||''}${sel?' sel':''}"><b>${c.slice(0,-1)}</b><i>${c.slice(-1)}</i></span>`;
 TG.tienlen = {
   per:{ sc:0, wins:0, hand:()=>[], pass:0, game:0 },
@@ -3036,10 +3045,11 @@ TG.tienlen = {
     const n=s.P.length, deck=[]; for(const r of TL_R) for(const u of TL_S) deck.push(r+u);
     TGU.shuffle(deck, rng); s.gn++;
     s.hand=s.P.map((p,i)=>tlSort(deck.slice(i*13, i*13+13)));
-    s.pile=[]; s.pileBy=-1; s.pass=s.P.map(()=>0); s.ranks=[]; s.cong=[]; s.game=s.P.map(()=>0); s.chop=0; s.res=[]; s.must='';
+    s.pile=[]; s.pileBy=-1; s.pass=s.P.map(()=>0); s.ranks=[]; s.cong=[]; s.game=s.P.map(()=>0); s.chop=0; s.chopV=-1; s.res=[]; s.must=''; s.say=null; s.dealt=now;
     TGU.phase(s,'play',0,now);
     for(let i=0;i<n;i++){ const why=tlInstant(s.hand[i]); if(why){
       s.P.forEach((p,j)=>{ if(j!==i){ s.game[j]-=2; s.game[i]+=2; } });
+      s.say={ i, t:tlSay(TL_SAY.white), ts:now };
       this.finish(s, [i], now, '⚡ TỚI TRẮNG! '+this.nm(s,i)+' — '+why); return; } }
     let lead = s.lastW>=0 && s.lastW<n ? s.lastW : -1;
     if(lead<0){ let low=null; s.hand.forEach((h,i)=>{ if(!low || tlV(h[0])<tlV(low.c)) low={i,c:h[0]}; }); lead=low.i; s.must=low.c; }
@@ -3052,9 +3062,34 @@ TG.tienlen = {
     for(let k=1;k<=n;k++){ const i=(pileBy+k)%n; if(has(i)) return {turn:i, nr:true}; }
     return {turn:-1, nr:true};
   },
-  newRound(s, i, now){ s.pile=[]; s.pileBy=-1; s.pass=s.P.map(()=>0); s.chop=0; if(!s.log || s.log.ts!==now) TGU.log(s,'🔄 Vòng mới — '+this.nm(s,i)+' đi','',now); },
+  newRound(s, i, now){ s.pile=[]; s.pileBy=-1; s.pass=s.P.map(()=>0); s.chop=0; s.chopV=-1; if(!s.log || s.log.ts!==now) TGU.log(s,'🔄 Vòng mới — '+this.nm(s,i)+' đi','',now); },
+  // 4 đôi thông được chặt ngang (không cần tới lượt) khi trên bàn là heo hoặc bom
+  ngang(s, i, cards){
+    if(s.ph!=='play' || !s.pile.length || s.pileBy===i || !s.hand[i].length) return false;
+    const Q=tlType(cards); if(!Q || Q.t!=='pairseq' || Q.pairs<4) return false;
+    if(!cards.every(c=>s.hand[i].includes(c))) return false;
+    const r=tlBeat(s.pile, cards), P=tlType(s.pile); return r.ok && ((P.rk===TL_TWO && r.chop>0) || s.chop>0);
+  },
+  ngangOpts(s, i){ if(i<0 || s.ph!=='play' || !s.pile.length || s.pileBy===i || !s.hand[i] || s.hand[i].length<8) return [];
+    return tlCombos(s.hand[i]).filter(c=>this.ngang(s,i,c)); },
+  // bom còn trên tay (để phạt thối): tứ quý 4 · 3 đôi thông 4 · 4 đôi thông 6
+  bombs(hand){
+    const cnt={}; (hand||[]).forEach(c=>{ const r=tlRk(c); if(r!==TL_TWO) cnt[r]=(cnt[r]||0)+1; });
+    let pts=0; const names=[];
+    Object.keys(cnt).forEach(r=>{ if(cnt[r]===4){ pts+=4; names.push('tứ quý'); cnt[r]=0; } });
+    const rs=Object.keys(cnt).map(Number).filter(r=>cnt[r]>=2).sort((a,b)=>a-b); let run=[];
+    const flush=()=>{ let k=run.length; while(k>=3){ if(k>=4){ pts+=6; names.push('4 đôi thông'); k-=4; } else { pts+=4; names.push('3 đôi thông'); k-=3; } } run=[]; };
+    rs.forEach(r=>{ if(run.length && r!==run[run.length-1]+1) flush(); run.push(r); }); flush();
+    return { pts, names };
+  },
+  // các bộ đánh được ngay lúc này (đúng lượt)
+  plays(s, me){ if(me<0 || s.ph!=='play' || s.turn!==me) return []; return tlCombos(s.hand[me]).filter(c=>!this.check(s,me,c)); },
+  // bộ chứa lá c chặn được bài trên bàn, nước yếu trước, bom sau cùng
+  cands(s, me, c){ const bomb=x=>{ const t=tlType(x); return t.t==='quad'||t.t==='pairseq'; };
+    return this.plays(s,me).filter(x=>x.includes(c)).sort((a,b)=>(bomb(a)-bomb(b)) || (tlType(a).top-tlType(b).top) || (a.length-b.length)); },
   check(s, i, cards){
-    if(s.ph!=='play' || s.turn!==i) return 'Chưa đến lượt!';
+    if(s.ph!=='play') return 'Chưa đến lượt!';
+    if(s.turn!==i) return this.ngang(s, i, cards) ? '' : 'Chưa đến lượt!';
     if(!cards || !cards.length) return 'Chọn bài trước!';
     if(!cards.every(c=>s.hand[i].includes(c))) return 'Bài không có trên tay';
     if(!tlType(cards)) return 'Bộ bài không hợp lệ';
@@ -3067,14 +3102,26 @@ TG.tienlen = {
       s.pass[i]=1; const nx=this.next(s, i, s.pileBy); if(nx.nr) this.newRound(s, nx.turn, now); this.setTurn(s, nx.turn, now); return true; }
     if(a.t!=='play') return false;
     const cards=(a.c||[]).filter(x=>typeof x==='string'); if(this.check(s,i,cards)) return false;
-    const res=tlBeat(s.pile, cards), P=tlType(s.pile);
+    const res=tlBeat(s.pile, cards), P=tlType(s.pile), ngang = s.turn!==i;
     s.hand[i]=s.hand[i].filter(c=>!cards.includes(c));
-    let chop=res.chop||0; if(P && (P.t==='quad'||P.t==='pairseq') && s.chop) chop=(chop||4)+s.chop;
-    if(chop){ s.game[i]+=chop; s.game[s.pileBy]-=chop; TGU.log(s,'💥 '+this.nm(s,i)+' CHẶT '+this.nm(s,s.pileBy)+'  +'+chop,'big',now); }
+    // điểm chặt chỉ tính theo heo: heo đen 2, heo đỏ 3 (đôi heo cộng 2 lá); bom không cộng thêm
+    let chop=0; const victim=s.pileBy;
+    if(P && P.rk===TL_TWO && (P.t==='single'||P.t==='pair') && res.chop) chop=res.chop;
+    else if(s.chop && s.chopV>=0 && P && (P.t==='quad'||P.t==='pairseq')){
+      // chặt chồng: hoàn lại lần chặt trước, người bị chặt sau cùng lãnh nguyên điểm heo
+      s.game[s.chopV]+=s.chop; s.game[victim]-=s.chop; chop=s.chop;
+    }
+    if(chop){ s.game[i]+=chop; s.game[victim]-=chop;
+      TGU.log(s,'💥 '+this.nm(s,i)+(ngang?' CHẶT NGANG ':' CHẶT ')+this.nm(s,victim)+'  '+(s.chop?'(chồng) ':'')+'+'+chop,'big',now);
+      s.say={ i, t:tlSay(ngang?TL_SAY.ngang:TL_SAY.chop), ts:now }; }
+    else if(P && P.rk===TL_TWO && !s.hand[i].length===false && Math.random()<.5){ s.say={ i, t:tlSay(TL_SAY.heo), ts:now }; }
+    if(ngang) s.pass[i]=0;
+    s.chopV = chop ? victim : -1;
     s.chop=chop; s.pile=tlSort(cards); s.pileBy=i; s.must='';
     if(!s.hand[i].length){ s.ranks.push(i);
       if(s.ranks.length===1) s.cong=s.P.map((p,j)=>j).filter(j=>j!==i && s.hand[j].length===13);
-      if(!chop) TGU.log(s, TL_SEQ[s.ranks.length-1]+' '+this.nm(s,i)+' về '+['nhất','nhì','ba'][s.ranks.length-1]+'!','win',now); }
+      if(!chop) TGU.log(s, TL_SEQ[s.ranks.length-1]+' '+this.nm(s,i)+' về '+['nhất','nhì','ba'][s.ranks.length-1]+'!','win',now);
+      if(s.ranks.length===1) s.say={ i, t:tlSay(TL_SAY.win), ts:now }; }
     const left=s.P.map((p,j)=>j).filter(j=>s.hand[j].length);
     if(left.length<=1){ this.finish(s, s.ranks, now); return true; }
     const nx=this.next(s, i, i); if(nx.nr) this.newRound(s, nx.turn, now);
@@ -3087,7 +3134,11 @@ TG.tienlen = {
     if(!why){
       const pts=TL_PTS[n]||TL_PTS[4]; full.forEach((i,k)=>{ s.game[i]+=pts[Math.min(k,pts.length-1)]; });
       cong.forEach(i=>{ s.game[i]-=3; s.game[full[0]]+=3; notes[i]+='Cóng −3 '; });
-      const last=full[n-1], th=tlHeoPts(s.hand[last]); if(th && !cong.includes(last)){ s.game[last]-=th; s.game[full[0]]+=th; notes[last]+='Thối heo −'+th; }
+      const last=full[n-1];
+      if(!cong.includes(last)){
+        const th=tlHeoPts(s.hand[last]); if(th){ s.game[last]-=th; s.game[full[0]]+=th; notes[last]+='Thối heo −'+th+' '; }
+        const tb=this.bombs(s.hand[last]); if(tb.pts){ s.game[last]-=tb.pts; s.game[full[0]]+=tb.pts; notes[last]+='Thối '+tb.names.join(', ')+' −'+tb.pts; }
+      }
     } else notes[full[0]]=why.split('— ')[1]||'';
     s.res=full.map((i,k)=>({ i, rank:why?(k?2:1):k+1, pts:s.game[i], note:notes[i] }));
     full.forEach(i=>{ s.sc[i]+=s.game[i]; }); s.wins[full[0]]++; s.lastW=full[0];
@@ -3110,6 +3161,9 @@ TG.tienlen = {
     return best;
   },
   tick(s, now, rng){
+    if(s.ph==='play' && s.pile.length && (tlType(s.pile).rk===TL_TWO || s.chop)){
+      for(let j=0;j<s.P.length;j++){ if(!s.P[j].bot || j===s.turn) continue; const o=this.ngangOpts(s,j); if(o.length && rng()<.2) return this.act(s,j,{t:'play',c:o[0]},now); }
+    }
     if(s.ph==='play'){
       const i=s.turn; if(i<0) return false; const p=s.P[i];
       if(p.bot && TGU.bot(s,i,now,rng,900,2200)){ const c=this.pick(s,i,false); if(c && this.act(s,i,{t:'play',c},now)) return true; return this.act(s,i,{t:'pass'},now) || this.act(s,i,{t:'play',c:[s.must||s.hand[i][0]]},now); }
@@ -3128,36 +3182,121 @@ TG.tienlen = {
   badge(s,i){ if(s.ph==='res'){ const r=s.res.find(x=>x.i===i); return r ? TL_SEQ[r.rank-1]+' '+(r.pts>0?'+':'')+r.pts : ''; }
     const n=s.hand[i].length; return n ? '🂠 '+n+(s.pass[i]?' · bỏ':'') : TL_SEQ[s.ranks.indexOf(i)]||'✅'; },
   result: s => TGU.rank(s.sc, true, (v,i)=>(v>0?'+':'')+v+' điểm · '+s.wins[i]+' ván nhất'),
-  ui(v, ui, s, me){
+  // chủ phòng dừng giữa chừng: chốt điểm các ván đã chơi xong
+  partial(s){ const done = s.ph==='res' ? s.gn : s.gn-1; if(done<1) return null;
+    return { rows:TGU.rank(s.sc, true, (v,i)=>(v>0?'+':'')+v+' điểm · '+s.wins[i]+' ván nhất'), note:'⏹ Dừng sau '+done+'/'+s.rounds+' ván' }; },
+  // các kiểu xếp bài trên tay (chỉ đổi thứ tự hiển thị)
+  SORTS: ['Theo số','Theo chất','Theo bộ'],
+  arrange(hand, mode){
+    const h=tlSort(hand.slice()); const rk=c=>tlV(c)>>2, su=c=>TL_S.indexOf(c.slice(-1));
+    if(mode===1) return h.sort((a,b)=>su(a)-su(b)||tlV(a)-tlV(b));
+    if(mode!==2) return h;
+    // theo bộ: sảnh dài nhất → tứ quý/ba/đôi → bài lẻ
+    const by={}; h.forEach(c=>(by[rk(c)]=by[rk(c)]||[]).push(c));
+    const rs=Object.keys(by).map(Number).filter(r=>r!==TL_TWO).sort((a,b)=>a-b);
+    let best=[], cur=[]; rs.forEach(r=>{ cur = cur.length && r===cur[cur.length-1]+1 ? cur.concat(r) : [r]; if(cur.length>best.length) best=cur; });
+    const out=[], used=new Set();
+    if(best.length>=3) best.forEach(r=>{ const c=by[r].find(x=>!used.has(x)); used.add(c); out.push(c); });
+    const left=h.filter(c=>!used.has(c)), g={}; left.forEach(c=>(g[rk(c)]=g[rk(c)]||[]).push(c));
+    Object.values(g).filter(x=>x.length>=2).sort((a,b)=>b.length-a.length||rk(a[0])-rk(b[0])).forEach(x=>x.forEach(c=>{ used.add(c); out.push(c); }));
+    return out.concat(h.filter(c=>!used.has(c)));
+  },
+  apOn(){ try{ return localStorage.getItem('tl_ap')==='1'; }catch(e){ return false; } },
+  ui(v, ui, s, me, send){
     ui.sel = (ui.sel||[]).filter(c=>me>=0 && s.hand[me].includes(c));
-    if(v.k==='c'){ const k=ui.sel.indexOf(v.c); if(k>=0) ui.sel.splice(k,1); else ui.sel.push(v.c); }
-    else if(v.k==='clr') ui.sel=[];
-    else if(v.k==='hint'){ const p=this.pick(s, me, true); if(p) ui.sel=p.slice(); else toast('🤔 Không có bài chặn được — bỏ lượt thôi'); }
+    if(v.k==='c'){
+      const my = s.ph==='play' && s.turn===me;
+      if(my && s.pile.length){
+        const cand=this.cands(s, me, v.c);
+        if(cand.length){
+          const k = ui.tapC===v.c ? (ui.tapK||0)+1 : 0;
+          if(k>=cand.length){ ui.sel=[]; ui.tapC=null; return; }       // chạm hết vòng → bỏ chọn
+          ui.sel=cand[k].slice(); ui.tapC=v.c; ui.tapK=k; ui.tapN=cand.length; return;
+        }
+      }
+      ui.tapC=null; const k=ui.sel.indexOf(v.c); if(k>=0) ui.sel.splice(k,1); else ui.sel.push(v.c); }
+    else if(v.k==='ngang'){ const o=this.ngangOpts(s, me); if(o.length) send({ t:'play', c:o[0] }); }
+    else if(v.k==='ap'){ ui.ap=!this.apOn(); try{ localStorage.setItem('tl_ap', ui.ap?'1':'0'); }catch(e){} toast(ui.ap?'🤖 Tự bỏ lượt: BẬT — vòng nào không chặn được sẽ tự bỏ':'🤖 Tự bỏ lượt: TẮT'); }
+    else if(v.k==='clr'){ ui.sel=[]; ui.tapC=null; }
+    else if(v.k==='sort'){ ui.sort=((ui.sort||0)+1)%3; toast('🔀 Xếp bài: '+this.SORTS[ui.sort]); }
+    else if(v.k==='hint'){ ui.tapC=null; const p=this.pick(s, me, true); if(p) ui.sel=p.slice(); else toast('🤔 Không có bài chặn được — bỏ lượt thôi'); }
   },
   prep(a, ui, s, me){
     if(a.t!=='play') { ui.sel=[]; return a; }
     const cards=(ui.sel||[]).slice(), err=this.check(s, me, cards); if(err){ toast('⚠️ '+err); return null; }
-    ui.sel=[]; return { t:'play', c:cards };
+    ui.sel=[]; ui.tapC=null; return { t:'play', c:cards };
   },
-  view(s, me, ui){
-    const sel=(ui.sel||[]).filter(c=>me>=0 && s.hand[me].includes(c)); ui.sel=sel;
-    let h='<div class="tlx"><div class="felt tlf">';
-    const pt=tlType(s.pile);
-    h += s.pile.length ? `<div class="tl-pile"><small>${escH(this.nm(s,s.pileBy))} · ${tlName(pt)}</small><div class="pcs tl-pc">${s.pile.map(c=>tlCardH(c,'deal')).join('')}</div></div>`
-      : `<div class="tl-pile empty">${s.ph==='play' && s.turn>=0 ? '🆕 '+escH(this.nm(s,s.turn))+' được đi tự do'+(s.must?' — phải có '+s.must:'') : ''}</div>`;
-    if(s.ph==='res'){
-      h += '<div class="tl-res">'+s.res.map(r=>`<div class="tl-rr${r.i===me?' me':''}"><span>${TL_SEQ[r.rank-1]||r.rank}</span><b>${escH(this.nm(s,r.i))}</b><em class="${r.pts>0?'up':r.pts<0?'dn':''}">${r.pts>0?'+':''}${r.pts}</em><small>${escH(r.note||'')}</small></div>`).join('')+'</div>';
-      h += '<div class="tl-show">'+s.P.map((p,i)=>s.hand[i].length&&i!==me?`<div><small>${escH(p.n)} còn:</small><div class="pcs">${s.hand[i].map(c=>tlCardH(c,'sm')).join('')}</div></div>`:'').join('')+'</div>';
+  after(s, me, ui, body, send){
+    if(!send || me<0 || s.ph!=='play' || s.turn!==me || !s.pile.length || !this.apOn()) return;
+    const key=s.gn+'|'+s.pileBy+'|'+s.pile.join('');
+    if(ui.apKey===key || this.plays(s, me).length) return;
+    ui.apKey=key; setTimeout(()=>send({ t:'pass' }), 900);
+  },
+  ownSeats: true,      // tự vẽ ghế quanh bàn → ẩn dải người chơi phía trên
+  // vị trí quanh bàn: mình ở dưới, người đánh kế tiếp ở bên phải (đi ngược chiều kim đồng hồ)
+  spot(n, o){ return n===2 ? ['b','t'][o] : n===3 ? ['b','r','l'][o] : ['b','r','t','l'][o]; },
+  seat(s, i, me, base, now, dealE){
+    now = now || Date.now();
+    const p=s.P[i], n=s.hand[i].length, turn=s.ph==='play' && s.turn===i, rk=s.ranks.indexOf(i), res=s.ph==='res' ? s.res.find(r=>r.i===i) : null;
+    const pos=this.spot(s.P.length, (i-base+s.P.length)%s.P.length);
+    let st = res ? `<b class="${res.pts>0?'up':res.pts<0?'dn':''}">${TL_SEQ[res.rank-1]||''} ${res.pts>0?'+':''}${res.pts}</b>`
+      : rk>=0 ? `<b class="up">${TL_SEQ[rk]} Về ${['nhất','nhì','ba'][rk]||''}</b>`
+      : turn ? '<b class="go">✍️ Đang đánh</b>' : s.pass[i] && s.pile.length ? '<b class="ps">⏭ Bỏ lượt</b>' : '';
+    let cards='';
+    if(pos!=='b'){
+      if(s.ph==='res' && n) cards=`<div class="tl4-open">${s.hand[i].map(c=>tlCardH(c,'xs')).join('')}</div>`;
+      else if(n){ const show=Math.min(n,pos==='t'?13:5);
+        const backs=[...Array(show)].map((_,k)=>{ const de=dealE<1500?(dealE-k*55):9999; return de<400 ? `<span class="pc back xs deal" style="animation-delay:${-Math.max(0,de)}ms"></span>` : '<span class="pc back xs"></span>'; }).join('');
+        cards=`<div class="tl4-fan">${backs}</div><em class="tl4-n${n<=2?' warn':''}">${n} lá</em>`; }
     }
-    h += '</div>';
-    if(me<0) return h+'</div>';
-    const hand=s.hand[me], my=s.ph==='play' && s.turn===me;
+    const chatT = TGU.chat ? TGU.chat(p.id) : '';
+    const sayT = s.say && s.say.i===i && now-s.say.ts < 3200 ? s.say.t : '';
+    const bub = chatT || sayT;
+    const say = bub ? `<div class="tl4-bubble${chatT?' chat':''}">${escH(bub)}</div>` : '';
+    return `<div class="tl4-z z-${pos}${turn?' turn':''}${i===me?' me':''}${s.pass[i]&&s.pile.length&&!turn?' passed':''}${rk>=0?' done':''}">${say}
+      <div class="tl4-av" style="--pc:${TL_COL[i%TL_COL.length]}">${escH(p.a)}${TGU.emo?TGU.emo(p.id):''}</div>
+      <div class="tl4-info"><span class="tl4-nm">${escH(p.n)}</span><span class="tl4-sc">${(s.sc[i]>0?'+':'')+s.sc[i]} đ</span>${st?`<span class="tl4-st">${st}</span>`:''}</div>${cards}</div>`;
+  },
+  view(s, me, ui, now){
+    now = now || Date.now();
+    const sel=(ui.sel||[]).filter(c=>me>=0 && s.hand[me].includes(c)); ui.sel=sel;
+    const base = me>=0 ? me : 0, pt=tlType(s.pile);
+    if(ui.dealKey!==s.gn){ ui.dealKey=s.gn; ui.dealAt=Date.now(); }
+    const dealE = Date.now()-(ui.dealAt||0), dealing = dealE<1500;
+    const shake = s.chop && ui.flyAt && Date.now()-ui.flyAt<700 && ui.flySig===s.gn+'|'+s.pileBy+'|'+s.pile.join('');
+    let h=`<div class="tlx tl4"><div class="tl4-table${shake?' chopped':''}">`;
+    s.P.forEach((p,i)=>{ h += this.seat(s, i, me, base, now, dealing?dealE:9999); });
+    if(dealing && dealE<1300) h += `<div class="tl4-deck" style="opacity:${Math.max(0,1-dealE/1300)}">${'<span class="pc back"></span>'.repeat(5)}</div>`;
+    h += '<div class="tl4-mid">';
+    if(s.ph==='res'){
+      h += '<div class="tl4-confetti">'+[...Array(16)].map((_,k)=>`<i style="--x:${(k*6.3-5).toFixed(0)}%;--d:${(k%5)*.15}s;--c:${TL_COL[k%TL_COL.length]}"></i>`).join('')+'</div>';
+      h += '<div class="tl-res">'+s.res.map(r=>`<div class="tl-rr${r.i===me?' me':''}"><span>${TL_SEQ[r.rank-1]||r.rank}</span><b>${escH(this.nm(s,r.i))}</b><em class="${r.pts>0?'up':r.pts<0?'dn':''}">${r.pts>0?'+':''}${r.pts}</em><small>${escH(r.note||'')}</small></div>`).join('')+'</div>';
+    } else if(s.pile.length){
+      const sig=s.gn+'|'+s.pileBy+'|'+s.pile.join(''), nowMs=Date.now();
+      if(ui.flySig!==sig){ ui.flySig=sig; ui.flyAt=nowMs; }
+      const el=nowMs-(ui.flyAt||0), from=this.spot(s.P.length, (s.pileBy-base+s.P.length)%s.P.length);
+      const fly = el<600 ? ` fly fly-${from}${s.chop?' chop':''}" style="animation-delay:-${el}ms` : '';
+      h += `<div class="tl-pile"><div class="pcs tl-pc${fly}">${s.pile.map(c=>tlCardH(c,'')).join('')}</div><small>${escH(this.nm(s,s.pileBy))} · ${tlName(pt)}${s.chop?' · 💥 chặt':''}</small></div>`;
+    } else {
+      h += `<div class="tl-pile empty">${s.ph==='play' && s.turn>=0 ? '🆕 '+escH(this.nm(s,s.turn))+'<br>được đi tự do'+(s.must?'<br>phải có <b>'+s.must+'</b>':'') : ''}</div>`;
+    }
+    if(s.ph==='play'){ const one=s.P.map((p,i)=>i).filter(i=>s.hand[i].length===1);
+      if(one.length) h += `<div class="tl4-warn">⚠️ ${one.map(i=>escH(this.nm(s,i))).join(', ')} còn 1 lá!</div>`; }
+    h += `</div></div>`;
+    if(me<0) return h+'<div class="bg-msg">👀 Bạn đang xem</div></div>';
+    const hand=this.arrange(s.hand[me], ui.sort||0), my=s.ph==='play' && s.turn===me;
+    const plays = my ? this.plays(s, me) : [], ok1 = new Set(); plays.forEach(x=>x.forEach(c=>ok1.add(c)));
+    const ngo = this.ngangOpts(s, me);
     if(hand.length){
-      h += `<div class="tl-hand${my?' my':''}">${hand.map(c=>`<span data-ui='${JSON.stringify({k:'c',c})}'>${tlCardH(c,'lg',sel.includes(c))}</span>`).join('')}</div>`;
+      h += `<div class="tl-hand${my?' my':''}">${hand.map((c,k)=>{ const dim=my&&s.pile.length&&!ok1.has(c)?' class="dim"':''; const de=dealing?(dealE-k*45):9999;
+        const card = de<420 ? `<span class="pc lg deal${sel.includes(c)?' sel':''}${tlRed(c)?' red':''}" style="animation-delay:${-Math.max(0,de)}ms"><b>${c.slice(0,-1)}</b><i>${c.slice(-1)}</i></span>` : tlCardH(c,'lg',sel.includes(c));
+        return `<span data-ui='${JSON.stringify({k:'c',c})}'${dim}>${card}</span>`; }).join('')}</div>`;
       if(s.ph==='play'){
         const t=tlType(sel), ok=my && !this.check(s, me, sel);
-        h += `<div class="bg-msg">${my ? (sel.length ? (t?tlName(t)+(ok?' ✅':' — không chặn được'):'❌ Không thành bộ') : '👉 Tới lượt bạn!') : '⏳ '+escH(this.nm(s,s.turn))+' đang đánh…'}</div>`;
-        h += `<div class="bg-ctl c">${sel.length?`<button class="tbtn gray" data-ui='{"k":"clr"}'>✖ Bỏ chọn</button>`:''}${my?`<button class="tbtn" data-ui='{"k":"hint"}'>💡 Gợi ý</button>`:''}${my&&s.pile.length?TGU.btn({t:'pass'},'⏭ Bỏ lượt','gray'):''}${my?TGU.btn({t:'play'},'🃏 Đánh','green big',!ok):''}</div>`;
+        const tap = ui.tapC && ui.tapN>1 && sel.length ? ` <small class="tl-tap">bộ ${ui.tapK+1}/${ui.tapN} · chạm lá đó lần nữa để đổi</small>` : '';
+        h += `<div class="bg-msg">${my ? (sel.length ? (t?tlName(t)+(ok?' ✅':' — không chặn được'):'❌ Không thành bộ')+tap : s.pile.length && !plays.length ? '😕 Không có bài chặn được — bỏ lượt thôi'+(this.apOn()?' (đang tự bỏ…)':'') : '👉 Tới lượt bạn! Chạm 1 lá để tự chọn bộ') : '⏳ '+escH(this.nm(s,s.turn))+' đang đánh…'}</div>`;
+        if(ngo.length) h += `<div class="bg-ctl c"><button class="tbtn big red tl-ngang" data-ui='{"k":"ngang"}'>💥 CHẶT NGANG bằng 4 đôi thông!</button></div>`;
+        h += `<div class="bg-ctl c tl-ctl"><button class="tbtn ${this.apOn()?'on':'gray'} tl-ap" data-ui='{"k":"ap"}' title="Tự bỏ những vòng không chặn được">🤖 Tự bỏ lượt: ${this.apOn()?'Bật':'Tắt'}</button><button class="tbtn gray" data-ui='{"k":"sort"}' title="Đổi cách xếp bài">🔀 ${this.SORTS[ui.sort||0]}</button>${sel.length?`<button class="tbtn gray" data-ui='{"k":"clr"}'>✖ Bỏ chọn</button>`:''}${my&&s.pile.length?TGU.btn({t:'pass'},'⏭ Bỏ lượt','gray'):''}${my?`<button class="tbtn" data-ui='{"k":"hint"}'>💡 Gợi ý</button>`:''}${my?TGU.btn({t:'play'},'🃏 Đánh','green big',!ok):''}</div>`;
       }
     } else if(s.ph==='play') h += `<div class="bg-msg win">${TL_SEQ[s.ranks.indexOf(me)]||'✅'} Bạn đã hết bài — chờ ván kết thúc</div>`;
     return h+'</div>';
@@ -3749,7 +3888,7 @@ const REG = {
   'bantau':     { n:'Bắn Tàu',      i:'🚢', mp:'table', min:2, max:2, bots:1, set:[{k:'size',n:'Bàn',opts:[[8,'8×8 (nhanh)'],[10,'10×10']],def:10},{k:'again',n:'Trúng được bắn tiếp',opts:[[1,'Có'],[0,'Không']],def:1},{k:'target',n:'Thắng khi đủ',opts:[[1,'1 ván'],[2,'2 ván'],[3,'3 ván']],def:1},TMR] },
   'cangua':     { n:'Cá Ngựa',      i:'🐴', mp:'table', min:2, max:4, bots:3, set:[{k:'tmr',n:'Mỗi lượt',opts:[[15,'15 giây'],[20,'20 giây'],[0,'Không giới hạn']],def:20}] },
   'oanquan':    { n:'Ô Ăn Quan',    i:'🔘', mp:'table', min:2, max:2, bots:1, set:[{k:'level',n:'Máy',opts:[[1,'Dễ'],[2,'Vừa'],[3,'Khó']],def:2},TMR] },
-  'tienlen':    { n:'Tiến Lên',     i:'🏹', mp:'table', min:2, max:4, bots:3, set:[{k:'rounds',n:'Số ván',opts:[[3,'3'],[5,'5'],[10,'10']],def:5},{k:'tmr',n:'Mỗi lượt',opts:[[15,'15 giây'],[25,'25 giây'],[40,'40 giây']],def:25}] },
+  'tienlen':    { n:'Tiến Lên',     i:'🏹', mp:'table', min:2, max:4, bots:3, set:[{k:'rounds',n:'Số ván',opts:[[3,'3'],[5,'5'],[10,'10'],[20,'20']],def:5},{k:'tmr',n:'Mỗi lượt',opts:[[15,'15 giây'],[25,'25 giây'],[40,'40 giây']],def:25}] },
 };
 /* Bảng xếp hạng: [mã bảng, tên, chiều (max/min), định dạng (n điểm, t thời gian, lv màn, mv lượt)] */
 const BOARDS = {
@@ -3898,7 +4037,7 @@ function showToast(m, ms){ toast(m, ms); }
    ===================================================================== */
 ARC = (() => {
   const $ = id => document.getElementById(id);
-  let code=null, room=null, unsubRoom=null, unsubChat=null;
+  let code=null, room=null, unsubRoom=null, unsubChat=null, resumeWanted=false;
   let race=null;   // {key, round, startAt, limit, settings, finished, score, pct, lastSent}
   let turn=null;   // {key, round}
   let realRandom = Math.random;
@@ -4042,10 +4181,11 @@ ARC = (() => {
       }
     }
   }
-  function finalize(d, list){
-    const res = { round:d.round, list, at:Net.TS };
+  function finalize(d, list, note){
+    const res = { round:d.round, list, at:Net.TS }; if(note) res.note=note;
     Net.update(P('rooms/'+code), { status:'done', result:res });
-    Net.set(P('matches/'+code+'_'+d.round+'_'+d.startAt), { g:d.game, at:Net.TS, mode:REG[d.game].mp, list });
+    const m = { g:d.game, at:Net.TS, mode:REG[d.game].mp, list }; if(note) m.note=note;
+    Net.set(P('matches/'+code+'_'+d.round+'_'+d.startAt), m);
   }
 
   /* ---------- theo lượt ---------- */
@@ -4167,13 +4307,16 @@ ARC = (() => {
     if(d.status==='playing' && me.r===d.round){
       if(REG[d.game].mp==='table'){
         TABLE.onRoom(d, true);
+        if(resumeWanted){ resumeWanted=false; TABLE.open(d); }
       } else if(REG[d.game].mp==='race'){
         if(!race || race.round!==d.round) beginRace(d);
+        if(resumeWanted){ resumeWanted=false; go(d.game); }
       } else {
         if(!turn || turn.round!==d.round) beginTurn(d);
         if(d.state) GAMES[d.game].mpApply(d.state);
+        if(resumeWanted){ resumeWanted=false; go(d.game); }
       }
-    }
+    } else if(resumeWanted && d.status!=='playing') resumeWanted=false;
     // ván kết thúc
     if(d.status==='done' && d.result){
       countStats(d.game, d.result.list, code+'_'+d.result.round+'_'+(d.startAt||0));
@@ -4197,6 +4340,15 @@ ARC = (() => {
     await Net.update(P('rooms/'+code), upd);
   }
   async function backToLobby(){ if(room && isHost(room)) Net.update(P('rooms/'+code), { status:'lobby', state:null }); }
+  // chủ phòng dừng ván giữa chừng: các ván đã chơi xong vẫn được tính điểm và ghi vào lịch sử
+  function stopTable(){
+    if(!room || !isHost(room)) return;
+    if(room.status==='playing' && REG[room.game] && REG[room.game].mp==='table'){
+      const p = TABLE.partial(room);
+      if(p && p.rows && p.rows.length){ finalize(room, p.rows, p.note || '⏹ Dừng sớm'); return; }
+    }
+    backToLobby();
+  }
   function setSetting(k, v){ if(room && isHost(room) && room.status!=='playing') Net.update(P('rooms/'+code+'/settings'), { [k]:v }); }
 
   /* ---------- giao diện phòng ---------- */
@@ -4209,7 +4361,7 @@ ARC = (() => {
     let h = `<div class="rcard codebox"><small>MÃ PHÒNG</small><b>${escH(code)}</b><button class="blue" id="rm-copy">📋 Copy link mời</button><div class="lnk">${escH(link)}</div></div>`;
     // kết quả ván trước
     if(d.result && d.result.list){
-      h += `<div class="rcard"><div class="rh">🏆 Kết quả ván ${d.result.round}</div>` + d.result.list.map(x=>`<div class="rrow${x.id===ME.id?' me':''}"><span class="rk">${['🥇','🥈','🥉'][x.rank-1]||x.rank+'.'}</span><span class="ra">${escH(x.a)}</span><span class="rn">${escH(x.n)}</span><span class="rv">${escH(x.txt)}</span></div>`).join('') + `</div>`;
+      h += `<div class="rcard"><div class="rh">🏆 Kết quả ván ${d.result.round}${d.result.note?` <small class="rnote">${escH(d.result.note)}</small>`:''}</div>` + d.result.list.map(x=>`<div class="rrow${x.id===ME.id?' me':''}"><span class="rk">${['🥇','🥈','🥉'][x.rank-1]||x.rank+'.'}</span><span class="ra">${escH(x.a)}</span><span class="rn">${escH(x.n)}</span><span class="rv">${escH(x.txt)}</span></div>`).join('') + `</div>`;
     }
     // người chơi
     const canEdit = host && d.status!=='playing' && R.mp==='table';
@@ -4238,7 +4390,7 @@ ARC = (() => {
     else if($('rm-rejoin')) $('rm-rejoin').onclick = () => { const me=d.players[ME.id]; if(me.r!==d.round) return toast('Ván này đã bắt đầu trước khi bạn vào — chờ ván sau nhé'); if(REG[d.game].mp==='race'){ if(race) go(d.game); else beginRace(d); } else { if(!turn) beginTurn(d); else go(d.game); GAMES[d.game].mpApply(d.state||{}); } };
     el.querySelectorAll('.seg button[data-k]').forEach(b => b.onclick = () => setSetting(b.dataset.k, isNaN(+b.dataset.v)?b.dataset.v:+b.dataset.v));
     EmojiPicker.attach($('cmsg'), $('cemo2'));
-    $('cform').onsubmit = e => { e.preventDefault(); EmojiPicker.close(); const m=$('cmsg').value.trim(); if(!m) return; $('cmsg').value=''; Net.push(P('rooms/'+code+'/chat'), { n:ME.n, a:ME.a, t:m, ts:Net.TS }); };
+    $('cform').onsubmit = e => { e.preventDefault(); EmojiPicker.close(); const m=$('cmsg').value.trim(); if(!m) return; $('cmsg').value=''; Net.push(P('rooms/'+code+'/chat'), { id:ME.id, n:ME.n, a:ME.a, t:m, ts:Net.TS }); };
     renderChat(lastChat);
   }
   let lastChat=null;
@@ -4251,6 +4403,26 @@ ARC = (() => {
 
   /* ---------- online / sảnh ---------- */
   let where='Sảnh';
+  // nhật ký người chơi / thiết bị — chỉ xem được trong trang Quản trị (có mã PIN)
+  async function logVisit(){
+    try{
+      let dev = store.get('gh_device', null);
+      if(!dev){ dev = 'd'+Date.now().toString(36)+Math.random().toString(36).slice(2,8); store.set('gh_device', dev); }
+      const path = P('visitors/'+dev);
+      const prev = await Net.get(path) || {};
+      const upd = { n:ME.n||'(chưa đặt tên)', a:ME.a||'', pid:ME.id||'', ua:(navigator.userAgent||'').slice(0,200),
+        lang:navigator.language||'', scr:(screen.width||0)+'x'+(screen.height||0), tz:(Intl.DateTimeFormat().resolvedOptions().timeZone||''),
+        last:Net.TS, visits:(prev.visits||0)+1 };
+      if(!prev.first) upd.first = Net.TS;
+      if(prev.ip) upd.ip = prev.ip;
+      Net.update(path, upd);
+      if(!LOCAL_MODE){ try{
+        const ctl = new AbortController(); const tm=setTimeout(()=>ctl.abort(), 4000);
+        const r = await fetch('https://api.ipify.org?format=json', { signal:ctl.signal }); clearTimeout(tm);
+        const j = await r.json(); if(j && j.ip) Net.update(path, { ip:j.ip });
+      }catch(e){} }
+    }catch(e){}
+  }
   function presence(w){
     if(w) where=w; if(!ME.id) return;
     const p=P('online/'+ME.id);
@@ -4344,7 +4516,7 @@ ARC = (() => {
     } else if(rankTab==='matches'){
       const ms = await Net.recent(P('matches'), 'at', 40);
       list.innerHTML = ms.length ? ms.map(m=>{ const R=REG[m.g]||{i:'🎮',n:m.g}; const d=new Date(m.at||0);
-        return `<div class="mrow"><div class="mh">${R.i} <b>${escH(R.n)}</b> <small>${m.mode==='race'?'đua':'đối kháng'} · ${d.toLocaleDateString('vi-VN')} ${d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})}</small></div>`
+        return `<div class="mrow"><div class="mh">${R.i} <b>${escH(R.n)}</b> <small>${m.mode==='race'?'đua':'đối kháng'}${m.note?' · '+escH(m.note):''} · ${d.toLocaleDateString('vi-VN')} ${d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})}</small></div>`
           + (m.list||[]).map(x=>`<div class="rrow sm${x.id===ME.id?' me':''}"><span class="rk">${['🥇','🥈','🥉'][x.rank-1]||x.rank+'.'}</span><span class="ra">${escH(x.a)}</span><span class="rn">${escH(x.n)}</span><span class="rv">${escH(x.txt)}</span></div>`).join('') + '</div>'; }).join('')
         : '<div class="empty">Chưa có trận online nào được ghi lại.</div>';
     } else {
@@ -4379,23 +4551,23 @@ ARC = (() => {
     $('su-rand').onclick=()=>{ const ks=Object.keys(AVCATS); cat=ks[Math.floor(Math.random()*ks.length)]; av=AVCATS[cat][Math.floor(Math.random()*AVCATS[cat].length)]; col=AVCOLS[Math.floor(Math.random()*AVCOLS.length)]; cats(); grid(); cols(); prev(); };
     $('su-custom').oninput=e=>{ const v=[...e.target.value.trim()].slice(0,2).join(''); if(v){ av=v; grid(); prev(); } };
     $('su-form').onsubmit = e => { e.preventDefault(); const n=$('su-name').value.trim().slice(0,16); if(!n){ $('su-name').focus(); return toast('⚠️ Nhập tên trước đã'); }
-      ME.save(n, av, col); renderProfile(); presence();
+      ME.save(n, av, col); renderProfile(); presence(); logVisit();
       const pend = pstore.get('arcade_pending', null); pstore.set('arcade_pending', null);
       if(pend) joinRoom(pend); else go('menu'); };
   }
   function renderProfile(){ $('m-me').innerHTML = ME.id ? `<span class="pa" style="background:${escH(ME.c)}">${escH(ME.a)}</span><b>${escH(ME.n)}</b><small>✏️</small>` : 'Đặt tên'; $('m-mode').textContent = Net.mode==='firebase' && !window.__FAKEFB ? '🟢 Máy chủ online' : '🟠 Chế độ thử: dữ liệu lưu trên máy này'; }
 
   /* ---------- khởi động ---------- */
-  api._t = { room:()=>room, code:()=>code, leader:()=>!!room && amLeader(room), host:()=>!!room && isHost(room), startGame, backToLobby, P };
+  api._t = { room:()=>room, code:()=>code, leader:()=>!!room && amLeader(room), host:()=>!!room && isHost(room), startGame, backToLobby, stopTable, P };
   api.openGame=openGame; api.joinAny=joinAny; api.createRoom=createRoom; api.joinRoom=joinRoom; api.leaveRoom=leaveRoom; api.backToLobby=backToLobby;
-  api.renderRoom=renderRoom; api.renderRank=renderRank; api.renderSetup=renderSetup; api.renderProfile=renderProfile;
+  api.renderRoom=renderRoom; api.renderRank=renderRank; api.visitorsPath=()=>P('visitors'); api.renderSetup=renderSetup; api.renderProfile=renderProfile;
   api.boot = async () => {
     Net.init(); await Net.ready;
-    renderProfile(); watchLobby(); syncHub();
+    renderProfile(); watchLobby(); syncHub(); logVisit();
     const q = new URLSearchParams(location.search).get('arc');
     const saved = pstore.get('arcade_room', null);
     if(!ME.id){ if(q) pstore.set('arcade_pending', q); go('setup'); return; }
-    if(q) joinRoom(q); else if(saved) joinRoom(saved).catch(()=>{});
+    if(q){ resumeWanted=true; joinRoom(q); } else if(saved){ resumeWanted=true; joinRoom(saved).catch(()=>{ resumeWanted=false; }); }
   };
   return api;
 })();
@@ -4414,11 +4586,22 @@ const TABLE = (() => {
       leaderState=null, leaderRound=null, chatN=0, chatSeen=0, chatList=[], doneTimer=null;
   const code = () => ARC._t.code();
   TGU._cur = () => d && d.state;
+  const chatBub = {};
+  TGU.chat = id => { const c=chatBub[id]; return c && Net.now()-c.ts < 5000 ? c.t : ''; };
   const AP = sub => ROOT+'/rooms/'+code()+'/'+sub;
 
   function init(k, seats, set, rnd, rng){ const s = TG[k].init(seats, set, rng, Net.now()); s.P = seats; s.v = 1; return JSON.parse(JSON.stringify(s)); }
   const about = k => (TG[k] && TG[k].about) || '';
   const mySeat = s => s && s.P ? s.P.findIndex(p=>p.id===ME.id) : -1;
+  // kết quả tạm khi chủ phòng dừng giữa chừng (null = chưa có gì để ghi)
+  function partial(dd){
+    const s=dd.state && TGU.fix(JSON.parse(JSON.stringify(dd.state)), TG[dd.game]), M=TG[dd.game]; if(!s || !M) return null;
+    let r=null;
+    if(M.partial) r=M.partial(s);
+    else { const prog=(s.gn||s.round||s.hn||1)>1 || s.ph==='res'; if(prog) r={ rows:M.result(s), note:'⏹ Dừng sớm' }; }
+    if(!r || !r.rows || !r.rows.length) return null;
+    return { note:r.note, rows:r.rows.map(x=>({ id:s.P[x.i].id, n:s.P[x.i].n, a:s.P[x.i].a, rank:x.rank, txt:x.txt })) };
+  }
   function resultIfOver(dd){
     const s=dd.state && TGU.fix(dd.state, TG[dd.game]); if(!s || !s.over) return null;
     return TG[dd.game].result(s).map(r=>({ id:s.P[r.i].id, n:s.P[r.i].n, a:s.P[r.i].a, rank:r.rank, txt:r.txt }));
@@ -4437,13 +4620,14 @@ const TABLE = (() => {
   }
   function start(dd){ d=dd; key=dd.game; round=dd.round; ui={}; seen=new Set(); lastLog=Net.now(); leaderState=null; subscribe(); document.body.classList.add('mp'); if(current!=='table') go('table'); else render(); }
   function open(dd){ start(dd); }
-  function stop(){ document.body.classList.remove('mp'); }
+  function stop(){ document.body.classList.remove('mp'); stopAlert(); lastTurnMe=false; }
   function leave(){ stop(); if(unsubActs){ unsubActs(); unsubActs=null; } if(unsubChat){ unsubChat(); unsubChat=null; } d=null; round=null; leaderState=null; chatN=chatSeen=0; }
   function subscribe(){
     if(!unsubActs) unsubActs = Net.on(AP('acts'), a=>{ acts=a||{}; work(); });
     if(!unsubChat) unsubChat = Net.on(AP('chat'), ch=>{ chatList=Object.values(ch||{}).sort((a,b)=>(a.ts||0)-(b.ts||0)); const n=chatList.length;
-      if(n>chatN && chatN>0 && current==='table'){ const m=chatList[n-1]; if(m && m.n!==ME.n) toast(m.a+' '+m.n+': '+m.t, 2600); }
-      chatN=n; if(current==='table' && !$('gsheet').classList.contains('on')) badge(); else chatSeen=n; renderChatSheet(); });
+      const m=chatList[n-1], fresh = m && Net.now()-(m.ts||0) < 8000;   // chỉ nổi bong bóng cho tin mới, không nổi lại lịch sử cũ lúc vào phòng
+      if(n>chatN && fresh){ if(m.id) chatBub[m.id]={ t:m.t, ts:Net.now() }; if(current==='table' && !pinned && m.n!==ME.n) toast(m.a+' '+m.n+': '+m.t, 2600); render(); }
+      chatN=n; if(current==='table' && !pinned && !$('gsheet').classList.contains('on')) badge(); else { chatSeen=n; badge(); } renderChatSheet(); });
   }
   function send(a){ if(!code()) return; Net.push(AP('acts'), { by:ME.id, a, ts:Net.TS }); }
 
@@ -4470,7 +4654,27 @@ const TABLE = (() => {
   }
   setInterval(work, 250);
 
+  /* ---------- báo hiệu tới lượt khi đang ở tab khác ---------- */
+  let turnAlert=false, titleTimer=null, origTitle=document.title, lastTurnMe=false, chimeTimer=null;
+  function chime(){ try{ beep(880,.12,'sine',.12); setTimeout(()=>beep(1175,.14,'sine',.12),140); }catch(e){} }
+  function startAlert(){
+    if(turnAlert) return; turnAlert=true;
+    let on=false; clearInterval(titleTimer);
+    titleTimer=setInterval(()=>{ on=!on; document.title = on ? '🔔 TỚI LƯỢT BẠN!' : origTitle; }, 700);
+    chime(); clearInterval(chimeTimer); chimeTimer=setInterval(()=>{ if(document.hidden) chime(); }, 5000);
+  }
+  function stopAlert(){ if(!turnAlert && document.title===origTitle) return; turnAlert=false; clearInterval(titleTimer); clearInterval(chimeTimer); titleTimer=chimeTimer=null; document.title=origTitle; }
+  function checkTurn(s, me, turn){
+    const myTurn = me>=0 && turn===me && !s.over && d && d.status==='playing';
+    if(myTurn && !lastTurnMe){ chime(); if(document.hidden) startAlert(); }   // vừa tới lượt
+    else if(myTurn && document.hidden && !turnAlert) startAlert();
+    if(!myTurn) stopAlert();
+    lastTurnMe = myTurn;
+  }
+  document.addEventListener('visibilitychange', ()=>{ if(document.hidden){ if(lastTurnMe) startAlert(); } else stopAlert(); });
+
   /* ---------- giao diện ---------- */
+  TGU.emo = id => emoOf(id);
   function emoOf(id){ const e=d && d.emo && d.emo[id]; return e && Net.now()-(e.ts||0)<3200 ? `<i class="tbp-e">${escH(e.e)}</i>` : ''; }
   function banner(log){
     const el=document.createElement('div'); el.className='tb-banner '+(log.k||''); el.textContent=log.txt; $('arc').appendChild(el); setTimeout(()=>el.remove(), 2300);
@@ -4483,13 +4687,15 @@ const TABLE = (() => {
     const s=d.state, M=TG[key], R=REG[key], me=mySeat(s), turn=M.turn ? M.turn(s) : -1;
     $('tb-title').textContent=R.i+' '+R.n;
     $('tb-round').textContent=M.label ? M.label(s) : '';
-    $('tb-players').innerHTML = s.P.map((p,i)=>{ const st=(d.players||{})[p.id]||{}; const b=M.badge?M.badge(s,i,me):'';
-      return `<div class="tbp${i===me?' me':''}${i===turn&&!s.over?' turn':''}${st.on===false&&!p.bot?' off':''}"><span class="tbp-a">${escH(p.a)}${emoOf(p.id)}</span><span class="tbp-n">${escH(p.n)}</span><b class="tbp-s">${escH(M.score(s,i))}</b>${b?`<span class="tbp-b">${escH(b)}</span>`:''}</div>`; }).join('');
+    $('tb-players').style.display = M.ownSeats ? 'none' : '';
+    $('tb-players').innerHTML = M.ownSeats ? '' : s.P.map((p,i)=>{ const st=(d.players||{})[p.id]||{}; const b=M.badge?M.badge(s,i,me):'';
+      const cb=TGU.chat?TGU.chat(p.id):''; return `<div class="tbp${i===me?' me':''}${i===turn&&!s.over?' turn':''}${st.on===false&&!p.bot?' off':''}">${cb?`<span class="tbp-chat">${escH(cb)}</span>`:''}<span class="tbp-a">${escH(p.a)}${emoOf(p.id)}</span><span class="tbp-n">${escH(p.n)}</span><b class="tbp-s">${escH(M.score(s,i))}</b>${b?`<span class="tbp-b">${escH(b)}</span>`:''}</div>`; }).join('');
     let html = me<0 ? '<div class="tb-spec">👀 Bạn đang xem — chờ ván sau để vào chơi</div>' : '';
     if(s.over && d.status!=='playing'){ html += '<div class="tb-final">🏁 Kết thúc! Đang tổng kết…</div>'; }
     try{ html += M.view(s, me, ui, Net.now()); }catch(e){ console.error(e); html += '<div class="empty">Lỗi hiển thị: '+escH(e.message)+'</div>'; }
     body.innerHTML = html;
-    if(M.after) try{ M.after(s, me, ui, body); }catch(e){ console.error(e); }
+    checkTurn(s, me, turn);
+    if(M.after) try{ M.after(s, me, ui, body, send); }catch(e){ console.error(e); }
     if(s.log && s.log.ts>lastLog){ lastLog=s.log.ts; if(Net.now()-s.log.ts<4000) banner(s.log); }
     $('tb-host').style.display = ARC._t.host() ? '' : 'none';
     frame();
@@ -4522,35 +4728,53 @@ const TABLE = (() => {
 
   /* ---------- nút trên đầu bàn ---------- */
   function emo(e){ if(code()) Net.set(AP('emo/'+ME.id), { e, ts:Net.TS }); }
+  /* chat: mở dạng bảng nổi, hoặc ghim 📌 cố định ở cuối bàn chơi (nhớ lựa chọn trên máy) */
+  let pinned = (()=>{ try{ const v=localStorage.getItem('tb_pin'); return v==null ? window.innerWidth>=900 : v==='1'; }catch(e){ return false; } })();
+  const chatHTML = () => chatList.slice(-50).map(m=>`<div class="cm${m.n===ME.n&&m.a===ME.a?' mine':''}"><b>${escH(m.a)} ${escH(m.n)}:</b> ${escH(m.t)}</div>`).join('') || '<div class="empty">Chưa có tin nhắn</div>';
   function renderChatSheet(){
-    const box=document.getElementById('tbc-list'); if(!box) return;
-    box.innerHTML = chatList.slice(-40).map(m=>`<div class="cm"><b>${escH(m.a)} ${escH(m.n)}:</b> ${escH(m.t)}</div>`).join('') || '<div class="empty">Chưa có tin nhắn</div>';
-    box.scrollTop=box.scrollHeight;
+    ['tbc-list','tbd-list'].forEach(id=>{ const box=document.getElementById(id); if(!box) return; const atEnd=box.scrollHeight-box.scrollTop-box.clientHeight<40; box.innerHTML=chatHTML(); if(atEnd||id==='tbc-list') box.scrollTop=box.scrollHeight; });
+  }
+  function sendChat(inp){ EmojiPicker.close(); const m=inp.value.trim(); if(!m || !code()) return; inp.value=''; Net.push(AP('chat'), { id:ME.id, n:ME.n, a:ME.a, t:m, ts:Net.TS }); }
+  function setPin(on){ pinned=on; try{ localStorage.setItem('tb_pin', on?'1':'0'); }catch(e){} chatSeen=chatN; badge(); renderDock(); }
+  function renderDock(){
+    const dk=$('tb-dock'); if(!dk) return;
+    $('tb-chat').classList.toggle('pinon', pinned);
+    if(!pinned){ dk.innerHTML=''; dk.classList.remove('on'); return; }
+    dk.classList.add('on');
+    dk.innerHTML=`<div class="tbd-h"><b>💬 Chat</b><button type="button" class="tbd-pin on" id="tbd-pin" title="Bỏ ghim">📌 Bỏ ghim</button></div><div class="chat tbd-list" id="tbd-list"></div>
+      <form class="cin" id="tbd-f"><button type="button" class="ebtn" id="tbd-e">😊</button><input id="tbd-m" maxlength="120" placeholder="Nhắn gì đó…" autocomplete="off"><button class="blue">➤</button></form>`;
+    renderChatSheet();
+    $('tbd-pin').onclick=()=>setPin(false);
+    EmojiPicker.attach($('tbd-m'), $('tbd-e'));
+    $('tbd-f').onsubmit=ev=>{ ev.preventDefault(); sendChat($('tbd-m')); };
   }
   function openChat(){
     const sh=$('gsheet'); chatSeen=chatN; badge();
-    sh.innerHTML=`<div class="sheet"><div class="sh-h"><b>💬 Chat bàn chơi</b><button class="ghost" id="tbc-x">✕</button></div><div class="chat" id="tbc-list" style="max-height:45vh"></div>
+    if(pinned){ const i=$('tbd-m'); if(i){ i.focus(); i.scrollIntoView({block:'nearest'}); } return; }
+    sh.innerHTML=`<div class="sheet"><div class="sh-h"><b>💬 Chat bàn chơi</b><span class="sh-sp"></span><button type="button" class="tbd-pin" id="tbc-pin" title="Ghim khung chat cố định dưới bàn chơi">📌 Ghim</button><button class="ghost" id="tbc-x">✕</button></div><div class="chat" id="tbc-list" style="max-height:45vh"></div>
       <form class="cin" id="tbc-f"><button type="button" class="ebtn" id="tbc-e">😊</button><input id="tbc-m" maxlength="120" placeholder="Nhắn gì đó…" autocomplete="off"><button class="blue">➤</button></form></div>`;
     sh.classList.add('on'); renderChatSheet();
     $('tbc-x').onclick=()=>{ sh.classList.remove('on'); EmojiPicker.close(); };
+    $('tbc-pin').onclick=()=>{ sh.classList.remove('on'); EmojiPicker.close(); setPin(true); setTimeout(()=>{ const i=$('tbd-m'); if(i) i.focus(); },50); };
     sh.onclick=ev=>{ if(ev.target===sh){ sh.classList.remove('on'); EmojiPicker.close(); } };
     EmojiPicker.attach($('tbc-m'), $('tbc-e'));
-    $('tbc-f').onsubmit=ev=>{ ev.preventDefault(); EmojiPicker.close(); const m=$('tbc-m').value.trim(); if(!m) return; $('tbc-m').value=''; Net.push(AP('chat'), { n:ME.n, a:ME.a, t:m, ts:Net.TS }); };
+    $('tbc-f').onsubmit=ev=>{ ev.preventDefault(); sendChat($('tbc-m')); };
   }
   function hostMenu(){
     const sh=$('gsheet');
-    sh.innerHTML=`<div class="sheet small"><b class="sh-t">Chủ phòng</b><p>Dừng ván này và quay lại phòng chờ? Kết quả ván sẽ không được ghi.</p><div class="row2"><button id="hm-no">Chơi tiếp</button><button class="primary" id="hm-ok">⏹ Dừng ván</button></div></div>`;
-    sh.classList.add('on'); $('hm-no').onclick=()=>sh.classList.remove('on'); $('hm-ok').onclick=()=>{ sh.classList.remove('on'); ARC._t.backToLobby(); };
+    sh.innerHTML=`<div class="sheet small"><b class="sh-t">Chủ phòng</b><p>Dừng ván này? ${TG[key]&&d&&d.state&&partial(d)?'Điểm các ván đã chơi xong sẽ được <b>chốt và ghi vào lịch sử</b>.':'Chưa có ván nào chơi xong nên sẽ không ghi kết quả.'}</p><div class="row2"><button id="hm-no">Chơi tiếp</button><button class="primary" id="hm-ok">⏹ Dừng ván</button></div></div>`;
+    sh.classList.add('on'); $('hm-no').onclick=()=>sh.classList.remove('on'); $('hm-ok').onclick=()=>{ sh.classList.remove('on'); ARC._t.stopTable(); };
   }
   function bind(){
     $('tb-room').onclick=()=>{ stop(); go('room'); };
     $('tb-chat').onclick=openChat;
+    renderDock();
     $('tb-host').onclick=hostMenu;
     $('tb-emo').innerHTML=['😂','😎','👏','🔥','😡','😭','🙏','💸','🤑','🎉'].map(e=>`<button data-e="${e}">${e}</button>`).join('');
     $('tb-emo').onclick=ev=>{ const b=ev.target.closest('[data-e]'); if(b){ emo(b.dataset.e); b.classList.add('pop'); setTimeout(()=>b.classList.remove('pop'),300); } };
   }
   if(document.readyState!=='loading') setTimeout(bind,0); else document.addEventListener('DOMContentLoaded', bind);
-  return { init, about, onRoom, open, leave, render, resultIfOver, activate(){ if(d && d.status==='playing') document.body.classList.add('mp'); render(); badge(); } };
+  return { init, about, onRoom, open, leave, render, resultIfOver, partial, activate(){ if(d && d.status==='playing') document.body.classList.add('mp'); render(); badge(); } };
 })();
 
 /* ================= QUẢN TRỊ: XÓA PHÒNG ================= */
@@ -4559,7 +4783,7 @@ const TABLE = (() => {
 const ADMIN = (() => {
   const $=id=>document.getElementById(id);
   const LEG = {caro:'⚔️ Caro 20×20',taixiu:'🎲 Tài Xỉu',xidach:'🃏 Xì Dách',cotuong:'🀄 Cờ Tướng',baucua:'🦀 Bầu Cua',oantuti:'✊ Oẳn Tù Tì',speedmath:'🔢 Đếm Nhanh',guessnumber:'🎯 Số May Mắn',poker:'♠️ Poker',tienlen:'🏹 Tiến Lên',chanle:'🎰 Xóc Đĩa',xucxac:'🎲 Xúc Xắc Chiến',phanxa:'⚡ Phản Xạ'};
-  let unlocked=false, pinHash=null, leg={}, arc={}, onl={}, subs=[], filter='all';
+  let unlocked=false, pinHash=null, leg={}, arc={}, onl={}, vis={}, subs=[], filter='all', tab='rooms';
   async function sha(t){
     try{ const b=await crypto.subtle.digest('SHA-256', new TextEncoder().encode('gamehub-admin:'+t)); return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join(''); }
     catch(e){ let h=0; for(const ch of 'gamehub-admin:'+t) h=(h*31+ch.charCodeAt(0))|0; return 'x'+(h>>>0).toString(16); }
@@ -4587,10 +4811,33 @@ const ADMIN = (() => {
     if(!list.length) return toast('Không có phòng nào để xóa');
     ask(label, 'Xóa '+list.length+' phòng? Ai đang ở trong phòng sẽ bị đưa ra sảnh.', async ()=>{ for(const r of list) await del(r.kind, r.id); toast('🗑 Đã xóa '+list.length+' phòng'); });
   }
+  const vago = t => { if(!t) return '?'; const d=new Date(t); return d.toLocaleDateString('vi-VN')+' '+d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}); };
+  function visRows(){
+    return Object.entries(vis).map(([id,v])=>({ id, ...v })).sort((a,b)=>(b.last||0)-(a.last||0));
+  }
+  function uaShort(ua){ ua=ua||''; let os='?', br='?';
+    if(/Windows NT 10/.test(ua))os='Windows 10/11'; else if(/Windows/.test(ua))os='Windows'; else if(/iPhone|iPad|iOS/.test(ua))os='iPhone/iPad'; else if(/Android/.test(ua))os='Android'; else if(/Mac OS X/.test(ua))os='macOS'; else if(/Linux/.test(ua))os='Linux';
+    if(/Edg\//.test(ua))br='Edge'; else if(/OPR\/|Opera/.test(ua))br='Opera'; else if(/Chrome\//.test(ua))br='Chrome'; else if(/Firefox/.test(ua))br='Firefox'; else if(/Safari/.test(ua))br='Safari';
+    return br+' · '+os; }
+  function visitorsPanel(){
+    const list=visRows(), today=list.filter(v=>v.last&&Net.now()-v.last<24*3600e3).length;
+    $('ad-body').innerHTML = tabBar() + `
+      <div class="mystat"><div><small>THIẾT BỊ ĐÃ CHƠI</small><b>${list.length}</b></div><div><small>HÔM NAY</small><b>${today}</b></div><div><small>TỔNG LƯỢT VÀO</small><b>${list.reduce((s,v)=>s+(v.visits||0),0)}</b></div></div>
+      <small class="mtxt">Danh sách các thiết bị đã mở game, chỉ bạn xem được ở trang này. IP chỉ ghi được khi chơi trên web thật (GitHub Pages), không ghi khi chạy ngoại tuyến.</small>
+      <div class="rcard">${list.length ? list.map(v=>`<div class="rrow adrow"><span class="ra">${escH(v.a||'👤')}</span><div class="rn"><b>${escH(v.n||'?')}</b><small>${escH(uaShort(v.ua))}${v.ip?' · <b style="color:#38bdf8">'+escH(v.ip)+'</b>':' · IP: —'}<br>${escH(v.scr||'')} · ${escH(v.tz||'')} · vào ${v.visits||1} lần<br>Lần đầu ${vago(v.first)} · Gần nhất ${vago(v.last)}</small></div><button class="addel" data-vis="${escH(v.id)}">🗑</button></div>`).join('') : '<div class="empty">Chưa có ai mở game 🙂</div>'}</div>
+      ${list.length?`<button id="ad-visclr" style="background:#dc2626;box-shadow:0 4px 0 #7f1d1d">Xóa toàn bộ nhật ký người chơi</button>`:''}
+      <button class="ghost wide" id="ad-lock">🔒 Khóa trang quản trị trên máy này</button>`;
+    $('ad-lock').onclick=()=>{ store.set('gh_admin',null); unlocked=false; render(); };
+    $('ad-body').querySelectorAll('[data-f-tab]').forEach(b=>b.onclick=()=>{ tab=b.dataset.fTab; panel(); });
+    $('ad-body').querySelectorAll('.addel').forEach(b=>b.onclick=()=>{ const id=b.dataset.vis; ask('Xóa thiết bị này?','Xóa khỏi nhật ký (nếu họ mở lại sẽ hiện lại).', async ()=>{ await Net.remove(ROOT+'/visitors/'+id); toast('🗑 Đã xóa'); }); });
+    const clr=$('ad-visclr'); if(clr) clr.onclick=()=>ask('Xóa toàn bộ?','Xóa hết nhật ký người chơi?', async ()=>{ await Net.remove(ROOT+'/visitors'); toast('🗑 Đã xóa nhật ký'); });
+  }
+  function tabBar(){ return `<div class="seg" style="margin-bottom:10px">${[['rooms','🧹 Phòng chơi'],['visitors','👥 Người chơi']].map(([k,l])=>`<button data-f-tab="${k}" class="${tab===k?'on':''}">${l}</button>`).join('')}</div>`; }
   function panel(){
+    if(tab==='visitors') return visitorsPanel();
     const all=rows(), L=all.filter(r=>r.kind==='l').length, A=all.length-L;
     const shown=all.filter(r=>filter==='all'||(filter==='old'&&r.old)||(filter==='empty'&&r.empty)||(filter==='l'&&r.kind==='l')||(filter==='a'&&r.kind==='a'));
-    $('ad-body').innerHTML = `<div class="mystat"><div><small>PHÒNG GAME BÀI</small><b>${L}</b></div><div><small>PHÒNG GAME MỚI</small><b>${A}</b></div><div><small>ĐANG ONLINE</small><b>${Object.keys(onl).length}</b></div></div>
+    $('ad-body').innerHTML = tabBar() + `<div class="mystat"><div><small>PHÒNG GAME BÀI</small><b>${L}</b></div><div><small>PHÒNG GAME MỚI</small><b>${A}</b></div><div><small>ĐANG ONLINE</small><b>${Object.keys(onl).length}</b></div></div>
       <div class="rcard"><div class="rh" style="margin:0">🧹 Dọn nhanh</div>
         <button class="blue" id="ad-c1">Xóa phòng quá 6 giờ (${all.filter(r=>r.old).length})</button>
         <button class="blue" id="ad-c2">Xóa phòng game mới không còn ai online (${all.filter(r=>r.empty).length})</button>
@@ -4604,6 +4851,7 @@ const ADMIN = (() => {
     $('ad-c3').onclick=()=>bulk(all,'Xóa TẤT CẢ phòng');
     $('ad-lock').onclick=()=>{ store.set('gh_admin',null); unlocked=false; render(); };
     $('ad-f').querySelectorAll('button').forEach(b=>b.onclick=()=>{ filter=b.dataset.f; panel(); });
+    $('ad-body').querySelectorAll('[data-f-tab]').forEach(b=>b.onclick=()=>{ tab=b.dataset.fTab; panel(); });
     $('ad-body').querySelectorAll('.addel').forEach(b=>b.onclick=()=>{ const r=shown.find(x=>x.id===b.dataset.id&&x.kind===b.dataset.k); ask('Xóa phòng #'+b.dataset.id+'?', (r?r.name+' — '+(r.who||''):''), async ()=>{ await del(b.dataset.k,b.dataset.id); toast('🗑 Đã xóa phòng #'+b.dataset.id); }); });
   }
   function watch(){
@@ -4611,6 +4859,7 @@ const ADMIN = (() => {
     subs.push(Net.on('rooms', v=>{ leg=v||{}; if(unlocked && current==='admin') panel(); }));
     subs.push(Net.on(ROOT+'/rooms', v=>{ arc=v||{}; if(unlocked && current==='admin') panel(); }));
     subs.push(Net.on(ROOT+'/online', v=>{ onl=v||{}; if(unlocked && current==='admin') panel(); }));
+    subs.push(Net.on(ROOT+'/visitors', v=>{ vis=v||{}; if(unlocked && current==='admin' && tab==='visitors') panel(); }));
   }
   function form(title, sub, btn, two, onOk){
     $('ad-body').innerHTML=`<form class="rcard setup" id="ad-form" style="margin-top:20px"><div class="avprev"><div class="avbig" style="background:#334155">🛠</div><div class="avname">${title}</div></div><p class="mtxt" style="text-align:center">${sub}</p>
