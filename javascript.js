@@ -3025,15 +3025,18 @@ function tlCombos(hand){
 
 const TL_SEQ = ['🥇','🥈','🥉','4️⃣'];
 const TL_SAY = {
-  chop: ['Bay màu nhé con 💀','Toang rồi ní ơi 💥','Khét lẹt chưa 🔥','Ăn hành ngập mặt 🧅','Chốt đơn con heo 📦','U là trời, chặt! ⚡','Đi mà khóc đi 😭','Hết nước chấm 🫗','Gãy cánh nha 🪽','Ez lắm mấy bây 😎','Cạn lời với mày 🤐','Dzô đây ba 🔪','Xử gọn 💅','Chốt kèo cái rụp 🎯','Mày hết cứu rồi 🏳️','Nằm xuống em ơi ⚰️','Ăn ngay và luôn 🍜','Flex phát chặt nè 💪'],
-  ngang: ['Chặt ngang bất ngờ chưa 😮','Ra tay không báo trước ⚡','Bẻ lái cực gắt 🏎️💨','Không ai cản nổi anh 💢','Đỉnh của chóp 🏔️','Nhập cuộc, né đi 🥷','Ngang hông luôn á 😤','Xuất hiện đúng lúc 🦸','Góp vui tí 🎪'],
-  heo: ['Heo nè cưng 🐷','Thả thính con heo 🐽','Đỡ con heo zìa 🐖','Heo bay phấp phới 🐷✨','Nhẹ nhàng con heo 🍖','Heo tới, né đi 🐷💨','Ụt ụt 🐽','Lùa heo về chuồng nè 🚜','Con heo mập đây 🐷🍗'],
-  white: ['Tới trắng, khỏi bàn 🎉','Bài thần thánh, ez 🃏✨','Khỏi đánh thắng luôn 😤','Đỉnh nóc kịch trần 🚀','Số hưởng vô đối 🍀','Ông trời thương tui 🙏','Trúng số rồi nha 🎰'],
-  win: ['Dọn sạch, bai mấy đứa 😎','Về nhất ez game 🥇','Xin phép cạn bài trước 👋','GG no re nha 🎮','Flex nhẹ cái nhất 💅','Trùm cuối là đây 👑','Tạm biệt và hẹn gặp lại 🫡','Hết bài, dìa nhà 🏠','Nhất bàn không đối thủ 🏆']
+  chop: ['Mày hả bưởi 🍊','Chếc gồi con ơi 💀','Ét ô ét chưaaa 🆘','Khét lẹt luôn 🔥','U là trời chặt nè 😱','Ăn gạch nha cưng 🧱','Xu cà na rồi 😭','Mai đẹt ti ni 🪦','Khóc tiếng Mán đi 😭','Hong có cửa đâu 🚪','Đi về mà khóc 🚶','Tấu hài ghê ta 🤡','Chằm Zn chưa 😵','Nằm im ăn chặt 🔪','Báo nhà luôn á 📢','Cạu quá đi 😤','Hết cứu chữa 🏥','Dảk dảk bủh bủh 💀','Ô kê la chưa 👌','Chặt đẹp hông bây 🔪','Toang thật rồi em 💥','Cúp điện luôn á ⚡','Bay màu nha con 🎨'],
+  ngang: ['Ngang hông bất ngờ 😮','Bẻ lái gắt cực 🏎️','Tới công chuyện 🔥','Đỉnh kout luôn 🏔️','Real khôn lỏi 🤨','Pha này căng đét ⚡','Lụm liền tay 🤲','Ảo ma Canada 🍁'],
+  heo: ['Heo nè đỡ đi 🐷','Heo nè cưng 🐷','Mlem mlem con heo 😋','Thả heo nha 🐽','Đỡ con heo zìa 🐖','Heo bay tán loạn 🐷💨','Ụt ụt gòi nha 🐽','Lùa heo về chuồng 🚜','Heo tới, xu cà na 🐷','Ăn con heo đi cưng 🍖','Heo rừng tới nha 🐗','Hức con heo zô 🐽','Đỡ hông nổi đâu 🐷','Hai con heo bự nè 🐷🐷','Heo nái zìa làng 🐖'],
+  white: ['Tới trắng, đỉnh nóc 🚀','Khỏi bàn luôn á 🎉','Bài thần thánh 🃏','Số hưởng vô đối 🍀','Trời thương con ghê 🙏','Ảo ma Canada thật 🍁','Mai đẹt ti ni là đây ✨'],
+  win: ['Dọn sạch, bai nha 😎','Về nhất ez game 🥇','Cạn bài trước nha 👋','GG no re luôn 🎮','Flex cái nhất 💅','Trùm cuối là tui 👑','Đỉnh của chóp 🏆','Mai đẹt ti ni 🌟','Hết nước chấm 🫗'],
+  pass: ['Bỏ lượt nha 🙅','Thôi cho qua ✋','Em xin kiếu ván này 😮‍💨','Bài xấu quá bỏ 😔','Hẹn ván sau nha 👋','Né cái đã 🫣','Bỏ, hông ham 💤','Ô pải phơ, bỏ 🫠','Đợi heo rồi tính 🐷','Giữ bài, bỏ lượt 🤐'],
+  de: ['Đè nèeee 😤','Nín chưa cưng 😏','Tuổi gì mà đòi 👶','Đỡ nổi hông 😮','Trên cơ nha 💪','Dí tới luôn 🔥','Hơn một bậc hà 📈','Chịu thua đi em 🙃','Gọi anh sư phụ 🥋','Ăn đè cho nhớ 🍚','Có chừa chưa 😎','Lớn hơn xíu hà 🤏','Đạp lên mà đi 👟','Khôn hồn thì né 🫵','Real là trên cơ 🤨','Cột sống luôn nha 🦴']
 };
 const tlSay = a => a[Math.floor(Math.random()*a.length)];
 const TL_COL = ['#38bdf8','#f472b6','#fbbf24','#4ade80','#a78bfa','#fb923c','#2dd4bf','#f87171'];
-const tlCardH = (c, cls, sel) => `<span class="pc ${tlRed(c)?'red':''} ${cls||''}${sel?' sel':''}"><b>${c.slice(0,-1)}</b><i>${c.slice(-1)}</i></span>`;
+const tlPcInner = c => { const r=c.slice(0,-1), su=c.slice(-1); return `<span class="pc-i tl"><b>${r}</b><i>${su}</i></span><span class="pc-mid">${su}</span><span class="pc-i br"><b>${r}</b><i>${su}</i></span>`; };
+const tlCardH = (c, cls, sel) => `<span class="pc ${tlRed(c)?'red':''} ${cls||''}${sel?' sel':''}">${tlPcInner(c)}</span>`;
 TG.tienlen = {
   per:{ sc:0, wins:0, hand:()=>[], pass:0, game:0 },
   lists:['pile','ranks','cong','res'],
@@ -3048,13 +3051,14 @@ TG.tienlen = {
     s.pile=[]; s.pileBy=-1; s.pass=s.P.map(()=>0); s.ranks=[]; s.cong=[]; s.game=s.P.map(()=>0); s.chop=0; s.chopV=-1; s.res=[]; s.must=''; s.say=null; s.dealt=now;
     TGU.phase(s,'play',0,now);
     for(let i=0;i<n;i++){ const why=tlInstant(s.hand[i]); if(why){
-      s.P.forEach((p,j)=>{ if(j!==i){ s.game[j]-=2; s.game[i]+=2; } });
+      s.P.forEach((p,j)=>{ if(j===i) return; const pen=3+tlHeoPts(s.hand[j]); s.game[j]-=pen; s.game[i]+=pen; });
       s.say={ i, t:tlSay(TL_SAY.white), ts:now };
-      this.finish(s, [i], now, '⚡ TỚI TRẮNG! '+this.nm(s,i)+' — '+why); return; } }
+      this.finish(s, [i], now, '⚡ TỚI TRẮNG! '+this.nm(s,i)+' quá đẳng cấp — '+why); return; } }
+    s.hold = now + 1900;   // tạm dừng ~1.9s để chia bài xong mới đánh
     let lead = s.lastW>=0 && s.lastW<n ? s.lastW : -1;
     if(lead<0){ let low=null; s.hand.forEach((h,i)=>{ if(!low || tlV(h[0])<tlV(low.c)) low={i,c:h[0]}; }); lead=low.i; s.must=low.c; }
     this.setTurn(s, lead, now);
-    TGU.log(s, '🃏 Ván '+s.gn+' — '+this.nm(s,lead)+' đi trước'+(s.must?' (phải có '+s.must+')':''), '', now);
+    TGU.log(s, '🏁 Ván '+s.gn+' — '+this.nm(s,lead)+' đi trước', '', now);
   },
   next(s, from, pileBy){
     const n=s.P.length, has=i=>s.hand[i].length>0;
@@ -3062,7 +3066,7 @@ TG.tienlen = {
     for(let k=1;k<=n;k++){ const i=(pileBy+k)%n; if(has(i)) return {turn:i, nr:true}; }
     return {turn:-1, nr:true};
   },
-  newRound(s, i, now){ s.pile=[]; s.pileBy=-1; s.pass=s.P.map(()=>0); s.chop=0; s.chopV=-1; if(!s.log || s.log.ts!==now) TGU.log(s,'🔄 Vòng mới — '+this.nm(s,i)+' đi','',now); },
+  newRound(s, i, now){ s.pile=[]; s.pileBy=-1; s.pass=s.P.map(()=>0); s.chop=0; s.chopV=-1; if(!s.log || s.log.ts!==now) TGU.log(s,'🆕 '+this.nm(s,i)+' được đi tự do','',now); },
   // 4 đôi thông được chặt ngang (không cần tới lượt) khi trên bàn là heo hoặc bom
   ngang(s, i, cards){
     if(s.ph!=='play' || !s.pile.length || s.pileBy===i || !s.hand[i].length) return false;
@@ -3098,8 +3102,11 @@ TG.tienlen = {
     return '';
   },
   act(s, i, a, now){
+    if(s.hold && now < s.hold) return false;
+    if(a.t==='next'){ if(s.ph!=='res' || s.over) return false; this.deal(s, now, rng||Math.random); return true; }
+    if(a.t==='end'){ if(s.ph!=='res' || s.over) return false; s.over=1; s.dl=0; const w=s.sc.indexOf(Math.max(...s.sc)); TGU.log(s,'🏆 '+this.nm(s,w)+' vô địch Tiến Lên!','big',now); return true; }
     if(a.t==='pass'){ if(s.ph!=='play' || s.turn!==i || !s.pile.length) return false;
-      s.pass[i]=1; const nx=this.next(s, i, s.pileBy); if(nx.nr) this.newRound(s, nx.turn, now); this.setTurn(s, nx.turn, now); return true; }
+      s.pass[i]=1; s.passed={ i, t:tlSay(TL_SAY.pass), ts:now }; const nx=this.next(s, i, s.pileBy); if(nx.nr) this.newRound(s, nx.turn, now); this.setTurn(s, nx.turn, now); return true; }
     if(a.t!=='play') return false;
     const cards=(a.c||[]).filter(x=>typeof x==='string'); if(this.check(s,i,cards)) return false;
     const res=tlBeat(s.pile, cards), P=tlType(s.pile), ngang = s.turn!==i;
@@ -3114,7 +3121,7 @@ TG.tienlen = {
     if(chop){ s.game[i]+=chop; s.game[victim]-=chop;
       TGU.log(s,'💥 '+this.nm(s,i)+(ngang?' CHẶT NGANG ':' CHẶT ')+this.nm(s,victim)+'  '+(s.chop?'(chồng) ':'')+'+'+chop,'big',now);
       s.say={ i, t:tlSay(ngang?TL_SAY.ngang:TL_SAY.chop), ts:now }; }
-    else if(P && P.rk===TL_TWO && !s.hand[i].length===false && Math.random()<.5){ s.say={ i, t:tlSay(TL_SAY.heo), ts:now }; }
+    else if(s.pile.length && P){ if(tlType(cards).rk===TL_TWO && Math.random()<.6) s.say={ i, t:tlSay(TL_SAY.heo), ts:now }; else if(Math.random()<.4) s.say={ i, t:tlSay(TL_SAY.de), ts:now }; }
     if(ngang) s.pass[i]=0;
     s.chopV = chop ? victim : -1;
     s.chop=chop; s.pile=tlSort(cards); s.pileBy=i; s.must='';
@@ -3139,11 +3146,11 @@ TG.tienlen = {
         const th=tlHeoPts(s.hand[last]); if(th){ s.game[last]-=th; s.game[full[0]]+=th; notes[last]+='Thối heo −'+th+' '; }
         const tb=this.bombs(s.hand[last]); if(tb.pts){ s.game[last]-=tb.pts; s.game[full[0]]+=tb.pts; notes[last]+='Thối '+tb.names.join(', ')+' −'+tb.pts; }
       }
-    } else notes[full[0]]=why.split('— ')[1]||'';
+    } else { full.forEach(i=>{ notes[i] = i===full[0] ? (why.split('— ')[1]||'') : 'Tới trắng '+s.game[i]; }); }
     s.res=full.map((i,k)=>({ i, rank:why?(k?2:1):k+1, pts:s.game[i], note:notes[i] }));
     full.forEach(i=>{ s.sc[i]+=s.game[i]; }); s.wins[full[0]]++; s.lastW=full[0];
     s.turn=-1; TGU.log(s, why || '🏆 '+this.nm(s,full[0])+' thắng ván!', 'big', now);
-    TGU.phase(s,'res',7000,now);
+    TGU.phase(s,'res',0,now);
   },
   pick(s, i, hint){
     const hand=s.hand[i], pile=s.pile; if(!hand.length) return null;
@@ -3161,6 +3168,7 @@ TG.tienlen = {
     return best;
   },
   tick(s, now, rng){
+    if(s.hold && now < s.hold) return false;
     if(s.ph==='play' && s.pile.length && (tlType(s.pile).rk===TL_TWO || s.chop)){
       for(let j=0;j<s.P.length;j++){ if(!s.P[j].bot || j===s.turn) continue; const o=this.ngangOpts(s,j); if(o.length && rng()<.2) return this.act(s,j,{t:'play',c:o[0]},now); }
     }
@@ -3170,10 +3178,6 @@ TG.tienlen = {
       if(s.dl && now>=s.dl){ if(s.pile.length) return this.act(s,i,{t:'pass'},now); return this.act(s,i,{t:'play',c:[s.must||s.hand[i][0]]},now); }
       return false;
     }
-    if(s.ph==='res' && now>=s.dl){
-      if(s.gn>=s.rounds){ s.over=1; s.dl=0; const w=s.sc.indexOf(Math.max(...s.sc)); TGU.log(s,'🏆 '+this.nm(s,w)+' vô địch Tiến Lên!','big',now); return true; }
-      this.deal(s, now, rng); return true;
-    }
     return false;
   },
   turn: s => s.ph==='play' ? s.turn : -1,
@@ -3182,6 +3186,19 @@ TG.tienlen = {
   badge(s,i){ if(s.ph==='res'){ const r=s.res.find(x=>x.i===i); return r ? TL_SEQ[r.rank-1]+' '+(r.pts>0?'+':'')+r.pts : ''; }
     const n=s.hand[i].length; return n ? '🂠 '+n+(s.pass[i]?' · bỏ':'') : TL_SEQ[s.ranks.indexOf(i)]||'✅'; },
   result: s => TGU.rank(s.sc, true, (v,i)=>(v>0?'+':'')+v+' điểm · '+s.wins[i]+' ván nhất'),
+  status(s, me, now){
+    const RK=['🥇','🥈','🥉','😿'];
+    if(s.ph==='res'){
+      if(s.log && now-s.log.ts < 6500 && s.log.k==='big') return { txt: escH(s.log.txt), cls:'big' };
+      return { txt: s.res.map(r=>`<b>${RK[Math.min(r.rank-1,3)]} ${escH(this.nm(s,r.i))}</b>`).join(' · '), cls:'win' };
+    }
+    if(s.hold && now < s.hold) return { txt:'🃏 <b>Đang chia bài…</b>', cls:'' };
+    const fresh = s.log && now-s.log.ts < 4500, big = fresh && ['big','win','lose'].includes(s.log.k);
+    if(s.ph==='play' && s.turn===me && !big) return { txt:'✋ <b>Tới lượt bạn!</b>', cls:'me' };
+    if(fresh) return { txt: escH(s.log.txt), cls: s.log.k||'' };
+    if(s.ph==='play' && s.turn>=0) return { txt:'⏳ Lượt của <b>'+escH(this.nm(s,s.turn))+'</b>', cls:'' };
+    return null;
+  },
   // chủ phòng dừng giữa chừng: chốt điểm các ván đã chơi xong
   partial(s){ const done = s.ph==='res' ? s.gn : s.gn-1; if(done<1) return null;
     return { rows:TGU.rank(s.sc, true, (v,i)=>(v>0?'+':'')+v+' điểm · '+s.wins[i]+' ván nhất'), note:'⏹ Dừng sau '+done+'/'+s.rounds+' ván' }; },
@@ -3220,6 +3237,8 @@ TG.tienlen = {
     else if(v.k==='clr'){ ui.sel=[]; ui.tapC=null; }
     else if(v.k==='sort'){ ui.sort=((ui.sort||0)+1)%3; toast('🔀 Xếp bài: '+this.SORTS[ui.sort]); }
     else if(v.k==='hint'){ ui.tapC=null; const p=this.pick(s, me, true); if(p) ui.sel=p.slice(); else toast('🤔 Không có bài chặn được — bỏ lượt thôi'); }
+    else if(v.k==='next'){ send({ t:'next' }); }
+    else if(v.k==='end'){ send({ t:'end' }); }
   },
   prep(a, ui, s, me){
     if(a.t!=='play') { ui.sel=[]; return a; }
@@ -3232,11 +3251,12 @@ TG.tienlen = {
     if(ui.apKey===key || this.plays(s, me).length) return;
     ui.apKey=key; setTimeout(()=>send({ t:'pass' }), 900);
   },
-  ownSeats: true,      // tự vẽ ghế quanh bàn → ẩn dải người chơi phía trên
+  ownSeats: true,
+  noBanner: true,      // tự vẽ ghế quanh bàn → ẩn dải người chơi phía trên
   // vị trí quanh bàn: mình ở dưới, người đánh kế tiếp ở bên phải (đi ngược chiều kim đồng hồ)
   spot(n, o){ return n===2 ? ['b','t'][o] : n===3 ? ['b','r','l'][o] : ['b','r','t','l'][o]; },
-  seat(s, i, me, base, now, dealE){
-    now = now || Date.now();
+  seat(s, i, me, base, now, dealE, dStep, N){
+    now = now || Date.now(); dStep=dStep||40; N=N||s.P.length;
     const p=s.P[i], n=s.hand[i].length, turn=s.ph==='play' && s.turn===i, rk=s.ranks.indexOf(i), res=s.ph==='res' ? s.res.find(r=>r.i===i) : null;
     const pos=this.spot(s.P.length, (i-base+s.P.length)%s.P.length);
     let st = res ? `<b class="${res.pts>0?'up':res.pts<0?'dn':''}">${TL_SEQ[res.rank-1]||''} ${res.pts>0?'+':''}${res.pts}</b>`
@@ -3245,58 +3265,75 @@ TG.tienlen = {
     let cards='';
     if(pos!=='b'){
       if(s.ph==='res' && n) cards=`<div class="tl4-open">${s.hand[i].map(c=>tlCardH(c,'xs')).join('')}</div>`;
-      else if(n){ const show=Math.min(n,pos==='t'?13:5);
-        const backs=[...Array(show)].map((_,k)=>{ const de=dealE<1500?(dealE-k*55):9999; return de<400 ? `<span class="pc back xs deal" style="animation-delay:${-Math.max(0,de)}ms"></span>` : '<span class="pc back xs"></span>'; }).join('');
-        cards=`<div class="tl4-fan">${backs}</div><em class="tl4-n${n<=2?' warn':''}">${n} lá</em>`; }
+      else if(n){ const cap=pos==='t'?13:8;
+        let reveal=n; if(dealE<9999) reveal=Math.max(0,Math.min(n,Math.floor((dealE/dStep - i)/N)+1));
+        const show=Math.min(reveal,cap);
+        const backs=[...Array(show)].map((_,k)=>{ const o=i+k*N, de=dealE-o*dStep; return de>=0&&de<420 ? `<span class="pc back xs dealin" style="animation-delay:${-Math.max(0,de)}ms"></span>` : '<span class="pc back xs"></span>'; }).join('');
+        cards=`<div class="tl4-fan">${backs}</div><em class="tl4-n${reveal<=2&&reveal>0?' warn':''}">${reveal} lá</em>`; }
     }
+    const passB = s.passed && s.passed.i===i && now-s.passed.ts<2600 ? s.passed.t : '';
     const chatT = TGU.chat ? TGU.chat(p.id) : '';
-    const sayT = s.say && s.say.i===i && now-s.say.ts < 3200 ? s.say.t : '';
-    const bub = chatT || sayT;
-    const say = bub ? `<div class="tl4-bubble${chatT?' chat':''}">${escH(bub)}</div>` : '';
-    return `<div class="tl4-z z-${pos}${turn?' turn':''}${i===me?' me':''}${s.pass[i]&&s.pile.length&&!turn?' passed':''}${rk>=0?' done':''}">${say}
-      <div class="tl4-av" style="--pc:${TL_COL[i%TL_COL.length]}">${escH(p.a)}${TGU.emo?TGU.emo(p.id):''}</div>
-      <div class="tl4-info"><span class="tl4-nm">${escH(p.n)}</span><span class="tl4-sc">${(s.sc[i]>0?'+':'')+s.sc[i]} đ</span>${st?`<span class="tl4-st">${st}</span>`:''}</div>${cards}</div>`;
+    const say = passB ? `<div class="tl4-bubble pass" style="animation-delay:-${now-s.passed.ts}ms">${escH(passB)}</div>` : chatT ? `<div class="tl4-bubble chat">${escH(chatT)}</div>` : '';
+    const winner = s.ph==='res' && s.res && s.res[0] && s.res[0].i===i;
+    const king = winner ? '<span class="tl4-king drop">👑</span>' : (s.gn>1 && s.lastW===i && s.ph==='play' ? '<span class="tl4-king">👑</span>' : '');
+    return `<div class="tl4-z z-${pos}${turn?' turn':''}${i===me?' me':''}${s.pass[i]&&s.pile.length&&!turn?' passed':''}${rk>=0?' done':''}${king?' king':''}${winner?' winner':''}" style="--pc:${TL_COL[i%TL_COL.length]}">${say}
+      <div class="tl4-av">${king}${escH(p.a)}${TGU.emo?TGU.emo(p.id):''}</div>
+      <div class="tl4-info"><span class="tl4-nm">${escH(p.n)}</span>${st?`<span class="tl4-st">${st}</span>`:''}</div>${cards}</div>`;
   },
   view(s, me, ui, now){
     now = now || Date.now();
     const sel=(ui.sel||[]).filter(c=>me>=0 && s.hand[me].includes(c)); ui.sel=sel;
     const base = me>=0 ? me : 0, pt=tlType(s.pile);
     if(ui.dealKey!==s.gn){ ui.dealKey=s.gn; ui.dealAt=Date.now(); }
-    const dealE = Date.now()-(ui.dealAt||0), dealing = dealE<1500;
+    const N=s.P.length, dStep=Math.max(24, Math.round(1900/(N*13)));
+    const dealE = Date.now()-(ui.dealAt||0), dealTot=(N*13)*dStep+420, dealing = dealE<dealTot;
     const shake = s.chop && ui.flyAt && Date.now()-ui.flyAt<700 && ui.flySig===s.gn+'|'+s.pileBy+'|'+s.pile.join('');
-    let h=`<div class="tlx tl4"><div class="tl4-table${shake?' chopped':''}">`;
-    s.P.forEach((p,i)=>{ h += this.seat(s, i, me, base, now, dealing?dealE:9999); });
-    if(dealing && dealE<1300) h += `<div class="tl4-deck" style="opacity:${Math.max(0,1-dealE/1300)}">${'<span class="pc back"></span>'.repeat(5)}</div>`;
+    let h='<div class="tlx tl4">';
+    // bảng điểm (CSS đưa sang trái trên máy tính, thành dải ngang trên điện thoại)
+    const order=s.P.map((p,i)=>i).sort((a,b)=>s.sc[b]-s.sc[a]), top=Math.max(...s.sc);
+    h += '<div class="tl-scores"><div class="tl-sc-h">🏆 Điểm</div>'+order.map(i=>`<div class="tl-sc-r${i===me?' me':''}${s.sc[i]===top&&top>0?' lead':''}" style="--pc:${TL_COL[i%TL_COL.length]}"><span class="tl-sc-a">${escH(s.P[i].a)}</span><span class="tl-sc-n">${escH(s.P[i].n)}</span><b class="tl-sc-v">${(s.sc[i]>0?'+':'')+s.sc[i]}</b><small>${s.wins[i]}🥇</small></div>`).join('')+'</div>';
+    h += `<div class="tl4-table${shake?' chopped':''}">`;
+    if(s.ph==='play' && !s.pile.length) h += '<div class="tl4-wm">TIẾN LÊN</div>';
+    s.P.forEach((p,i)=>{ h += this.seat(s, i, me, base, now, dealing?dealE:9999, dStep, N); });
+    if(dealing && dealE<dealTot-150 && s.ph==='play') h += `<div class="tl4-deck" style="opacity:${Math.max(0,1-dealE/dealTot)};transform:translate(-50%,-50%) scale(${Math.max(.55,1.3-dealE/dealTot)})">${'<span class="pc back"></span>'.repeat(6)}</div>`;
     h += '<div class="tl4-mid">';
     if(s.ph==='res'){
       h += '<div class="tl4-confetti">'+[...Array(16)].map((_,k)=>`<i style="--x:${(k*6.3-5).toFixed(0)}%;--d:${(k%5)*.15}s;--c:${TL_COL[k%TL_COL.length]}"></i>`).join('')+'</div>';
       h += '<div class="tl-res">'+s.res.map(r=>`<div class="tl-rr${r.i===me?' me':''}"><span>${TL_SEQ[r.rank-1]||r.rank}</span><b>${escH(this.nm(s,r.i))}</b><em class="${r.pts>0?'up':r.pts<0?'dn':''}">${r.pts>0?'+':''}${r.pts}</em><small>${escH(r.note||'')}</small></div>`).join('')+'</div>';
+      let host=false; try{ host = typeof ARC!=='undefined' && ARC._t && ARC._t.host(); }catch(e){}
+      if(host && !s.over) h += `<div class="tl-res-ctl"><button class="tbtn green big" data-ui='{"k":"next"}'>🔄 Ván mới</button><button class="tbtn gray big" data-ui='{"k":"end"}'>🏁 Kết thúc trận</button></div>`;
+      else if(s.over) h += `<div class="tl-res-ctl"><div class="tl-champ">🏆 ${escH(this.nm(s,s.sc.indexOf(Math.max(...s.sc))))} vô địch!</div></div>`;
+      else h += `<div class="tl-res-ctl"><div class="tl-wait">⏳ Chờ chủ phòng chia ván mới…</div></div>`;
     } else if(s.pile.length){
       const sig=s.gn+'|'+s.pileBy+'|'+s.pile.join(''), nowMs=Date.now();
       if(ui.flySig!==sig){ ui.flySig=sig; ui.flyAt=nowMs; }
       const el=nowMs-(ui.flyAt||0), from=this.spot(s.P.length, (s.pileBy-base+s.P.length)%s.P.length);
       const fly = el<600 ? ` fly fly-${from}${s.chop?' chop':''}" style="animation-delay:-${el}ms` : '';
-      h += `<div class="tl-pile"><div class="pcs tl-pc${fly}">${s.pile.map(c=>tlCardH(c,'')).join('')}</div><small>${escH(this.nm(s,s.pileBy))} · ${tlName(pt)}${s.chop?' · 💥 chặt':''}</small></div>`;
+      h += `<div class="tl-pile"><div class="pcs tl-pc${fly}">${s.pile.map(c=>tlCardH(c,'')).join('')}</div></div>`;
     } else {
-      h += `<div class="tl-pile empty">${s.ph==='play' && s.turn>=0 ? '🆕 '+escH(this.nm(s,s.turn))+'<br>được đi tự do'+(s.must?'<br>phải có <b>'+s.must+'</b>':'') : ''}</div>`;
+      h += `<div class="tl-pile empty">${s.must && s.ph==='play' ? 'Phải đánh có lá <b>'+s.must+'</b>' : ''}</div>`;
     }
-    if(s.ph==='play'){ const one=s.P.map((p,i)=>i).filter(i=>s.hand[i].length===1);
-      if(one.length) h += `<div class="tl4-warn">⚠️ ${one.map(i=>escH(this.nm(s,i))).join(', ')} còn 1 lá!</div>`; }
+    if(s.say && now-s.say.ts < 2600) h += `<div class="tl4-pop" style="--pc:${TL_COL[s.say.i%TL_COL.length]};animation-delay:-${now-s.say.ts}ms">${escH(s.say.t)}</div>`;
     h += `</div></div>`;
     if(me<0) return h+'<div class="bg-msg">👀 Bạn đang xem</div></div>';
     const hand=this.arrange(s.hand[me], ui.sort||0), my=s.ph==='play' && s.turn===me;
     const plays = my ? this.plays(s, me) : [], ok1 = new Set(); plays.forEach(x=>x.forEach(c=>ok1.add(c)));
     const ngo = this.ngangOpts(s, me);
     if(hand.length){
-      h += `<div class="tl-hand${my?' my':''}">${hand.map((c,k)=>{ const dim=my&&s.pile.length&&!ok1.has(c)?' class="dim"':''; const de=dealing?(dealE-k*45):9999;
-        const card = de<420 ? `<span class="pc lg deal${sel.includes(c)?' sel':''}${tlRed(c)?' red':''}" style="animation-delay:${-Math.max(0,de)}ms"><b>${c.slice(0,-1)}</b><i>${c.slice(-1)}</i></span>` : tlCardH(c,'lg',sel.includes(c));
-        return `<span data-ui='${JSON.stringify({k:'c',c})}'${dim}>${card}</span>`; }).join('')}</div>`;
+      h += `<div class="tl-hand flat${my?' my':''}">${hand.map((c,k)=>{ const dim=my&&s.pile.length&&!ok1.has(c)?' dim':''; const o=me+k*N;
+        if(dealing && dealE < o*dStep) return '';
+        const de=dealing?(dealE-o*dStep):9999;
+        const card = de<420 ? `<span class="pc lg dealin${sel.includes(c)?' sel':''}${tlRed(c)?' red':''}" style="animation-delay:${-Math.max(0,de)}ms">${tlPcInner(c)}</span>` : tlCardH(c,'lg',sel.includes(c));
+        return `<span class="tl-card${dim}" data-ui='${JSON.stringify({k:'c',c})}' style="z-index:${k}">${card}</span>`; }).join('')}</div>`;
       if(s.ph==='play'){
         const t=tlType(sel), ok=my && !this.check(s, me, sel);
         const tap = ui.tapC && ui.tapN>1 && sel.length ? ` <small class="tl-tap">bộ ${ui.tapK+1}/${ui.tapN} · chạm lá đó lần nữa để đổi</small>` : '';
         h += `<div class="bg-msg">${my ? (sel.length ? (t?tlName(t)+(ok?' ✅':' — không chặn được'):'❌ Không thành bộ')+tap : s.pile.length && !plays.length ? '😕 Không có bài chặn được — bỏ lượt thôi'+(this.apOn()?' (đang tự bỏ…)':'') : '👉 Tới lượt bạn! Chạm 1 lá để tự chọn bộ') : '⏳ '+escH(this.nm(s,s.turn))+' đang đánh…'}</div>`;
         if(ngo.length) h += `<div class="bg-ctl c"><button class="tbtn big red tl-ngang" data-ui='{"k":"ngang"}'>💥 CHẶT NGANG bằng 4 đôi thông!</button></div>`;
-        h += `<div class="bg-ctl c tl-ctl"><button class="tbtn ${this.apOn()?'on':'gray'} tl-ap" data-ui='{"k":"ap"}' title="Tự bỏ những vòng không chặn được">🤖 Tự bỏ lượt: ${this.apOn()?'Bật':'Tắt'}</button><button class="tbtn gray" data-ui='{"k":"sort"}' title="Đổi cách xếp bài">🔀 ${this.SORTS[ui.sort||0]}</button>${sel.length?`<button class="tbtn gray" data-ui='{"k":"clr"}'>✖ Bỏ chọn</button>`:''}${my&&s.pile.length?TGU.btn({t:'pass'},'⏭ Bỏ lượt','gray'):''}${my?`<button class="tbtn" data-ui='{"k":"hint"}'>💡 Gợi ý</button>`:''}${my?TGU.btn({t:'play'},'🃏 Đánh','green big',!ok):''}</div>`;
+        if(my){
+          h += `<div class="tl-util"><button class="util ${this.apOn()?'on':''}" data-ui='{"k":"ap"}' title="Tự bỏ những vòng không chặn được">🤖 Tự bỏ: ${this.apOn()?'Bật':'Tắt'}</button><button class="util" data-ui='{"k":"sort"}' title="Đổi cách xếp bài">🔀 ${this.SORTS[ui.sort||0]}</button><button class="util" data-ui='{"k":"hint"}'>💡 Gợi ý</button>${sel.length?`<button class="util" data-ui='{"k":"clr"}'>✖ Bỏ chọn</button>`:''}</div>`;
+          h += `<div class="tl-main">${s.pile.length?TGU.btn({t:'pass'},'⏭ Bỏ lượt','gray big pass'):''}${TGU.btn({t:'play'},'🃏 ĐÁNH BÀI','green big play',!ok)}</div>`;
+        } else h += `<div class="tl-util"><button class="util" data-ui='{"k":"sort"}'>🔀 ${this.SORTS[ui.sort||0]}</button></div>`;
       }
     } else if(s.ph==='play') h += `<div class="bg-msg win">${TL_SEQ[s.ranks.indexOf(me)]||'✅'} Bạn đã hết bài — chờ ván kết thúc</div>`;
     return h+'</div>';
@@ -4675,7 +4712,7 @@ const TABLE = (() => {
 
   /* ---------- giao diện ---------- */
   TGU.emo = id => emoOf(id);
-  function emoOf(id){ const e=d && d.emo && d.emo[id]; return e && Net.now()-(e.ts||0)<3200 ? `<i class="tbp-e">${escH(e.e)}</i>` : ''; }
+  function emoOf(id){ const e=d && d.emo && d.emo[id]; if(!e) return ''; const el=Net.now()-(e.ts||0); return el<5000 ? `<i class="tbp-e" style="animation-delay:${-el}ms">${escH(e.e)}</i>` : ''; }
   function banner(log){
     const el=document.createElement('div'); el.className='tb-banner '+(log.k||''); el.textContent=log.txt; $('arc').appendChild(el); setTimeout(()=>el.remove(), 2300);
     if(log.k==='win'){ beep(784,.12); setTimeout(()=>beep(1046,.22),120); } else if(log.k==='lose'){ beep(220,.25,'sawtooth',.1); } else if(log.k==='big'){ [523,659,784,1046].forEach((f,i)=>setTimeout(()=>beep(f,.15),i*110)); } else beep(600,.07);
@@ -4696,19 +4733,20 @@ const TABLE = (() => {
     body.innerHTML = html;
     checkTurn(s, me, turn);
     if(M.after) try{ M.after(s, me, ui, body, send); }catch(e){ console.error(e); }
-    if(s.log && s.log.ts>lastLog){ lastLog=s.log.ts; if(Net.now()-s.log.ts<4000) banner(s.log); }
+    const stv=$('tb-status'); if(M.status){ const st=M.status(s, me, Net.now()); if(st && st.txt){ stv.style.display=''; stv.className='tb-status '+(st.cls||''); stv.innerHTML=st.txt; } else stv.style.display='none'; } else stv.style.display='none';
+    if(s.log && s.log.ts>lastLog){ lastLog=s.log.ts; if(Net.now()-s.log.ts<4000 && !M.noBanner) banner(s.log); }
     $('tb-host').style.display = ARC._t.host() ? '' : 'none';
     frame();
   }
   function frame(){
     if(current!=='table' || !d || !d.state) return;
     const s=d.state, bar=$('tb-timer');
-    if(s.dl && !s.over){ const left=Math.max(0,s.dl-Net.now()), len=s.dlLen||15000; bar.style.display=''; bar.firstChild.style.width=Math.min(100,left*100/len)+'%'; bar.firstChild.style.background=left<4000?'#ef4444':'#fbbf24'; bar.lastChild.textContent=Math.ceil(left/1000)+'s'; }
+    if(s.dl && !s.over){ const left=Math.max(0,s.dl-Net.now()), len=s.dlLen||15000, mine=(M2=>M2&&M2.turn&&M2.turn(s)===mySeat(s))(TG[key]); bar.style.display=''; bar.classList.toggle('low', left<6000); bar.classList.toggle('mine', !!mine); bar.firstChild.style.width=Math.min(100,left*100/len)+'%'; bar.firstChild.style.background=left<6000?'#ef4444':mine?'#22c55e':'#fbbf24'; bar.lastChild.textContent=Math.ceil(left/1000)+'s'; }
     else bar.style.display='none';
     const M=TG[key]; if(M && M.frame) try{ M.frame(s, mySeat(s), ui, $('tb-body'), Net.now()); }catch(e){}
   }
   setInterval(frame, 100);
-  setInterval(()=>{ if(current==='table' && d && d.emo && Object.values(d.emo).some(e=>Net.now()-(e.ts||0)<3400)) render(); }, 1000);
+  setInterval(()=>{ if(current==='table' && d && d.emo && Object.values(d.emo).some(e=>Net.now()-(e.ts||0)<5200)) render(); }, 1000);
 
   // bấm trên bàn: data-act='{"t":"bet",...}'  |  data-ui = thao tác cục bộ (chọn mức cược, chọn bài…)
   document.addEventListener('click', e=>{
@@ -4760,6 +4798,7 @@ const TABLE = (() => {
     EmojiPicker.attach($('tbc-m'), $('tbc-e'));
     $('tbc-f').onsubmit=ev=>{ ev.preventDefault(); sendChat($('tbc-m')); };
   }
+  document.addEventListener('keydown', ev=>{ if(ev.key==='Escape'){ const sh=$('gsheet'); if(sh && sh.classList.contains('on')){ sh.classList.remove('on'); EmojiPicker.close(); } } });
   function hostMenu(){
     const sh=$('gsheet');
     sh.innerHTML=`<div class="sheet small"><b class="sh-t">Chủ phòng</b><p>Dừng ván này? ${TG[key]&&d&&d.state&&partial(d)?'Điểm các ván đã chơi xong sẽ được <b>chốt và ghi vào lịch sử</b>.':'Chưa có ván nào chơi xong nên sẽ không ghi kết quả.'}</p><div class="row2"><button id="hm-no">Chơi tiếp</button><button class="primary" id="hm-ok">⏹ Dừng ván</button></div></div>`;
