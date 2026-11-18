@@ -4908,15 +4908,23 @@ const ADMIN = (() => {
     $('ad-p1').focus();
     $('ad-form').onsubmit=e=>{ e.preventDefault(); onOk($('ad-p1').value.trim(), two?$('ad-p2').value.trim():null); };
   }
+  const PINP = ROOT+'/admin/pin';   // để trong 'arcade' cho khớp Rules (admin/pin ngoài nhánh sẽ bị Rules chặn → treo)
+  const getT = (p,ms)=>Promise.race([ Net.get(p), new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')), ms||7000)) ]);
+  function loadErr(msg){
+    $('ad-body').innerHTML='<div class="empty">⚠️ '+msg+'<br><small>Kiểm tra kết nối mạng, hoặc Rules Firebase chưa cho đọc/ghi nhánh <b>arcade/admin</b>.</small><br><button class="blue" id="ad-retry" style="margin-top:10px">Thử lại</button></div>';
+    const r=$('ad-retry'); if(r) r.onclick=render;
+  }
   async function render(){
     $('ad-body').innerHTML='<div class="empty">Đang tải…</div>';
-    pinHash = await Net.get('admin/pin');
+    try{ pinHash = await getT(PINP); }
+    catch(e){ return loadErr('Không đọc được dữ liệu quản trị.'); }
     if(pinHash && store.get('gh_admin',null)===pinHash) unlocked=true;
     if(unlocked){ watch(); panel(); return; }
-    if(!pinHash) return form('Tạo mã PIN quản trị','Lần đầu sử dụng: đặt mã PIN để mở trang này. Chỉ đặt được 1 lần — muốn đổi thì xóa mục <b>admin</b> trên Firebase Console.','Lưu mã PIN',true, async (a,b)=>{
+    if(!pinHash) return form('Tạo mã PIN quản trị','Lần đầu sử dụng: đặt mã PIN để mở trang này. Chỉ đặt được 1 lần — muốn đổi thì xóa mục <b>arcade/admin</b> trên Firebase Console.','Lưu mã PIN',true, async (a,b)=>{
       if(!/^\d{4,12}$/.test(a)) return toast('⚠️ PIN gồm 4–12 chữ số'); if(a!==b) return toast('⚠️ Hai lần nhập không khớp');
-      const h=await sha(a); await Net.set('admin/pin', h);
-      const back=await Net.get('admin/pin'); if(back!==h) return toast('❌ Không lưu được — kiểm tra Rules (mục admin)');
+      const h=await sha(a);
+      try{ await Net.set(PINP, h); const back=await getT(PINP); if(back!==h) return toast('❌ Không lưu được — kiểm tra Rules (nhánh arcade/admin)'); }
+      catch(e){ return toast('❌ Không lưu được — kiểm tra Rules (nhánh arcade/admin)'); }
       store.set('gh_admin',h); unlocked=true; toast('✅ Đã tạo mã PIN'); render(); });
     form('Trang quản trị','Nhập mã PIN để quản lý phòng chơi.','Mở khóa',false, async a=>{
       const h=await sha(a); if(h!==pinHash) return toast('❌ Sai mã PIN');
